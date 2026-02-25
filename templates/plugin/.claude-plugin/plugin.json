@@ -1,0 +1,12 @@
+{
+  "name": "PLUGIN_NAME",
+  "description": "DESCRIPTION",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": [],
+  "skills": ["./skills/SKILL_NAME"],
+  "agents": ["./agents/AGENT_NAME"],
+  "hooks": "./hooks/hooks.json",
+  "mcpConfig": "./.mcp.json"
+}

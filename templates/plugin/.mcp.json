@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "example": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/servers/example-server",
+      "args": []
+    }
+  }
+}
