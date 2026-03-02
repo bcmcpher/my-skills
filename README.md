@@ -119,6 +119,34 @@ Graduate to a standalone repo when:
 - Plugin has its own tests, CI, or external dependencies
 - Others should be able to `claude plugin install github.com/bcmcpher/<name>`
 
+### Graduation checklist
+
+```bash
+# 1. Create the new repo and push the plugin contents (not the whole monorepo)
+gh repo create bcmcpher/<plugin-name> --public --clone
+cp -r plugins/<plugin-name>/. <plugin-name>/
+cd <plugin-name> && git add . && git init && git commit -m "initial commit"
+git remote add origin https://github.com/bcmcpher/<plugin-name>
+git push -u origin main
+```
+
+Then in the new repo:
+
+- [ ] **`README.md`** — confirm install instructions point to the new repo URL:
+  `claude plugin install https://github.com/bcmcpher/<plugin-name>`
+- [ ] **`CHANGELOG.md`** — add an initial entry (`## 0.1.0 — initial release`)
+- [ ] **`plugin.json`** — add `"repository"` field:
+  `"repository": "https://github.com/bcmcpher/<plugin-name>"`
+- [ ] **`plugin.json` version** — bump to `1.0.0` if it's ready for general use
+- [ ] **GitHub release** — tag `v1.0.0` (or `v0.1.0`) so the marketplace can resolve a stable version
+- [ ] **This monorepo** — update the Plugins table in this README to link to the new repo,
+  and optionally replace `plugins/<plugin-name>/` with a note pointing there
+
+Optional but useful:
+- [ ] **`.github/workflows/`** — add a CI workflow to lint or test on push
+- [ ] **`LICENSE`** — verify it's present (MIT is already in the template)
+- [ ] **Topics** — add `claude-code-plugin` to the GitHub repo topics for discoverability
+
 ---
 
 ## Project structure
