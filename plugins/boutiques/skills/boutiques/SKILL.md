@@ -47,8 +47,13 @@ running with no arguments. Capture the full output — you will parse it in step
 ### 4. Ask for the output path
 
 Before writing anything, ask the user where to save the descriptor.
-Suggest `<command>[-<subcommand>].json` in the current working directory as the default.
-Wait for their confirmation or a different path.
+Suggest a default filename in the current working directory using this pattern:
+- Version found: `<command>[-<subcommand>]-<version>.json` (e.g. `flirt-6.0.json`, `git-commit-2.43.0.json`)
+- No version: `<command>[-<subcommand>].json`
+
+Convert the version string to kebab-case (replace spaces, underscores, and other
+non-alphanumeric characters except `.` with `-`; strip any leading `v`).
+Wait for the user's confirmation or a different path.
 If the suggested file already exists (`Bash: test -f <path> && echo exists`), warn the
 user before overwriting.
 
