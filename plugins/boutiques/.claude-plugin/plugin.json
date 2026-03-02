@@ -1,0 +1,9 @@
+{
+  "name": "boutiques",
+  "description": "Generate a Boutiques JSON descriptor for a CLI tool by inspecting its --help output",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["boutiques", "descriptor", "cli", "neuroimaging", "reproducibility"],
+  "skills": ["./skills/boutiques"]
+}
