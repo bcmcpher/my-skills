@@ -6,7 +6,5 @@
   "license": "MIT",
   "keywords": [],
   "skills": ["./skills/SKILL_NAME"],
-  "agents": ["./agents/AGENT_NAME"],
-  "hooks": "./hooks/hooks.json",
-  "mcpConfig": "./.mcp.json"
+  "agents": ["./agents/AGENT_NAME"]
 }

@@ -39,6 +39,7 @@ cp -r templates/plugin plugins/my-new-plugin
 ```
 
 Then replace all `PLUGIN_NAME`, `SKILL_NAME`, `AGENT_NAME` placeholders with real names.
+Each template includes a `SETUP.md` with detailed setup instructions — it's the first thing to read after copying and the last thing to replace with your own `README.md`.
 
 | Template | Use when |
 |----------|----------|
@@ -125,10 +126,27 @@ Graduate to a standalone repo when:
 ```
 my-skills/
 ├── README.md
+├── .gitignore
 ├── templates/
-│   ├── skill/       # Pure skill template
-│   ├── agent/       # Custom subagent template
-│   └── plugin/      # Full plugin template (skills + agents + hooks + MCP)
+│   ├── skill/               # Pure skill template
+│   │   ├── SETUP.md         # Setup guide (replace with README.md when done)
+│   │   └── skills/SKILL_NAME/
+│   │       ├── SKILL.md
+│   │       ├── scripts/     # Helper scripts bundled with the skill
+│   │       ├── references/  # Reference docs loaded on demand
+│   │       └── assets/      # Static files used in output
+│   ├── agent/               # Custom subagent template
+│   │   ├── SETUP.md
+│   │   └── agents/AGENT_NAME/
+│   │       ├── SKILL.md
+│   │       ├── scripts/
+│   │       ├── references/
+│   │       └── assets/
+│   └── plugin/              # Full plugin template (skills + agents + hooks + MCP)
+│       ├── SETUP.md
+│       ├── hooks/
+│       │   └── hooks.json.example   # Activate by copying to hooks.json
+│       └── .mcp.json
 └── plugins/
-    └── example-hello/   # Working example plugin
+    └── example-hello/       # Working example plugin
 ```

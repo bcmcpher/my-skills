@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MCP server binaries (bundled in plugins)
+plugins/*/servers/*
+!plugins/*/servers/*.py
+!plugins/*/servers/*.js
+!plugins/*/servers/*.ts
+
+# Eval workspace output (generated during skill development)
+*-workspace/
