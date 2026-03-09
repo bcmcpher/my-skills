@@ -1,0 +1,9 @@
+{
+  "name": "write-unit-tests",
+  "description": "Write comprehensive unit tests for a source code file, iterating negative-then-positive tests with full coverage of paths, edge cases, and error states.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["testing", "unit-tests", "tdd"],
+  "skills": ["./skills/write-unit-tests"]
+}
