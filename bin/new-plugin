@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# new-plugin — scaffold a new plugin from a template
+#
+# Usage:
+#   bin/new-plugin <type> <name>
+#
+#   type   skill | agent | plugin
+#   name   kebab-case name for the new plugin (e.g. my-formatter)
+#
+# Creates plugins/<name>/ from templates/<type>/, replaces all placeholders,
+# and renames placeholder directories to match <name>.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TEMPLATES_DIR="$REPO_ROOT/templates"
+PLUGINS_DIR="$REPO_ROOT/plugins"
+
+usage() {
+  echo "Usage: $(basename "$0") <type> <name>"
+  echo ""
+  echo "  type   skill | agent | plugin"
+  echo "  name   kebab-case name (e.g. my-formatter, code-reviewer)"
+  echo ""
+  echo "Examples:"
+  echo "  $(basename "$0") skill  my-formatter"
+  echo "  $(basename "$0") agent  code-reviewer"
+  echo "  $(basename "$0") plugin my-full-tool"
+  exit 1
+}
+
+[[ $# -ne 2 ]] && usage
+
+TYPE="$1"
+NAME="$2"
+
+# Validate type
+case "$TYPE" in
+  skill|agent|plugin) ;;
+  *) echo "Error: type must be skill, agent, or plugin" >&2; usage ;;
+esac
+
+# Validate name: lowercase, digits, hyphens; must start with a letter
+if [[ ! "$NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
+  echo "Error: name must be lowercase kebab-case starting with a letter (e.g. my-tool)" >&2
+  exit 1
+fi
+
+TEMPLATE_SRC="$TEMPLATES_DIR/$TYPE"
+DEST="$PLUGINS_DIR/$NAME"
+
+if [[ ! -d "$TEMPLATE_SRC" ]]; then
+  echo "Error: template not found at $TEMPLATE_SRC" >&2
+  exit 1
+fi
+
+if [[ -d "$DEST" ]]; then
+  echo "Error: $DEST already exists" >&2
+  exit 1
+fi
+
+# --- Copy ---
+cp -r "$TEMPLATE_SRC" "$DEST"
+
+# --- Rename placeholder directories ---
+[[ -d "$DEST/skills/SKILL_NAME" ]] && mv "$DEST/skills/SKILL_NAME" "$DEST/skills/$NAME"
+[[ -d "$DEST/agents/AGENT_NAME" ]] && mv "$DEST/agents/AGENT_NAME" "$DEST/agents/$NAME"
+
+# --- Replace placeholders in all files ---
+# Order matters: replace longer/more-specific tokens first.
+find "$DEST" -type f | while IFS= read -r file; do
+  sed -i \
+    -e "s/PLUGIN_NAME/$NAME/g" \
+    -e "s/SKILL_NAME/$NAME/g" \
+    -e "s/AGENT_NAME/$NAME/g" \
+    -e "s/skill-name/$NAME/g" \
+    -e "s/agent-name/$NAME/g" \
+    "$file"
+done
+
+echo "Created: $DEST"
+echo ""
+echo "Next steps:"
+echo "  1. Edit $DEST/.claude-plugin/plugin.json"
+echo "     → set description and keywords"
+if [[ "$TYPE" == "skill" || "$TYPE" == "plugin" ]]; then
+  echo "  2. Edit $DEST/skills/$NAME/SKILL.md"
+  echo "     → write trigger description, steps, and constraints"
+fi
+if [[ "$TYPE" == "agent" || "$TYPE" == "plugin" ]]; then
+  echo "  3. Edit $DEST/agents/$NAME/SKILL.md"
+  echo "     → write agent purpose, steps, and constraints"
+fi
+echo ""
+echo "  Test:    claude --plugin-dir $DEST"
+echo "  Install: claude plugin install $DEST"
