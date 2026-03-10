@@ -5,5 +5,5 @@
   "author": { "name": "bcmcpher" },
   "license": "MIT",
   "keywords": [],
-  "agents": ["./agents/AGENT_NAME"]
+  "agents": ["./agents/AGENT_NAME"],
 }
