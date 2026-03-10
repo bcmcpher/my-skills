@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# sync-config — sync global Claude Code config between this repo and ~/.claude/
+#
+# Usage:
+#   bin/sync-config pull   # ~/.claude/ → config/  (update repo from live config)
+#   bin/sync-config push   # config/ → ~/.claude/  (apply repo config to machine)
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG_DIR="$REPO_ROOT/config"
+CLAUDE_DIR="$HOME/.claude"
+
+usage() {
+  echo "Usage: $(basename "$0") pull | push"
+  echo ""
+  echo "  pull   Copy live ~/.claude/ config into config/ (update repo)"
+  echo "  push   Copy config/ into ~/.claude/ (apply to this machine)"
+  exit 1
+}
+
+[[ $# -ne 1 ]] && usage
+DIRECTION="$1"
+[[ "$DIRECTION" == "pull" || "$DIRECTION" == "push" ]] || usage
+
+copy_file() {
+  local src="$1"
+  local dst="$2"
+  if [[ ! -f "$src" ]]; then
+    echo "  skip  $src (not found)"
+    return
+  fi
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  echo "  copy  $src → $dst"
+}
+
+if [[ "$DIRECTION" == "pull" ]]; then
+  echo "Pulling ~/.claude/ → config/"
+  copy_file "$CLAUDE_DIR/settings.json"              "$CONFIG_DIR/settings.json"
+  # Hooks: copy all .sh files
+  if [[ -d "$CLAUDE_DIR/hooks" ]]; then
+    while IFS= read -r -d '' f; do
+      rel="${f#$CLAUDE_DIR/hooks/}"
+      copy_file "$f" "$CONFIG_DIR/hooks/$rel"
+    done < <(find "$CLAUDE_DIR/hooks" -name "*.sh" -print0)
+  fi
+  # Skills: copy SKILL.md for each skill directory
+  if [[ -d "$CLAUDE_DIR/skills" ]]; then
+    while IFS= read -r -d '' f; do
+      rel="${f#$CLAUDE_DIR/skills/}"
+      copy_file "$f" "$CONFIG_DIR/skills/$rel"
+    done < <(find "$CLAUDE_DIR/skills" -name "SKILL.md" -print0)
+  fi
+  echo "Done."
+
+elif [[ "$DIRECTION" == "push" ]]; then
+  echo "Pushing config/ → ~/.claude/"
+  copy_file "$CONFIG_DIR/settings.json"              "$CLAUDE_DIR/settings.json"
+  # Hooks
+  if [[ -d "$CONFIG_DIR/hooks" ]]; then
+    while IFS= read -r -d '' f; do
+      rel="${f#$CONFIG_DIR/hooks/}"
+      dst="$CLAUDE_DIR/hooks/$rel"
+      copy_file "$f" "$dst"
+      chmod +x "$dst"
+    done < <(find "$CONFIG_DIR/hooks" -name "*.sh" -print0)
+  fi
+  # Skills
+  if [[ -d "$CONFIG_DIR/skills" ]]; then
+    while IFS= read -r -d '' f; do
+      rel="${f#$CONFIG_DIR/skills/}"
+      copy_file "$f" "$CLAUDE_DIR/skills/$rel"
+    done < <(find "$CONFIG_DIR/skills" -name "SKILL.md" -print0)
+  fi
+  echo "Done."
+fi

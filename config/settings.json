@@ -1,0 +1,75 @@
+{
+  "enabledPlugins": {
+	"andrej-karpathy-skills@karpathy-skills": true,
+	"github@claude-plugins-official": true,
+	"code-simplifier@claude-plugins-official": true,
+	"claude-md-management@claude-plugins-official": true,
+	"skill-creator@claude-plugins-official": true,
+	"document-skills@anthropic-agent-skills": true,
+	"example-skills@anthropic-agent-skills": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+	"allow": [
+	  "Bash(git status)",
+	  "Bash(git log *)",
+	  "Bash(git diff *)",
+	  "Bash(git branch *)",
+	  "Bash(git stash *)",
+	  "Bash(* --version)",
+	  "Bash(* --help)",
+	  "Bash(which *)",
+	  "Bash(find *)",
+	  "Bash(ls *)",
+	  "Bash(pwd)",
+	  "Bash(echo *)",
+	  "Read",
+	  "Edit(/src/**)",
+	  "WebFetch(domain:docs.anthropic.com)"
+	],
+	"ask": [
+	  "Bash(git add *)",
+	  "Bash(git commit *)",
+	  "Bash(git push *)",
+	  "Bash(git reset *)",
+	  "Bash(git checkout *)",
+	  "Bash(npm install *)",
+	  "Bash(pip install *)",
+	  "Write",
+	  "Edit"
+	],
+	"deny": [
+	  "Bash(rm -rf *)",
+	  "Bash(rm -f *)",
+	  "Bash(curl * | bash)",
+	  "Bash(wget * | bash)",
+	  "Bash(ssh * | bash)",
+	  "Bash(scp * | bash)",
+	  "Bash(apt *)",
+	  "Bash(sudo *)",
+	  "Read(~/.ssh/*)",
+	  "Read(~/.aws/*)",
+	  "Read(~/.gnupg/*)",
+	  "Read(**/.git/*)",
+	  "Read(**/.env)",
+	  "Read(**/.env.*)",
+	  "Read(**/secrets/**)",
+	  "Read(**/*credintial*)",
+	  "Read(**/*.pem)",
+	  "Read(**/*.key)"
+	],
+	"defaultMode": "default"
+  }
+}

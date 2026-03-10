@@ -156,6 +156,10 @@ Optional but useful:
 my-skills/
 ├── README.md
 ├── .gitignore
+├── config/                  # Global ~/.claude/ config tracked here
+│   ├── settings.json        # Enabled plugins, permissions, global hooks wiring
+│   ├── hooks/               # Global hook scripts (~/.claude/hooks/)
+│   └── skills/              # Standalone globally-installed skills (~/.claude/skills/)
 ├── templates/
 │   ├── skill/               # Pure skill template
 │   │   ├── SETUP.md         # Setup guide (replace with README.md when done)
