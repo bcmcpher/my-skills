@@ -11,11 +11,20 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "~/.claude/hooks/protect-files.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-guard.sh"
           }
         ]
       }
@@ -28,6 +37,7 @@
 	  "Bash(git diff *)",
 	  "Bash(git branch *)",
 	  "Bash(git stash *)",
+	  "Bash(git mv *)",
 	  "Bash(* --version)",
 	  "Bash(* --help)",
 	  "Bash(which *)",
@@ -40,11 +50,13 @@
 	  "WebFetch(domain:docs.anthropic.com)"
 	],
 	"ask": [
+	  "Bash(mv *)",
 	  "Bash(git add *)",
 	  "Bash(git commit *)",
 	  "Bash(git push *)",
 	  "Bash(git reset *)",
 	  "Bash(git checkout *)",
+	  "Bash(git rm *)",
 	  "Bash(npm install *)",
 	  "Bash(pip install *)",
 	  "Write",

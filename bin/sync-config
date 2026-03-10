@@ -52,6 +52,11 @@ if [[ "$DIRECTION" == "pull" ]]; then
       copy_file "$f" "$CONFIG_DIR/skills/$rel"
     done < <(find "$CLAUDE_DIR/skills" -name "SKILL.md" -print0)
   fi
+  # MCP configs: copy all .mcp.json files
+  while IFS= read -r -d '' f; do
+    rel="${f#$CLAUDE_DIR/}"
+    copy_file "$f" "$CONFIG_DIR/$rel"
+  done < <(find "$CLAUDE_DIR" -name ".mcp.json" -not -path "*/.git/*" -print0 2>/dev/null)
   echo "Done."
 
 elif [[ "$DIRECTION" == "push" ]]; then
@@ -73,5 +78,10 @@ elif [[ "$DIRECTION" == "push" ]]; then
       copy_file "$f" "$CLAUDE_DIR/skills/$rel"
     done < <(find "$CONFIG_DIR/skills" -name "SKILL.md" -print0)
   fi
+  # MCP configs
+  while IFS= read -r -d '' f; do
+    rel="${f#$CONFIG_DIR/}"
+    copy_file "$f" "$CLAUDE_DIR/$rel"
+  done < <(find "$CONFIG_DIR" -name ".mcp.json" -not -path "*/.git/*" -print0 2>/dev/null)
   echo "Done."
 fi

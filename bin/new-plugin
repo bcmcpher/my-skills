@@ -15,17 +15,19 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TEMPLATES_DIR="$REPO_ROOT/templates"
 PLUGINS_DIR="$REPO_ROOT/plugins"
+CONFIG_HOOKS_DIR="$REPO_ROOT/config/hooks"
 
 usage() {
   echo "Usage: $(basename "$0") <type> <name>"
   echo ""
-  echo "  type   skill | agent | plugin"
+  echo "  type   skill | agent | plugin | hook"
   echo "  name   kebab-case name (e.g. my-formatter, code-reviewer)"
   echo ""
   echo "Examples:"
   echo "  $(basename "$0") skill  my-formatter"
   echo "  $(basename "$0") agent  code-reviewer"
   echo "  $(basename "$0") plugin my-full-tool"
+  echo "  $(basename "$0") hook   my-guard"
   exit 1
 }
 
@@ -36,8 +38,8 @@ NAME="$2"
 
 # Validate type
 case "$TYPE" in
-  skill|agent|plugin) ;;
-  *) echo "Error: type must be skill, agent, or plugin" >&2; usage ;;
+  skill|agent|plugin|hook) ;;
+  *) echo "Error: type must be skill, agent, plugin, or hook" >&2; usage ;;
 esac
 
 # Validate name: lowercase, digits, hyphens; must start with a letter
@@ -45,6 +47,40 @@ if [[ ! "$NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
   echo "Error: name must be lowercase kebab-case starting with a letter (e.g. my-tool)" >&2
   exit 1
 fi
+
+# ── Hook type: scaffold into config/hooks/ ────────────────────────────────────
+
+if [[ "$TYPE" == "hook" ]]; then
+  HOOK_TEMPLATE="$TEMPLATES_DIR/hooks/hook.sh"
+  DEST="$CONFIG_HOOKS_DIR/$NAME.sh"
+
+  if [[ ! -f "$HOOK_TEMPLATE" ]]; then
+    echo "Error: hook template not found at $HOOK_TEMPLATE" >&2
+    exit 1
+  fi
+
+  if [[ -f "$DEST" ]]; then
+    echo "Error: $DEST already exists" >&2
+    exit 1
+  fi
+
+  mkdir -p "$CONFIG_HOOKS_DIR"
+  sed "s/HOOK_NAME/$NAME/g" "$HOOK_TEMPLATE" > "$DEST"
+  chmod +x "$DEST"
+
+  echo "Created: $DEST"
+  echo ""
+  echo "Next steps:"
+  echo "  1. Edit $DEST"
+  echo "     → add your guard/check logic"
+  echo "  2. Wire into config/settings.json under hooks.PreToolUse or hooks.PostToolUse:"
+  echo "     { \"matcher\": \"Bash|Edit|Write\", \"hooks\": [{ \"type\": \"command\", \"command\": \"~/.claude/hooks/$NAME.sh\" }] }"
+  echo "  3. Apply to ~/.claude/:"
+  echo "     bin/sync-config push"
+  exit 0
+fi
+
+# ── Plugin types: scaffold into plugins/ ──────────────────────────────────────
 
 TEMPLATE_SRC="$TEMPLATES_DIR/$TYPE"
 DEST="$PLUGINS_DIR/$NAME"

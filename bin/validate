@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# validate — check plugin manifests and SKILL.md frontmatter
+#
+# Usage:
+#   bin/validate [plugin-name]
+#
+#   With no argument, validates all plugins under plugins/.
+#   With a name, validates only plugins/<name>.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PLUGINS_DIR="$REPO_ROOT/plugins"
+
+PLACEHOLDERS=("PLUGIN_NAME" "SKILL_NAME" "AGENT_NAME" "DESCRIPTION" "skill-name" "agent-name")
+
+pass=0
+fail=0
+
+usage() {
+  echo "Usage: $(basename "$0") [plugin-name]"
+  exit 1
+}
+
+[[ $# -gt 1 ]] && usage
+
+# Collect plugin dirs to check
+if [[ $# -eq 1 ]]; then
+  targets=("$PLUGINS_DIR/$1")
+  if [[ ! -d "${targets[0]}" ]]; then
+    echo "Error: plugins/$1 not found" >&2
+    exit 1
+  fi
+else
+  mapfile -t targets < <(find "$PLUGINS_DIR" -mindepth 1 -maxdepth 1 -type d | sort)
+fi
+
+if [[ ${#targets[@]} -eq 0 ]]; then
+  echo "No plugins found under $PLUGINS_DIR"
+  exit 0
+fi
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+errors=()
+
+add_error() {
+  errors+=("  ✗ $1")
+}
+
+has_placeholder() {
+  local value="$1"
+  for token in "${PLACEHOLDERS[@]}"; do
+    if [[ "$value" == *"$token"* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Extract frontmatter block (content between first two --- lines)
+get_frontmatter() {
+  local file="$1"
+  awk '/^---/{f=!f; next} f' "$file" | head -20
+}
+
+check_frontmatter_field() {
+  local fm="$1"
+  local field="$2"
+  local label="$3"
+  local value
+
+  if ! echo "$fm" | grep -qE "^${field}:"; then
+    add_error "$label: missing '${field}:' in frontmatter"
+    return 1
+  fi
+
+  value=$(echo "$fm" | grep -E "^${field}:" | head -1 | sed "s/^${field}:[[:space:]]*//" | tr -d '"')
+  if [[ -z "$value" ]]; then
+    add_error "$label: '${field}:' is empty"
+    return 1
+  fi
+  if has_placeholder "$value"; then
+    add_error "$label: '${field}:' still contains a placeholder: $value"
+    return 1
+  fi
+  return 0
+}
+
+check_skill_or_agent() {
+  local dir_path="$1"    # absolute path to the skill/agent dir
+  local display="$2"     # label for error messages
+
+  if [[ ! -d "$dir_path" ]]; then
+    add_error "$display: directory not found: $dir_path"
+    return
+  fi
+
+  local skill_md="$dir_path/SKILL.md"
+  if [[ ! -f "$skill_md" ]]; then
+    add_error "$display: SKILL.md not found"
+    return
+  fi
+
+  # Check frontmatter delimiters exist
+  local dash_count
+  dash_count=$(grep -c '^---$' "$skill_md" 2>/dev/null || true)
+  if [[ "$dash_count" -lt 2 ]]; then
+    add_error "$display: SKILL.md missing frontmatter delimiters (---)"
+    return
+  fi
+
+  local fm
+  fm=$(get_frontmatter "$skill_md")
+
+  check_frontmatter_field "$fm" "name" "$display"
+  check_frontmatter_field "$fm" "description" "$display"
+}
+
+# ── Main loop ─────────────────────────────────────────────────────────────────
+
+for plugin_dir in "${targets[@]}"; do
+  plugin_name="$(basename "$plugin_dir")"
+  errors=()
+
+  manifest="$plugin_dir/.claude-plugin/plugin.json"
+
+  # 1. Manifest exists
+  if [[ ! -f "$manifest" ]]; then
+    add_error "missing .claude-plugin/plugin.json"
+    echo "[FAIL] $plugin_name"
+    printf '%s\n' "${errors[@]}"
+    fail=$((fail + 1))
+    continue
+  fi
+
+  # 2. Valid JSON
+  if ! jq empty "$manifest" 2>/dev/null; then
+    add_error "plugin.json is not valid JSON"
+    echo "[FAIL] $plugin_name"
+    printf '%s\n' "${errors[@]}"
+    fail=$((fail + 1))
+    continue
+  fi
+
+  # 3. Required top-level fields
+  for field in name description version; do
+    value=$(jq -r ".${field} // empty" "$manifest")
+    if [[ -z "$value" ]]; then
+      add_error "plugin.json missing required field: $field"
+    elif has_placeholder "$value"; then
+      add_error "plugin.json '${field}' still contains a placeholder: $value"
+    fi
+  done
+
+  # 4. At least one non-empty skills or agents array
+  skills_count=$(jq '.skills | if type == "array" then length else 0 end' "$manifest" 2>/dev/null || echo 0)
+  agents_count=$(jq '.agents | if type == "array" then length else 0 end' "$manifest" 2>/dev/null || echo 0)
+  if [[ "$skills_count" -eq 0 && "$agents_count" -eq 0 ]]; then
+    add_error "plugin.json has no skills or agents entries"
+  fi
+
+  # 5. Check each skill dir
+  if [[ "$skills_count" -gt 0 ]]; then
+    while IFS= read -r rel_path; do
+      abs_path="$plugin_dir/$rel_path"
+      check_skill_or_agent "$abs_path" "skill $rel_path"
+    done < <(jq -r '.skills[]' "$manifest" 2>/dev/null)
+  fi
+
+  # 6. Check each agent dir
+  if [[ "$agents_count" -gt 0 ]]; then
+    while IFS= read -r rel_path; do
+      abs_path="$plugin_dir/$rel_path"
+      check_skill_or_agent "$abs_path" "agent $rel_path"
+    done < <(jq -r '.agents[]' "$manifest" 2>/dev/null)
+  fi
+
+  # Result
+  if [[ ${#errors[@]} -eq 0 ]]; then
+    echo "[PASS] $plugin_name"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] $plugin_name"
+    printf '%s\n' "${errors[@]}"
+    fail=$((fail + 1))
+  fi
+done
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
+echo ""
+echo "Results: $pass passed, $fail failed"
+
+[[ $fail -eq 0 ]]

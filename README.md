@@ -26,6 +26,7 @@ claude plugin install https://github.com/bcmcpher/<plugin-name>
 |--------|-------------|
 | [example-hello](./plugins/example-hello/) | Working example: `/hello` skill + greeter subagent |
 | [boutiques](./plugins/boutiques/) | `/boutiques <cmd> [subcmd]` — generate a Boutiques 0.5 JSON descriptor from `--help` output |
+| [testing](./plugins/testing/) | `/tdd` for test-first development; `/retrofit-tests` for adding coverage to existing code |
 
 ---
 

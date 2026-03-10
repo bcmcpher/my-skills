@@ -84,3 +84,16 @@ The body of a SKILL.md is imperative prose: numbered steps, then constraints. Re
 | `templates/plugin/` | Both, plus hooks or MCP server |
 
 `bin/new-plugin` copies the chosen template, renames placeholder dirs, and replaces `PLUGIN_NAME`/`SKILL_NAME`/`AGENT_NAME` tokens automatically.
+
+## Git conventions
+
+Before moving any file, check whether it is tracked:
+
+```bash
+git ls-files --error-unmatch <path>
+```
+
+- If tracked → use `git mv <src> <dst>`, not bare `mv`. This preserves rename history and keeps `git blame` accurate.
+- If not tracked (new or ignored file) → bare `mv` is fine.
+
+The `git-guard.sh` PreToolUse hook will block bare `mv` on tracked files and explain the correct command. `git mv` is in the allow list and proceeds without confirmation.
