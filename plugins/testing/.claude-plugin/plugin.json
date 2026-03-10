@@ -1,5 +1,4 @@
 {
-  "name": "testing",
   "description": "Two focused testing skills: tdd (test-first design) and retrofit-tests (coverage for existing code).",
   "version": "0.1.0",
   "author": { "name": "bcmcpher" },
