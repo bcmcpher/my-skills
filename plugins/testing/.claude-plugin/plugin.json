@@ -5,5 +5,5 @@
   "author": { "name": "bcmcpher" },
   "license": "MIT",
   "keywords": ["testing", "tdd", "unit-tests", "coverage", "retrofit"],
-  "skills": ["./skills/tdd", "./skills/retrofit-tests"],
+  "skills": ["./skills/tdd", "./skills/retrofit-tests"]
 }

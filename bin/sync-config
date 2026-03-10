@@ -20,7 +20,7 @@ usage() {
 }
 
 [[ $# -ne 1 ]] && usage
-DIRECTION="$1"
+DIRECTION=$1
 [[ "$DIRECTION" == "pull" || "$DIRECTION" == "push" ]] || usage
 
 copy_file() {
