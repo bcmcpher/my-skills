@@ -4,7 +4,7 @@
 # Usage:
 #   bin/new-plugin <type> <name>
 #
-#   type   skill | agent | plugin
+#   type   skill | agent | hook
 #   name   kebab-case name for the new plugin (e.g. my-formatter)
 #
 # Creates plugins/<name>/ from templates/<type>/, replaces all placeholders,
@@ -20,13 +20,12 @@ CONFIG_HOOKS_DIR="$REPO_ROOT/config/hooks"
 usage() {
   echo "Usage: $(basename "$0") <type> <name>"
   echo ""
-  echo "  type   skill | agent | plugin | hook"
+  echo "  type   skill | agent | hook"
   echo "  name   kebab-case name (e.g. my-formatter, code-reviewer)"
   echo ""
   echo "Examples:"
   echo "  $(basename "$0") skill  my-formatter"
   echo "  $(basename "$0") agent  code-reviewer"
-  echo "  $(basename "$0") plugin my-full-tool"
   echo "  $(basename "$0") hook   my-guard"
   exit 1
 }
@@ -38,8 +37,8 @@ NAME="$2"
 
 # Validate type
 case "$TYPE" in
-  skill|agent|plugin|hook) ;;
-  *) echo "Error: type must be skill, agent, plugin, or hook" >&2; usage ;;
+  skill|agent|hook) ;;
+  *) echo "Error: type must be skill, agent, or hook" >&2; usage ;;
 esac
 
 # Validate name: lowercase, digits, hyphens; must start with a letter
@@ -119,11 +118,11 @@ echo ""
 echo "Next steps:"
 echo "  1. Edit $DEST/.claude-plugin/plugin.json"
 echo "     → set description and keywords"
-if [[ "$TYPE" == "skill" || "$TYPE" == "plugin" ]]; then
+if [[ "$TYPE" == "skill" ]]; then
   echo "  2. Edit $DEST/skills/$NAME/SKILL.md"
   echo "     → write trigger description, steps, and constraints"
 fi
-if [[ "$TYPE" == "agent" || "$TYPE" == "plugin" ]]; then
+if [[ "$TYPE" == "agent" ]]; then
   echo "  3. Edit $DEST/agents/$NAME/SKILL.md"
   echo "     → write agent purpose, steps, and constraints"
 fi

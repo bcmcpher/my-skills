@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Scaffold a new plugin from a template
-bin/new-plugin <type> <name>   # type: skill | agent | plugin; name: kebab-case
+bin/new-plugin <type> <name>   # type: skill | agent | hook; name: kebab-case
 
 # Test a plugin in a session-only context (no permanent install)
 claude --plugin-dir ./plugins/<name>
@@ -81,9 +81,8 @@ The body of a SKILL.md is imperative prose: numbered steps, then constraints. Re
 |----------|----------|
 | `templates/skill/` | Slash command or auto-invoked instruction only |
 | `templates/agent/` | Specialized subagent with isolated context |
-| `templates/plugin/` | Both, plus hooks or MCP server |
 
-`bin/new-plugin` copies the chosen template, renames placeholder dirs, and replaces `PLUGIN_NAME`/`SKILL_NAME`/`AGENT_NAME` tokens automatically.
+`bin/new-plugin` copies the chosen template, renames placeholder dirs, and replaces `PLUGIN_NAME`/`SKILL_NAME`/`AGENT_NAME` tokens automatically. For a full plugin with hooks or MCP, see `reference/plugin/` as a structural reference.
 
 ## Git conventions
 
