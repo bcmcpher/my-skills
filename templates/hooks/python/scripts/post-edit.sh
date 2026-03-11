@@ -5,11 +5,7 @@
 # Auto-fix tools are applied in-place. Type checkers warn but don't block.
 # Non-.py files are silently ignored (exit 0).
 #
-# Enable tools by setting environment variables:
-#   ENABLE_RUFF=1   — run ruff check --fix + ruff format
-#   ENABLE_BLACK=1  — run black (skip if ENABLE_RUFF=1 already formatted)
-#   ENABLE_FLAKE8=1 — run flake8 check (no auto-fix; warns on issues)
-#   ENABLE_MYPY=1   — run mypy (type checking; warns but does not block)
+# Set the ENABLE_* variables below to 1 to activate each tool.
 
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
@@ -20,11 +16,18 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 # Bail silently if file does not exist
 [[ -f "$FILE_PATH" ]] || exit 0
 
+# ── Configuration ────────────────────────────────────────────────────────────
+ENABLE_RUFF=0
+ENABLE_BLACK=0
+ENABLE_FLAKE8=0
+ENABLE_MYPY=0
+# ─────────────────────────────────────────────────────────────────────────────
+
 WARNINGS=0
 FORMATTED=0
 
 # --- ruff (linting + formatting) ---
-if [[ "${ENABLE_RUFF:-0}" == "1" ]]; then
+if [[ "$ENABLE_RUFF" == "1" ]]; then
   if command -v ruff &>/dev/null; then
     echo "[post-edit] ruff check --fix: $FILE_PATH"
     ruff check --fix "$FILE_PATH"
@@ -38,7 +41,7 @@ fi
 
 # --- black (formatting) ---
 # Skipped if ruff already formatted the file.
-if [[ "${ENABLE_BLACK:-0}" == "1" && "$FORMATTED" == "0" ]]; then
+if [[ "$ENABLE_BLACK" == "1" && "$FORMATTED" == "0" ]]; then
   if command -v black &>/dev/null; then
     echo "[post-edit] black: $FILE_PATH"
     black "$FILE_PATH"
@@ -49,7 +52,7 @@ if [[ "${ENABLE_BLACK:-0}" == "1" && "$FORMATTED" == "0" ]]; then
 fi
 
 # --- flake8 (linting, check-only) ---
-if [[ "${ENABLE_FLAKE8:-0}" == "1" ]]; then
+if [[ "$ENABLE_FLAKE8" == "1" ]]; then
   if command -v flake8 &>/dev/null; then
     echo "[post-edit] flake8: $FILE_PATH"
     flake8 "$FILE_PATH" || WARNINGS=1
@@ -59,7 +62,7 @@ if [[ "${ENABLE_FLAKE8:-0}" == "1" ]]; then
 fi
 
 # --- mypy (type checking, check-only) ---
-if [[ "${ENABLE_MYPY:-0}" == "1" ]]; then
+if [[ "$ENABLE_MYPY" == "1" ]]; then
   if command -v mypy &>/dev/null; then
     echo "[post-edit] mypy: $FILE_PATH"
     mypy "$FILE_PATH" || WARNINGS=1

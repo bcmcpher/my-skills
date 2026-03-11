@@ -7,14 +7,16 @@ when Claude writes or edits `.py` files in your project.
 
 All tools are **opt-in** — enable only what your project uses.
 
-| Tool | Role | Enable var | Install |
+| Tool | Role | Variable | Install |
 |---|---|---|---|
-| `ruff` | Linting + auto-fix + formatting | `ENABLE_RUFF=1` | `pip install ruff` |
-| `black` | Formatting (classic) | `ENABLE_BLACK=1` | `pip install black` |
-| `flake8` | Linting (classic, check-only) | `ENABLE_FLAKE8=1` | `pip install flake8` |
-| `mypy` | Static type checking | `ENABLE_MYPY=1` | `pip install mypy` |
+| `ruff` | Linting + auto-fix + formatting | `ENABLE_RUFF` | `pip install ruff` |
+| `black` | Formatting (classic) | `ENABLE_BLACK` | `pip install black` |
+| `flake8` | Linting (classic, check-only) | `ENABLE_FLAKE8` | `pip install flake8` |
+| `mypy` | Static type checking | `ENABLE_MYPY` | `pip install mypy` |
 
-> **Formatting note:** If both `ENABLE_RUFF=1` and `ENABLE_BLACK=1` are set, ruff formats
+> Each variable is set in the script, not as an environment variable — edit once, done.
+
+> **Formatting note:** If both `ENABLE_RUFF` and `ENABLE_BLACK` are set to `1`, ruff formats
 > first and black is skipped (avoids double-formatting conflict).
 
 > **Type checking alternative:** `pyright` is a faster alternative to `mypy`.
@@ -56,14 +58,13 @@ Add to `.claude/settings.json`:
 
 ## Enabling tools
 
-Set environment variables before starting Claude (in your shell profile, `.envrc`, or
-project activation script):
+Open `pre-edit.sh` and `post-edit.sh` and set the variables at the top of each file:
 
 ```bash
-export ENABLE_RUFF=1      # fast linting + formatting (recommended default)
-export ENABLE_MYPY=1      # type checking (slower, add when types matter)
-# export ENABLE_BLACK=1   # if project uses black instead of ruff format
-# export ENABLE_FLAKE8=1  # if project uses flake8
+ENABLE_RUFF=1    # fast linting + formatting (recommended)
+ENABLE_MYPY=1    # type checking (slower, add when types matter)
+# ENABLE_BLACK=1   # if project uses black instead of ruff format
+# ENABLE_FLAKE8=1  # if project uses flake8
 ```
 
 ## Behavior reference

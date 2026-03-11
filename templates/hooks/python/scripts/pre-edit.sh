@@ -5,10 +5,7 @@
 # Reports issues as warnings (exit 1) so Claude can see the baseline.
 # Non-.py files are silently ignored (exit 0).
 #
-# Enable tools by setting environment variables:
-#   ENABLE_RUFF=1   — run ruff check (linting)
-#   ENABLE_FLAKE8=1 — run flake8 (linting, classic)
-#   ENABLE_MYPY=1   — run mypy (type checking)
+# Set the ENABLE_* variables below to 1 to activate each tool.
 
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
@@ -19,10 +16,16 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 # Bail silently if file does not exist (new file being created)
 [[ -f "$FILE_PATH" ]] || exit 0
 
+# ── Configuration ────────────────────────────────────────────────────────────
+ENABLE_RUFF=0
+ENABLE_FLAKE8=0
+ENABLE_MYPY=0
+# ─────────────────────────────────────────────────────────────────────────────
+
 ISSUES=0
 
 # --- ruff (linting) ---
-if [[ "${ENABLE_RUFF:-0}" == "1" ]]; then
+if [[ "$ENABLE_RUFF" == "1" ]]; then
   if command -v ruff &>/dev/null; then
     echo "[pre-edit] ruff check: $FILE_PATH"
     ruff check "$FILE_PATH" || ISSUES=1
@@ -32,7 +35,7 @@ if [[ "${ENABLE_RUFF:-0}" == "1" ]]; then
 fi
 
 # --- flake8 (linting) ---
-if [[ "${ENABLE_FLAKE8:-0}" == "1" ]]; then
+if [[ "$ENABLE_FLAKE8" == "1" ]]; then
   if command -v flake8 &>/dev/null; then
     echo "[pre-edit] flake8: $FILE_PATH"
     flake8 "$FILE_PATH" || ISSUES=1
@@ -42,7 +45,7 @@ if [[ "${ENABLE_FLAKE8:-0}" == "1" ]]; then
 fi
 
 # --- mypy (type checking) ---
-if [[ "${ENABLE_MYPY:-0}" == "1" ]]; then
+if [[ "$ENABLE_MYPY" == "1" ]]; then
   if command -v mypy &>/dev/null; then
     echo "[pre-edit] mypy: $FILE_PATH"
     mypy "$FILE_PATH" || ISSUES=1
