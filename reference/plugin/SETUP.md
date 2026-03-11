@@ -2,6 +2,29 @@
 
 > This file is a setup reference. Replace it with your plugin's `README.md` when done.
 
+## Contents inventory
+
+Every file and directory in this reference — what it is, whether it's required, and when to remove it.
+
+| Path | Status | Keep when |
+|------|--------|-----------|
+| `.claude-plugin/plugin.json` | Always | — |
+| `README.md` | Always (replace SETUP.md) | — |
+| `SETUP.md` | Delete when done | Replace with `README.md` |
+| `skills/<name>/SKILL.md` | Conditional | plugin exposes a slash command or auto-invoked skill |
+| `skills/<name>/scripts/` | Optional | skill has deterministic helper logic to bundle |
+| `skills/<name>/references/` | Optional | skill has large docs to load on demand |
+| `skills/<name>/assets/` | Optional | skill embeds static files in output |
+| `agents/<name>/SKILL.md` | Conditional | plugin includes a delegatable subagent |
+| `agents/<name>/scripts/` | Optional | same as skill scripts |
+| `agents/<name>/references/` | Optional | same as skill references |
+| `agents/<name>/assets/` | Optional | same as skill assets |
+| `hooks/hooks.json` | Conditional | plugin needs PreToolUse / PostToolUse / Notification / Stop hooks |
+| `.mcp.json` | Conditional | plugin exposes MCP servers |
+| `servers/` | Conditional | `.mcp.json` uses a local `stdio` server bundled in the plugin |
+
+---
+
 Copy this directory to `plugins/my-plugin-name`, then:
 
 1. Rename `skills/SKILL_NAME/` and `agents/AGENT_NAME/` directories
