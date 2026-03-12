@@ -39,7 +39,8 @@ plugins/<name>/
 ├── agents/<agent-name>/
 │   └── SKILL.md                 # Agent system prompt with frontmatter
 ├── hooks/hooks.json             # PreToolUse / PostToolUse / Stop hook definitions
-└── .mcp.json                    # MCP server config (uses $CLAUDE_PLUGIN_ROOT for paths)
+├── .mcp.json                    # MCP server config (uses $CLAUDE_PLUGIN_ROOT for paths)
+└── .lsp.json                    # LSP server config (optional; binary installed separately)
 ```
 
 ### SKILL.md frontmatter — skills vs agents
@@ -65,6 +66,30 @@ maxTurns: 20
 ```
 
 The body of a SKILL.md is imperative prose: numbered steps, then constraints. Reference `$ARGUMENTS` for user input, and `${CLAUDE_PLUGIN_ROOT}` in scripts paths.
+
+### LSP servers
+
+Claude Code uses standard LSP servers for real-time code intelligence: diagnostics after each file edit, and precise code navigation (go-to-definition, find-references) beyond grep. Configure via `.lsp.json` at the plugin root; add `"lspConfig": "./.lsp.json"` to `plugin.json`.
+
+**The binary must be installed separately** — `.lsp.json` only tells Claude Code how to connect. LSP tools are not codebase dependencies.
+
+Recommended pattern: keep Python LSP binaries in a dedicated venv on `$PATH`, independent of any project venv:
+
+```bash
+python -m venv ~/.claude-lsp-tools
+~/.claude-lsp-tools/bin/pip install pyright
+# export PATH="$HOME/.claude-lsp-tools/bin:$PATH"  ← in shell rc
+```
+
+Per-project type awareness (e.g., which `.venv` pyright checks) is controlled by language-specific project config files (`pyrightconfig.json`, `tsconfig.json`), not `.lsp.json`. The three layers are independent:
+
+| Layer | Where |
+|-------|-------|
+| LSP binary | `~/.claude-lsp-tools/` or system `$PATH` |
+| Claude connection config | `.lsp.json` in the plugin |
+| Project environment | `pyrightconfig.json`, `tsconfig.json`, etc. in the repo |
+
+See `reference/plugin/.lsp.json` for an annotated example covering Python, TypeScript, Go, and Rust.
 
 ### plugin.json fields
 

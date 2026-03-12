@@ -1,0 +1,25 @@
+{
+  "python": {
+    "command": "pyright",
+    "args": ["--outputjson"],
+    "extensionToLanguage": { ".py": "python" }
+  },
+  "typescript": {
+    "command": "typescript-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".ts": "typescript",
+      ".tsx": "typescriptreact"
+    }
+  },
+  "go": {
+    "command": "gopls",
+    "args": ["serve"],
+    "extensionToLanguage": { ".go": "go" }
+  },
+  "rust": {
+    "command": "rust-analyzer",
+    "args": [],
+    "extensionToLanguage": { ".rs": "rust" }
+  }
+}

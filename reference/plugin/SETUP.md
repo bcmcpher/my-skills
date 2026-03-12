@@ -22,6 +22,7 @@ Every file and directory in this reference — what it is, whether it's required
 | `hooks/hooks.json` | Conditional | plugin needs PreToolUse / PostToolUse / Notification / Stop hooks |
 | `.mcp.json` | Conditional | plugin exposes MCP servers |
 | `servers/` | Conditional | `.mcp.json` uses a local `stdio` server bundled in the plugin |
+| `.lsp.json` | Conditional | plugin needs LSP code intelligence (diagnostics, go-to-definition) |
 
 ---
 
@@ -108,7 +109,43 @@ To activate MCP config:
 
 The `${CLAUDE_PLUGIN_ROOT}` variable expands to the plugin directory at runtime, so you can bundle server binaries inside the plugin.
 
-### 7. Test and iterate
+### 7. Add LSP servers (optional)
+
+LSP servers give Claude real-time code intelligence: diagnostics (type errors, missing imports) after each edit, and precise code navigation (go-to-definition, find-references) instead of grep-based search.
+
+**Important:** `.lsp.json` tells Claude Code *how to connect* to a language server. The binary must be installed separately — it is not a codebase dependency.
+
+To activate LSP:
+1. Copy `.lsp.json` from this reference — delete entries for languages you don't use
+2. Add `"lspConfig": "./.lsp.json"` to `plugin.json`
+3. Install the required binary (see table below)
+
+| Language | Binary | Install |
+|----------|--------|---------|
+| Python | `pyright` | `pip install pyright` or `npm install -g pyright` |
+| TypeScript | `typescript-language-server` | `npm install -g typescript-language-server typescript` |
+| Go | `gopls` | `go install golang.org/x/tools/gopls@latest` |
+| Rust | `rust-analyzer` | See rust-analyzer install docs |
+
+**Recommended binary management:** keep Python LSP tools in a dedicated venv that is always on `$PATH`, separate from project venvs:
+
+```bash
+python -m venv ~/.claude-lsp-tools
+~/.claude-lsp-tools/bin/pip install pyright
+# Add to ~/.bashrc: export PATH="$HOME/.claude-lsp-tools/bin:$PATH"
+```
+
+**Per-project type awareness** (e.g., which `.venv` pyright should analyze) is configured in language-specific project files — not in `.lsp.json`:
+
+| Language | Config file | Key fields |
+|----------|-------------|------------|
+| Python | `pyrightconfig.json` | `venvPath`, `venv` |
+| TypeScript | `tsconfig.json` | `compilerOptions` |
+| Go | `go.mod` | automatic |
+
+This keeps concerns separate: the LSP binary location, the Claude connection config, and the project environment are all independent layers.
+
+### 8. Test and iterate
 
 ```bash
 claude --plugin-dir ./plugins/my-plugin-name
@@ -118,7 +155,7 @@ claude --plugin-dir ./plugins/my-plugin-name
 - For the agent, describe a task matching the agent's description and confirm delegation fires
 - Edit SKILL.md files, exit, and reload to iterate
 
-### 8. Install permanently
+### 9. Install permanently
 
 ```bash
 claude plugin install ./plugins/my-plugin-name
@@ -139,6 +176,7 @@ claude plugin install ./plugins/my-plugin-name
 
   // Add only when needed:
   "hooks": "./hooks/hooks.json",
-  "mcpConfig": "./.mcp.json"
+  "mcpConfig": "./.mcp.json",
+  "lspConfig": "./.lsp.json"
 }
 ```

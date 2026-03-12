@@ -33,10 +33,13 @@ PLUGIN_NAME/
 │       ├── scripts/            # Helper scripts (optional)
 │       ├── references/         # Reference docs (optional)
 │       └── assets/             # Static files (optional)
-└── agents/
-    └── AGENT_NAME/
-        ├── SKILL.md            # Agent system prompt
-        ├── scripts/            # Helper scripts (optional)
-        ├── references/         # Reference docs (optional)
-        └── assets/             # Static files (optional)
+├── agents/
+│   └── AGENT_NAME/
+│       ├── SKILL.md            # Agent system prompt
+│       ├── scripts/            # Helper scripts (optional)
+│       ├── references/         # Reference docs (optional)
+│       └── assets/             # Static files (optional)
+├── .lsp.json                   # LSP server config (optional)
+├── hooks/hooks.json            # Event hooks (optional)
+└── .mcp.json                   # MCP server config (optional)
 ```
