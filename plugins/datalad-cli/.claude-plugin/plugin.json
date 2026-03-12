@@ -9,7 +9,10 @@
     "./skills/datalad-init",
     "./skills/datalad-run",
     "./skills/datalad-save",
-    "./skills/datalad-container-run"
+    "./skills/datalad-container-run",
+    "./skills/datalad-status",
+    "./skills/datalad-diff",
+    "./skills/datalad-untrack"
   ],
   "hooks": "./hooks/hooks.json"
 }
