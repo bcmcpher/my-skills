@@ -9,7 +9,7 @@
 #
 # skill/agent: creates plugins/<name>/ from template, replaces placeholders.
 # hook:        creates config/hooks/<name>.sh from template.
-# mcp:         adds servers/<name>/ and .mcp.json to an existing plugins/<name>/.
+# mcp:         adds Python, TypeScript, and Docker server stubs + .mcp.json to an existing plugins/<name>/.
 
 set -euo pipefail
 
@@ -28,7 +28,7 @@ usage() {
   echo "  $(basename "$0") skill  my-formatter"
   echo "  $(basename "$0") agent  code-reviewer"
   echo "  $(basename "$0") hook   my-guard"
-  echo "  $(basename "$0") mcp    my-formatter  # adds MCP server to existing plugin"
+  echo "  $(basename "$0") mcp    my-formatter  # adds Python/TS/Docker MCP stubs to existing plugin"
   exit 1
 }
 
@@ -109,18 +109,25 @@ if [[ "$TYPE" == "mcp" ]]; then
     exit 1
   fi
 
-  # Copy server files and .mcp.json from template
-  cp -r "$MCP_TEMPLATE/servers/PLUGIN_NAME" "$DEST/servers/$NAME"
-  cp "$MCP_TEMPLATE/.mcp.json" "$DEST/.mcp.json"
+  # Copy all three server dirs and .mcp.json from template
+  mkdir -p "$DEST/servers"
+  cp -r "$MCP_TEMPLATE/servers/PLUGIN_NAME-py"     "$DEST/servers/$NAME-py"
+  cp -r "$MCP_TEMPLATE/servers/PLUGIN_NAME-ts"     "$DEST/servers/$NAME-ts"
+  cp -r "$MCP_TEMPLATE/servers/PLUGIN_NAME-docker" "$DEST/servers/$NAME-docker"
+  cp    "$MCP_TEMPLATE/.mcp.json"                  "$DEST/.mcp.json"
 
-  # Token substitution in the new files only
-  find "$DEST/servers/$NAME" "$DEST/.mcp.json" -type f | while IFS= read -r file; do
+  # Token substitution in all new files
+  find "$DEST/servers/$NAME-py" \
+       "$DEST/servers/$NAME-ts" \
+       "$DEST/servers/$NAME-docker" \
+       "$DEST/.mcp.json" -type f | while IFS= read -r file; do
     sed -i -e "s/PLUGIN_NAME/$NAME/g" "$file"
   done
 
   # Make launchers executable
-  chmod +x "$DEST/servers/$NAME/run.sh"
-  chmod +x "$DEST/servers/$NAME/docker/run.sh"
+  chmod +x "$DEST/servers/$NAME-py/run.sh"
+  chmod +x "$DEST/servers/$NAME-ts/run.sh"
+  chmod +x "$DEST/servers/$NAME-docker/run.sh"
 
   # Patch plugin.json to add mcpConfig key
   python3 - "$PLUGIN_JSON" <<'EOF'
@@ -134,11 +141,39 @@ with open(sys.argv[1], "w") as f:
 EOF
 
   echo "Updated: plugins/$NAME"
-  echo "  + servers/$NAME/"
+  echo "  + servers/$NAME-py/    (Python / FastMCP)"
+  echo "  + servers/$NAME-ts/    (TypeScript / MCP SDK)"
+  echo "  + servers/$NAME-docker/ (Docker / stdio)"
+  echo "  + .mcp.json            (all three wired up)"
+  echo "  + mcpConfig key added to .claude-plugin/plugin.json"
+  echo ""
+  echo "Delete the server dirs you won't use, remove their entries from .mcp.json,"
+  echo "then implement your tool(s) in the remaining server file(s)."
+  echo ""
+  echo "  claude --plugin-dir $DEST"
+  exit 0
+fi
+
+  # Make launcher executable
+  chmod +x "$DEST/servers/$NAME/run.sh"
+
+  # Patch plugin.json to add mcpConfig key
+  python3 - "$PLUGIN_JSON" <<'EOF'
+import json, sys
+with open(sys.argv[1]) as f:
+    d = json.load(f)
+d["mcpConfig"] = "./.mcp.json"
+with open(sys.argv[1], "w") as f:
+    json.dump(d, f, indent=2)
+    f.write("\n")
+EOF
+
+  echo "Updated: plugins/$NAME"
+  echo "  + servers/$NAME/  (TypeScript)"
   echo "  + .mcp.json"
   echo "  + mcpConfig key added to .claude-plugin/plugin.json"
   echo ""
-  echo "Next: edit servers/$NAME/run_server.py to implement your tools, then:"
+  echo "Next: edit servers/$NAME/src/index.ts to implement your tools, then:"
   echo "  claude --plugin-dir $DEST"
   exit 0
 fi

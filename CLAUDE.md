@@ -6,13 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Scaffold a new plugin from a template
-bin/new-plugin <type> <name>   # type: skill | agent | hook; name: kebab-case
+bin/new-plugin <type> <name>   # type: skill | agent | hook | mcp; name: kebab-case
 
 # Test a plugin in a session-only context (no permanent install)
 claude --plugin-dir ./plugins/<name>
 
 # Install a plugin permanently (user scope)
 claude plugin install ./plugins/<name>
+
+# Check a plugin is fully converted from its template and ready to publish
+bin/graduate <plugin-name>
 
 # Sync global ~/.claude/ config
 bin/sync-config pull           # ~/.claude/ → config/  (after changing settings in Claude)
@@ -75,14 +78,34 @@ The body of a SKILL.md is imperative prose: numbered steps, then constraints. Re
 - Delete unused `scripts/`, `references/`, `assets/` subdirectories — empty dirs add no value.
 - Replace `SETUP.md` with `README.md` when a plugin is done.
 
+### Shared references across skills
+
+When a plugin contains multiple skills that draw on the same domain knowledge, place `references/` at the plugin level rather than inside each skill:
+
+```
+plugins/<name>/
+├── references/           # shared across all skills in this plugin
+│   ├── topic-a.md
+│   └── topic-b.md
+├── skills/skill-one/
+│   └── SKILL.md          # load with ${CLAUDE_PLUGIN_ROOT}/../references/topic-a.md
+└── skills/skill-two/
+    └── SKILL.md          # same reference, no duplication
+```
+
+Skill-specific references still belong inside the skill directory. Only promote to plugin-level when two or more skills genuinely share the material. Never duplicate a reference file just to keep it co-located.
+
 ### Templates
 
 | Template | Use when |
 |----------|----------|
 | `templates/skill/` | Slash command or auto-invoked instruction only |
 | `templates/agent/` | Specialized subagent with isolated context |
+| `templates/mcp/` | Add MCP server stubs to an existing plugin |
 
 `bin/new-plugin` copies the chosen template, renames placeholder dirs, and replaces `PLUGIN_NAME`/`SKILL_NAME`/`AGENT_NAME` tokens automatically. For a full plugin with hooks or MCP, see `reference/plugin/` as a structural reference.
+
+`bin/new-plugin mcp <name>` scaffolds three parallel server stubs — Python (FastMCP/uv), TypeScript (MCP SDK/tsx), and Docker — each wired into `.mcp.json`. Delete the ones you won't use and remove their entries from `.mcp.json` before testing.
 
 ## Git conventions
 

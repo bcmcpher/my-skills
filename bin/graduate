@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# graduate — verify a plugin is fully converted from its template
+#
+# Usage:
+#   bin/graduate <plugin-name>
+#
+# Checks that the plugin is ready to be considered "done":
+#   - SETUP.md replaced by README.md
+#   - No placeholder tokens remaining in any file
+#   - No empty subdirectories (scripts/, references/, assets/)
+#   - plugin.json has author field
+#   - All bin/validate checks pass
+#   - (Warn) version is still 0.1.0
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PLUGINS_DIR="$REPO_ROOT/plugins"
+
+PLACEHOLDERS=("PLUGIN_NAME" "SKILL_NAME" "AGENT_NAME" "DESCRIPTION" "skill-name" "agent-name")
+
+usage() {
+  echo "Usage: $(basename "$0") <plugin-name>"
+  exit 1
+}
+
+[[ $# -ne 1 ]] && usage
+
+NAME="$1"
+PLUGIN_DIR="$PLUGINS_DIR/$NAME"
+
+if [[ ! -d "$PLUGIN_DIR" ]]; then
+  echo "Error: plugins/$NAME not found" >&2
+  exit 1
+fi
+
+errors=()
+warnings=()
+
+add_error()   { errors+=("  ✗ $1"); }
+add_warning() { warnings+=("  ⚠ $1"); }
+
+# ── 1. SETUP.md must be gone ──────────────────────────────────────────────────
+
+if [[ -f "$PLUGIN_DIR/SETUP.md" ]]; then
+  add_error "SETUP.md still present — replace it with README.md before graduating"
+fi
+
+# ── 2. README.md must exist ───────────────────────────────────────────────────
+
+if [[ ! -f "$PLUGIN_DIR/README.md" ]]; then
+  add_error "README.md missing — add one before graduating"
+fi
+
+# ── 3. No placeholder tokens in key authored files ───────────────────────────
+# Only scan manifest, SKILL.md files, hooks, and MCP config — not reference
+# docs, which can legitimately contain words like DESCRIPTION or skill-name.
+
+while IFS= read -r file; do
+  for token in "${PLACEHOLDERS[@]}"; do
+    if grep -qF "$token" "$file" 2>/dev/null; then
+      add_error "placeholder '$token' still present in: ${file#"$PLUGIN_DIR/"}"
+      break  # one error per file is enough
+    fi
+  done
+done < <(find "$PLUGIN_DIR" \( \
+    -name "plugin.json" -o \
+    -name "SKILL.md" -o \
+    -name "hooks.json" -o \
+    -name ".mcp.json" -o \
+    -name "README.md" -o \
+    -name "SETUP.md" \
+  \) -type f)
+
+# ── 4. No empty scaffold subdirectories ──────────────────────────────────────
+
+while IFS= read -r dir; do
+  base="$(basename "$dir")"
+  case "$base" in
+    scripts|references|assets)
+      # Empty means only contains README.md (template stub) or nothing
+      file_count=$(find "$dir" -type f ! -name 'README.md' | wc -l)
+      if [[ "$file_count" -eq 0 ]]; then
+        add_error "empty placeholder directory: ${dir#"$PLUGIN_DIR/"} — delete it or populate it"
+      fi
+      ;;
+  esac
+done < <(find "$PLUGIN_DIR" -mindepth 2 -type d)
+
+# ── 5. plugin.json has author field ──────────────────────────────────────────
+
+manifest="$PLUGIN_DIR/.claude-plugin/plugin.json"
+if [[ -f "$manifest" ]]; then
+  author=$(jq -r '.author // empty' "$manifest" 2>/dev/null || true)
+  if [[ -z "$author" || "$author" == "null" ]]; then
+    add_error "plugin.json missing 'author' field"
+  fi
+
+  # Warn on default version
+  version=$(jq -r '.version // empty' "$manifest" 2>/dev/null || true)
+  if [[ "$version" == "0.1.0" ]]; then
+    add_warning "version is still 0.1.0 — consider bumping before publishing"
+  fi
+fi
+
+# ── 6. bin/validate must pass ────────────────────────────────────────────────
+
+validate_output=$("$REPO_ROOT/bin/validate" "$NAME" 2>&1) || true
+if echo "$validate_output" | grep -q "^\[FAIL\]"; then
+  add_error "bin/validate reports failures — fix these first:"
+  while IFS= read -r line; do
+    errors+=("    $line")
+  done < <(echo "$validate_output" | grep -v "^Results:")
+fi
+
+# ── Report ────────────────────────────────────────────────────────────────────
+
+echo ""
+if [[ ${#errors[@]} -gt 0 ]]; then
+  echo "[NOT READY] $NAME"
+  printf '%s\n' "${errors[@]}"
+  if [[ ${#warnings[@]} -gt 0 ]]; then
+    echo ""
+    printf '%s\n' "${warnings[@]}"
+  fi
+  echo ""
+  exit 1
+fi
+
+echo "[READY] $NAME"
+if [[ ${#warnings[@]} -gt 0 ]]; then
+  printf '%s\n' "${warnings[@]}"
+fi
+echo ""
+echo "Next steps to publish:"
+echo "  1. Bump version in .claude-plugin/plugin.json"
+echo "  2. Tag: git tag ${NAME}-v\$(jq -r .version \"$manifest\")"
+echo "  3. To extract to its own repo: git subtree split --prefix=plugins/$NAME"

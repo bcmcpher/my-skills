@@ -1,8 +1,18 @@
 {
   "mcpServers": {
-    "PLUGIN_NAME": {
+    "PLUGIN_NAME-py": {
       "type": "stdio",
-      "command": "${CLAUDE_PLUGIN_ROOT}/servers/PLUGIN_NAME/run.sh",
+      "command": "${CLAUDE_PLUGIN_ROOT}/servers/PLUGIN_NAME-py/run.sh",
+      "args": []
+    },
+    "PLUGIN_NAME-ts": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/servers/PLUGIN_NAME-ts/run.sh",
+      "args": []
+    },
+    "PLUGIN_NAME-docker": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/servers/PLUGIN_NAME-docker/run.sh",
       "args": []
     }
   }

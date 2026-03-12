@@ -2,8 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY run_server.py pyproject.toml ./
+COPY server.py .
 
 RUN pip install --no-cache-dir "mcp[cli]>=1.0"
 
-CMD ["python", "run_server.py"]
+CMD ["python", "server.py"]
