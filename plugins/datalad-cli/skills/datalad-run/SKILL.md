@@ -87,6 +87,10 @@ automatically stages and commits the outputs. On failure, nothing is committed.
 - Load `${CLAUDE_PLUGIN_ROOT}/references/run-command.md` when the user asks about
   advanced flags (`--explicit`, `--expand`, `--dry-run`), replaying runs (`datalad rerun`),
   or recording download provenance (`datalad download-url`).
+- Load `${CLAUDE_PLUGIN_ROOT}/../references/yoda-layout.md` when the user asks about
+  YODA directory conventions, where outputs should go, or why inputs are subdatasets.
+- Load `${CLAUDE_PLUGIN_ROOT}/../references/troubleshooting.md` when a run fails, the
+  user has unlocked output files left over, or asks how to recover from a partial run.
 
 ## Replaying recorded runs (`datalad rerun`)
 

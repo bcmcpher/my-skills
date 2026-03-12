@@ -18,7 +18,7 @@ allowed-tools: Read, Bash, Glob
 
 Remove annexed content from local storage or remove a file from the dataset entirely.
 These are two distinct operations with very different consequences. Load
-`${CLAUDE_PLUGIN_ROOT}/references/annex-content-states.md` to reason about annex state
+`${CLAUDE_PLUGIN_ROOT}/../references/annex-content-states.md` to reason about annex state
 before choosing the operation.
 
 ## Steps
@@ -125,5 +125,5 @@ When the user wants to **edit** an annexed file in place (not drop or remove it)
   file cannot be unlocked until `datalad get` retrieves the content.
 - After `unlock`, always remind the user to `datalad save` when done — unlocked files
   are not re-annexed until saved.
-- Load `${CLAUDE_PLUGIN_ROOT}/references/annex-content-states.md` when reasoning about
+- Load `${CLAUDE_PLUGIN_ROOT}/../references/annex-content-states.md` when reasoning about
   what content states mean or when the user asks about annex concepts.

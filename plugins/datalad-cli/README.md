@@ -11,6 +11,20 @@ provenance tracking. Follows YODA principles for reproducible local analysis pro
 | `datalad-run` | `/datalad-run` | Auto: executing scripts/pipelines that produce output files |
 | `datalad-save` | `/datalad-save` | Auto: saving code changes inside a DataLad dataset |
 | `datalad-container-run` | `/datalad-container-run` | Auto: running commands inside Singularity/Apptainer/Docker containers |
+| `datalad-status` | `/datalad-status` | Auto: checking dataset state |
+| `datalad-diff` | `/datalad-diff` | Auto: comparing dataset versions |
+| `datalad-clone` | `/datalad-clone` | Auto: obtaining a copy of a dataset |
+| `datalad-get` | `/datalad-get` | Auto: retrieving annexed file content |
+| `datalad-push` | `/datalad-push` | Auto: pushing dataset to a sibling |
+| `datalad-update` | `/datalad-update` | Auto: updating from a sibling |
+| `datalad-siblings` | `/datalad-siblings` | Auto: configuring remote siblings |
+| `datalad-subdatasets` | `/datalad-subdatasets` | Auto: managing nested subdatasets |
+| `datalad-untrack` | `/datalad-untrack` | Auto: dropping content or removing files |
+| `datalad-addurls` | `/datalad-addurls` | Auto: bulk-adding files from URLs |
+| `datalad-configuration` | `/datalad-configuration` | Explicit: dataset configuration |
+| `datalad-export` | `/datalad-export` | Explicit: exporting to archive or Figshare |
+| `datalad-log` | `/datalad-log` | Auto: browsing run history and provenance |
+| `datalad-credentials` | `/datalad-credentials` | Auto: setting up authentication credentials |
 
 ## Install
 
@@ -65,6 +79,13 @@ The hook exits silently (no error, no commit) when:
 - `DATALAD_AUTOSAVE=0` is set
 - There are no modified or untracked files
 
+**Checkpoint commits in run history**: checkpoint commits appear in `datalad log` and
+`git log` alongside `datalad run` provenance records. They are identifiable by the
+`[datalad] checkpoint` prefix in their message. To list only run records:
+```bash
+git log --oneline --grep="\[datalad run\]"
+```
+
 ## Structure
 
 ```
@@ -75,16 +96,22 @@ datalad-cli/
 │   ├── hooks.json
 │   └── scripts/
 │       └── datalad-checkpoint.sh
+├── references/                        ← shared across all skills
+│   ├── yoda-layout.md
+│   ├── subdataset-patterns.md
+│   ├── siblings-and-remotes.md
+│   ├── annex-content-states.md
+│   └── troubleshooting.md
 └── skills/
-    ├── datalad-init/
-    │   ├── SKILL.md
-    │   └── references/yoda-layout.md
+    ├── datalad-init/SKILL.md
     ├── datalad-run/
     │   ├── SKILL.md
     │   └── references/run-command.md
-    ├── datalad-save/
-    │   └── SKILL.md
-    └── datalad-container-run/
-        ├── SKILL.md
-        └── references/container-run.md
+    ├── datalad-save/SKILL.md
+    ├── datalad-container-run/
+    │   ├── SKILL.md
+    │   └── references/container-run.md
+    ├── datalad-log/SKILL.md
+    ├── datalad-credentials/SKILL.md
+    └── [... 12 more skill directories]
 ```

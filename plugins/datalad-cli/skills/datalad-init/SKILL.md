@@ -49,7 +49,7 @@ correct directory layout and `.gitattributes` rules.
    ├── inputs/        ← input data, ideally linked as subdatasets (annexed: everything)
    └── README.md      ← dataset description
    ```
-   Explain each directory's role briefly (see `${CLAUDE_PLUGIN_ROOT}/references/yoda-layout.md`
+   Explain each directory's role briefly (see `${CLAUDE_PLUGIN_ROOT}/../references/yoda-layout.md`
    for full detail).
 
 5. **Explain YODA principles** — briefly state the three principles:
@@ -70,5 +70,5 @@ correct directory layout and `.gitattributes` rules.
 - Always use `-c yoda` — never create a bare dataset without the YODA configuration.
 - Always warn when the target path is inside a plain git repo, and require explicit
   confirmation before proceeding.
-- Load `${CLAUDE_PLUGIN_ROOT}/references/yoda-layout.md` if the user asks for more detail
+- Load `${CLAUDE_PLUGIN_ROOT}/../references/yoda-layout.md` if the user asks for more detail
   about YODA conventions, `.gitattributes` behavior, or subdataset patterns.

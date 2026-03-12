@@ -65,6 +65,10 @@ a subdataset inside an existing DataLad dataset (YODA-style nested layout).
 Load `${CLAUDE_PLUGIN_ROOT}/../references/subdataset-patterns.md` when the user asks
 about nested layouts, why `-d .` is needed, or the YODA neuroimaging project structure.
 
+Load `${CLAUDE_PLUGIN_ROOT}/../references/yoda-layout.md` when the user asks about the
+YODA directory layout, `.gitattributes` rules, or how `inputs/` and `outputs/` are
+structured.
+
 ## Constraints
 
 - Never use `git clone` for DataLad datasets — use `datalad clone` to preserve annex

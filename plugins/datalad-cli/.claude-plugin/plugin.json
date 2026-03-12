@@ -21,7 +21,9 @@
     "./skills/datalad-subdatasets",
     "./skills/datalad-addurls",
     "./skills/datalad-configuration",
-    "./skills/datalad-export"
+    "./skills/datalad-export",
+    "./skills/datalad-log",
+    "./skills/datalad-credentials"
   ],
   "hooks": "./hooks/hooks.json"
 }
