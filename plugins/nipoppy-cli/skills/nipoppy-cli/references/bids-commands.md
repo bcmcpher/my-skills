@@ -19,15 +19,19 @@ nipoppy bidsify [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--dataset PATH` | cwd | Path to the nipoppy dataset root. |
-| `--pipeline NAME` | config | BIDS converter name (e.g., `dcm2bids`, `heudiconv`, `bidscoin`). Must match `config.json`. |
-| `--pipeline-version VERSION` | config | Converter version. Must match a pulled container image tag. |
-| `--pipeline-step STEP` | config | Converter sub-step (e.g., `prepare`, `convert` for dcm2bids). |
-| `--participant-id ID` | all | Run conversion for a single participant. |
-| `--session-id ID` | all | Run conversion for a single session. |
+| `--pipeline NAME` | — | BIDS converter name (e.g., `dcm2bids`, `heudiconv`, `bidscoin`). Must match config. **Required**. |
+| `--pipeline-version VERSION` | latest installed | Converter version. Must match an installed version. |
+| `--pipeline-step STEP` | first step | Converter sub-step (e.g., `prepare`, `convert` for dcm2bids). |
+| `--participant-id ID` | all | Run conversion for a single participant (with or without `sub-` prefix). |
+| `--session-id ID` | all | Run conversion for a single session (with or without `ses-` prefix). |
+| `--use-subcohort FILE` | — | Path to a TSV file (no header; col 1 = participant IDs, col 2 = session IDs) to restrict which participants are processed. |
 | `--simulate` | off | Print Boutiques invocation without executing. |
-| `--dry-run` / `-n` | off | Alias for `--simulate`. |
-| `--write-list PATH` | — | Write the list of commands to a file instead of executing (useful for HPC job submission). |
-| `--verbose` / `-v` | off | Increase log verbosity. |
+| `--dry-run` | off | Print commands without executing. |
+| `--keep-workdir` | off | Keep the pipeline working directory upon success (default: deleted unless a run failed). |
+| `--hpc TYPE` | — | Submit HPC jobs instead of running locally. Supported: `slurm`, `sge`, or any PySQA-supported type. |
+| `--write-subcohort FILE` | — | Write eligible participant-session pairs to a TSV file and exit without running. Replaces the old `--write-list`. |
+| `--layout FILE` | default | Path to a custom layout specification file. |
+| `--verbose` / `-v` | off | Show DEBUG messages. |
 
 ### Supported converters
 
@@ -86,11 +90,20 @@ Custom descriptors can be placed in `code/boutiques/` and referenced in `config.
 
 ### HPC / batch execution
 
-For large cohorts, use `--write-list` to generate a job list, then submit via SLURM:
+**Pattern 1 — Native HPC submission (recommended):**
 
 ```bash
-nipoppy bidsify --write-list /tmp/bidsify_jobs.txt
-# Then submit each line as a SLURM array task
+# Direct SLURM submission
+nipoppy bidsify --pipeline dcm2bids --pipeline-step convert --hpc slurm
+```
+
+**Pattern 2 — Manual subcohort splitting:**
+
+```bash
+# Write participant-session pairs to a file
+nipoppy bidsify --pipeline dcm2bids --pipeline-step convert \
+  --write-subcohort /tmp/bidsify_pairs.tsv
+# Then iterate over lines in an HPC array job
 ```
 
 ### Example invocations
@@ -109,8 +122,11 @@ nipoppy bidsify --pipeline dcm2bids --pipeline-step convert
 # Run HeuDiConv on all participants
 nipoppy bidsify --pipeline heudiconv
 
-# Write job list for HPC submission
-nipoppy bidsify --pipeline dcm2bids --pipeline-step convert --write-list /tmp/jobs.txt
+# Write subcohort file for manual HPC submission
+nipoppy bidsify --pipeline dcm2bids --pipeline-step convert --write-subcohort /tmp/pairs.tsv
+
+# Submit directly to SLURM
+nipoppy bidsify --pipeline dcm2bids --pipeline-step convert --hpc slurm
 ```
 
 ### After bidsify

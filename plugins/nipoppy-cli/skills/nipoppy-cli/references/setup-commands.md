@@ -22,9 +22,12 @@ nipoppy init [OPTIONS] <dataset-path>
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--bids-source PATH` | — | Seed the `bids/` directory from an existing BIDS dataset (copy/move/symlink). |
-| `--mode {copy,move,symlink}` | `copy` | How to import files when `--bids-source` is set. |
-| `--dataset PATH` | cwd | (Redundant with positional arg; prefer positional.) |
-| `--verbose` / `-v` | off | Increase log verbosity. |
+| `--mode {copy,move,symlink}` | `symlink` | How to import files when `--bids-source` is set. |
+| `--force` / `-f` | off | Create the dataset even if files are already present (may overwrite existing files). |
+| `--dataset PATH` | cwd | Path to the dataset root (default is current working directory). |
+| `--layout FILE` | default | Path to a custom layout specification file. |
+| `--verbose` / `-v` | off | Show DEBUG messages. |
+| `--dry-run` | off | Print commands without executing. |
 
 ### Directory structure created
 

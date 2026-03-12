@@ -3,9 +3,11 @@ name: nipoppy-cli
 description: >
   Assist with the nipoppy CLI for managing neuroimaging datasets. Use when the user
   asks about nipoppy commands, setting up a nipoppy dataset, organizing DICOM files,
-  running BIDS conversion, executing processing pipelines (fMRIPrep, MRIQC), tracking
-  pipeline status, or extracting imaging-derived phenotypes (IDPs). Also invoke for
-  /nipoppy-cli or when a nipoppy.toml, manifest.tsv, or nipoppy config.json is present.
+  running BIDS conversion (bidsify), executing processing pipelines (process, fMRIPrep,
+  MRIQC), tracking pipeline status (track-processing), extracting imaging-derived
+  phenotypes (extract/IDPs), or managing the pipeline catalog (pipeline install/search/
+  upload/validate). Also invoke for /nipoppy-cli or when a manifest.tsv or nipoppy
+  config.json is present.
 argument-hint: [command | question | dataset-path]
 user-invocable: true
 disable-model-invocation: false
@@ -30,7 +32,10 @@ from raw DICOMs through BIDS conversion, pipeline execution, and IDP extraction.
    - `init` or `status`: `${CLAUDE_PLUGIN_ROOT}/references/setup-commands.md`
    - `track-curation` or `reorg`: `${CLAUDE_PLUGIN_ROOT}/references/curation-commands.md`
    - `bidsify`: `${CLAUDE_PLUGIN_ROOT}/references/bids-commands.md`
-   - `run`, `track`, or `extract`: `${CLAUDE_PLUGIN_ROOT}/references/pipeline-commands.md`
+   - `process`: `${CLAUDE_PLUGIN_ROOT}/references/process-command.md`
+   - `track-processing` or `extract`: `${CLAUDE_PLUGIN_ROOT}/references/track-extract-commands.md`
+   - `pipeline search`, `pipeline install`, or `pipeline list`: `${CLAUDE_PLUGIN_ROOT}/references/pipeline-catalog-commands.md`
+   - `pipeline create`, `pipeline validate`, or `pipeline upload`: `${CLAUDE_PLUGIN_ROOT}/references/pipeline-authoring-commands.md`
    - When uncertain, load `workflow-overview.md` first, then the relevant group reference
 
 3. **Check dataset state** — if a dataset path is provided or discoverable (cwd or $ARGUMENTS):
@@ -46,12 +51,14 @@ from raw DICOMs through BIDS conversion, pipeline execution, and IDP extraction.
    - Warnings for common pitfalls (missing manifest entries, uninitialized dataset, etc.)
 
 5. **Suggest next step** — after answering, recommend the next logical nipoppy command
-   in the standard workflow order: `init` → `track-curation` → `reorg` → `bidsify` → `run` → `track` → `extract`
+   in the standard workflow order: `init` → `track-curation` → `reorg` → `bidsify` → `process` → `track-processing` → `extract`
 
 ## Constraints
 
-- Always verify `config.json` and `manifest.tsv` exist before recommending commands that require an initialized dataset (`reorg`, `bidsify`, `run`, `track`, `extract`).
-- Always warn that nipoppy pipeline commands (`bidsify`, `run`, `extract`) require Linux and Apptainer; they will not work on macOS or Windows.
+- Always verify `config.json` and `manifest.tsv` exist before recommending commands that require an initialized dataset (`reorg`, `bidsify`, `process`, `track-processing`, `extract`).
+- Always warn that nipoppy pipeline commands (`bidsify`, `process`, `extract`) require Linux and Apptainer; they will not work on macOS or Windows.
 - Never run nipoppy commands without `--simulate` or `--dry-run` unless the user explicitly confirms they want live execution.
 - Never add participants to `manifest.tsv` by hand — instruct the user to edit the file directly or use nipoppy's manifest update workflow.
-- When explaining `run` or `extract`, always mention the `--pipeline`, `--pipeline-version`, and `--pipeline-step` options, as omitting them may apply the command to all configured pipelines unexpectedly.
+- When explaining `process` or `extract`, always mention the `--pipeline`, `--pipeline-version`, and `--pipeline-step` options, as omitting them may apply the command to all configured pipelines unexpectedly.
+- For HPC workflows, prefer `--hpc slurm` or `--hpc sge` over the manual `--write-subcohort` pattern when the cluster type is known.
+- The `nipoppy pipeline` subgroup manages the pipeline catalog (install/search/upload); it does not run pipelines. Use `process`, `bidsify`, or `extract` to actually run pipelines.

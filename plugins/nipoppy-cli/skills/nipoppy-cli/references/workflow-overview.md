@@ -41,10 +41,10 @@ Raw DICOMs arrive
 [7] nipoppy track-curation — Update status after BIDS conversion
         │
         ▼
-[8] nipoppy run            — Execute processing pipeline (fMRIPrep, MRIQC, etc.)
+[8] nipoppy process        — Execute processing pipeline (fMRIPrep, MRIQC, etc.)
         │
         ▼
-[9] nipoppy track          — Record per-participant pipeline completion
+[9] nipoppy track-processing — Record per-participant pipeline completion
         │
         ▼
 [10] nipoppy extract       — Extract IDPs into analysis-ready tables
@@ -135,7 +135,7 @@ Raw DICOMs arrive
 | CLI installation | Python 3.8+, any OS |
 | `init`, `status`, `track-curation` | Any OS |
 | `reorg` | Any OS (file operations only) |
-| `bidsify`, `run`, `extract` | **Linux + Apptainer** (containers required) |
+| `bidsify`, `process`, `extract` | **Linux + Apptainer** (containers required) |
 | HPC execution | SLURM or SGE recommended for large cohorts |
 
 ---
@@ -146,5 +146,5 @@ Raw DICOMs arrive
 2. **Missing manifest entries** — Participants not in `manifest.tsv` are invisible to all nipoppy commands.
 3. **Pre-reorg files not in expected layout** — `reorg` expects files in `pre_reorg/`; ad-hoc layouts may need custom heuristics.
 4. **Apptainer not on PATH** — Pipeline commands fail silently if Apptainer is not available; check with `apptainer --version`.
-5. **Container image not pulled** — Pipeline containers must be pulled before `run`; nipoppy does not auto-pull by default.
+5. **Container image not pulled** — Pipeline containers must be pulled before `process`; nipoppy does not auto-pull by default.
 6. **config.json pipeline version mismatch** — The version specified in `config.json` must match the pulled container image tag.
