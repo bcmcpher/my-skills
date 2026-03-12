@@ -154,30 +154,6 @@ EOF
   exit 0
 fi
 
-  # Make launcher executable
-  chmod +x "$DEST/servers/$NAME/run.sh"
-
-  # Patch plugin.json to add mcpConfig key
-  python3 - "$PLUGIN_JSON" <<'EOF'
-import json, sys
-with open(sys.argv[1]) as f:
-    d = json.load(f)
-d["mcpConfig"] = "./.mcp.json"
-with open(sys.argv[1], "w") as f:
-    json.dump(d, f, indent=2)
-    f.write("\n")
-EOF
-
-  echo "Updated: plugins/$NAME"
-  echo "  + servers/$NAME/  (TypeScript)"
-  echo "  + .mcp.json"
-  echo "  + mcpConfig key added to .claude-plugin/plugin.json"
-  echo ""
-  echo "Next: edit servers/$NAME/src/index.ts to implement your tools, then:"
-  echo "  claude --plugin-dir $DEST"
-  exit 0
-fi
-
 # ── Plugin types: scaffold into plugins/ ──────────────────────────────────────
 
 TEMPLATE_SRC="$TEMPLATES_DIR/$TYPE"
