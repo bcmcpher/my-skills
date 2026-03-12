@@ -65,11 +65,34 @@ datalad save -m "remove <path>"
 
 ---
 
+### `datalad unlock` — make an annexed file writable for in-place editing
+
+Annexed files are stored as write-protected symlinks. Before editing an annexed file
+you must unlock it. Unlike drop/remove, unlock does not change what is in the dataset —
+it just temporarily materializes the file as a regular writable file.
+
+- Replaces the symlink with the actual file content
+- The file is now writable by normal tools (`vim`, `sed`, scripts)
+- **Content must be locally present** — if absent, run `datalad get <path>` first
+- After editing, `datalad save` re-annexes the file and records the change
+
+```bash
+datalad unlock <path>          # unlock one file
+datalad unlock .               # unlock everything in current directory
+datalad unlock <p1> <p2>       # unlock multiple files
+```
+
+> Tip: `datalad run -o <path>` calls unlock automatically on declared outputs before
+> running the command, so you rarely need to call `unlock` manually for pipeline outputs.
+
+---
+
 ## When to use each
 
 | Goal | Operation |
 |------|-----------|
 | Free local disk, file still needed later | `datalad drop` |
 | File is no longer needed anywhere | `datalad remove` + `datalad save` |
+| Edit an annexed file in place | `datalad unlock` → edit → `datalad save` |
 | Retrieve previously dropped content | `datalad get <path>` |
 | Check where content copies live | `git annex whereis <path>` |

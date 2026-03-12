@@ -5,8 +5,9 @@ description: >
   input data files and writes output files — e.g., `python analysis.py`, `bash process.sh`,
   neuroimaging tools (fMRIPrep, MRIQC, FSL, FreeSurfer), or any shell command that
   produces result files in a DataLad dataset. Also trigger on "run with provenance",
-  "track this command", "record this analysis", or /datalad-run. Do NOT trigger for
-  commands that produce no output files (git log, ls, exploratory queries).
+  "track this command", "record this analysis", "replay this run", "rerun a recorded
+  command", "download this file with provenance", "record download", or /datalad-run.
+  Do NOT trigger for commands that produce no output files (git log, ls, exploratory queries).
 argument-hint: [command-to-run]
 user-invocable: true
 disable-model-invocation: false
@@ -86,3 +87,50 @@ automatically stages and commits the outputs. On failure, nothing is committed.
 - Load `${CLAUDE_PLUGIN_ROOT}/references/run-command.md` when the user asks about
   advanced flags (`--explicit`, `--expand`, `--dry-run`), replaying runs (`datalad rerun`),
   or recording download provenance (`datalad download-url`).
+
+## Replaying recorded runs (`datalad rerun`)
+
+When the user wants to replay a previously recorded run:
+
+1. **Identify the target commit** — ask the user for the commit SHA, or use the most
+   recent `datalad run` commit if they say "the last run":
+   ```bash
+   git log --oneline --grep="datalad run" -5
+   ```
+
+2. **Construct the rerun command**:
+   - Replay the most recent run: `datalad rerun`
+   - Replay a specific commit: `datalad rerun <sha>`
+   - Replay a range: `datalad rerun <start>..<end>`
+
+3. **Show and confirm** before executing — a rerun re-executes the original command
+   with the same inputs and outputs, creating a new commit. This is not reversible.
+
+4. **Report outcome** — on success, note the new commit SHA and that this replay is
+   also recorded in dataset history (provenance chain). On failure, show the error.
+
+Load `${CLAUDE_PLUGIN_ROOT}/references/run-command.md` for the full flag reference.
+
+## Recording download provenance (`datalad download-url`)
+
+When the user wants to download a file and record where it came from:
+
+1. **Gather parameters**:
+   - URL to download from
+   - Local destination path (`--path`)
+   - A meaningful message (`-m`)
+
+2. **Construct command**:
+   ```bash
+   datalad download-url -m "<message>" \
+     --path <local-path> \
+     <url>
+   ```
+
+3. **Show and confirm** — this creates a DataLad commit recording the URL, content
+   hash, and download time. The file is annexed automatically.
+
+4. **After download** — suggest verifying with `datalad status` and `git annex whereis`.
+
+Use this instead of `wget`/`curl` whenever the file's origin should be tracked in
+dataset history (YODA P2: record data origins).

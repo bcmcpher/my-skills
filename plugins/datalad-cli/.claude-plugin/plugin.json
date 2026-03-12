@@ -18,7 +18,10 @@
     "./skills/datalad-siblings",
     "./skills/datalad-push",
     "./skills/datalad-update",
-    "./skills/datalad-subdatasets"
+    "./skills/datalad-subdatasets",
+    "./skills/datalad-addurls",
+    "./skills/datalad-configuration",
+    "./skills/datalad-export"
   ],
   "hooks": "./hooks/hooks.json"
 }

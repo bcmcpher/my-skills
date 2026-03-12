@@ -127,6 +127,135 @@ datalad push --to osf-storage --data anything # all annexed content
 
 ---
 
+## Creating siblings with `create-sibling-*`
+
+The `create-sibling-*` family creates the remote repository *and* registers it as a
+sibling in a single step. Use these instead of creating the repo manually and then
+calling `datalad siblings add`.
+
+### `datalad create-sibling-github`
+
+Requires a GitHub personal access token with `repo` scope (or `public_repo` for public
+repos). Reads the token from the `GITHUB_TOKEN` environment variable or credential store.
+
+| Flag | Purpose |
+|------|---------|
+| `--reponame` | Repository name on GitHub |
+| `--github-organization` | Create under an org instead of your personal account |
+| `-s` / `--name` | Local sibling name (default: `github`) |
+| `--publish-depends` | Storage sibling to push annexed data to first |
+| `--access` | `logins` (private) or `public` |
+| `--dryrun` | Preview without creating |
+
+```bash
+datalad create-sibling-github \
+  --reponame my-dataset \
+  --github-organization myorg \
+  -s github \
+  --publish-depends osf-storage
+```
+
+---
+
+### `datalad create-sibling-gitlab`
+
+Requires a GitLab personal access token with `api` scope.
+
+| Flag | Purpose |
+|------|---------|
+| `--reponame` | Namespace/project path (e.g., `user/my-dataset` or `group/sub/my-dataset`) |
+| `--gitlab-host` | GitLab instance URL (default: `https://gitlab.com`) |
+| `-s` / `--name` | Local sibling name (default: `gitlab`) |
+| `--publish-depends` | Storage sibling |
+| `--access-level` | `private`, `internal`, or `public` |
+
+```bash
+datalad create-sibling-gitlab \
+  --reponame mygroup/my-dataset \
+  --gitlab-host https://gitlab.example.com \
+  -s gitlab
+```
+
+---
+
+### `datalad create-sibling-ria`
+
+RIA (Remote Indexed Archive) stores are DataLad-native storage backends. They support
+SSH, HTTP, and local filesystem paths. A single RIA store can host many datasets.
+
+| Flag | Purpose |
+|------|---------|
+| positional URL | `ria+ssh://user@host/path` or `ria+file:///path` |
+| `--name` | Sibling name (default: `origin`) |
+| `--storage-sibling` | Whether to also create a storage sibling (`yes`, `no`, `only`) |
+| `--new-store-ok` | Initialize the store if it does not exist |
+
+```bash
+# SSH RIA store
+datalad create-sibling-ria \
+  --name ria-remote \
+  --new-store-ok \
+  ria+ssh://user@server.example.com/data/ria-store
+
+# Local RIA store (testing/backup)
+datalad create-sibling-ria \
+  --name ria-backup \
+  ria+file:///mnt/backup/ria-store
+```
+
+---
+
+### `datalad create-sibling-gin`
+
+GIN (G-Node Infrastructure) is a neuroimaging-focused Git/annex hosting platform at
+`gin.g-node.org`. Requires SSH key configured in your GIN account.
+
+| Flag | Purpose |
+|------|---------|
+| `--reponame` | Repository name |
+| `--gin-organization` | Create under a GIN team/org |
+| `-s` / `--name` | Local sibling name (default: `gin`) |
+
+```bash
+datalad create-sibling-gin \
+  --reponame my-dataset \
+  -s gin
+```
+
+---
+
+### `datalad create-sibling-webdav`
+
+WebDAV siblings work with Nextcloud, ownCloud, and institutional WebDAV servers.
+
+| Flag | Purpose |
+|------|---------|
+| `--url` | WebDAV endpoint URL |
+| `--name` | Local sibling name (default: `webdav`) |
+| `--storage-sibling` | Create a git-annex storage sibling alongside the git sibling |
+| `--mode` | `annex` (annex files via WebDAV), `filetree` (plain files), `annex-only` |
+
+```bash
+datalad create-sibling-webdav \
+  --url https://nextcloud.example.com/remote.php/dav/files/user/datasets/my-dataset \
+  --name webdav \
+  --mode annex
+```
+
+---
+
+### `datalad create-sibling` (generic SSH / local)
+
+For any SSH server or local path not covered by platform-specific commands:
+
+```bash
+datalad create-sibling \
+  --name backup \
+  --url ssh://user@server/path/to/repo
+```
+
+---
+
 ## `datalad update --follow` policy
 
 When updating subdatasets recursively, `--follow` controls which version of a subdataset

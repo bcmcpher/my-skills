@@ -2,12 +2,13 @@
 name: datalad-subdatasets
 description: >
   Auto-invoke when the user wants to list nested datasets, inspect the subdataset tree,
-  check which subdatasets are absent or present, or set a property on a subdataset
-  registration. Trigger on "list subdatasets", "show nested datasets", "check subdataset
-  status", "what subdatasets exist", "subdataset is absent", "set subdataset property",
-  or /datalad-subdatasets. Do NOT trigger for plain git submodule commands outside a
-  DataLad dataset.
-argument-hint: [--state absent|present] [-r] [--set-property name value path]
+  check which subdatasets are absent or present, set a property on a subdataset
+  registration, or run a command across all subdatasets. Trigger on "list subdatasets",
+  "show nested datasets", "check subdataset status", "what subdatasets exist", "subdataset
+  is absent", "set subdataset property", "run on all subdatasets", "foreach dataset",
+  "iterate over subdatasets", or /datalad-subdatasets. Do NOT trigger for plain git
+  submodule commands outside a DataLad dataset.
+argument-hint: [--state absent|present] [-r] [--set-property name value path] [foreach-dataset]
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -56,6 +57,32 @@ subdatasets, their state (present/absent), and the commit SHA they are pinned to
    datalad subdatasets --set-property <property-name> <value> <subdataset-path>
    ```
    Common properties: `url` (change where the subdataset is fetched from).
+
+   ### run a command across subdatasets (`datalad foreach-dataset`)
+   When the user wants to execute a command on every subdataset in the tree, use
+   `datalad foreach-dataset`. Gather:
+   - The command or DataLad command to run (as a string)
+   - Whether to recurse (`-r`) into nested subdatasets
+   - Whether to include the superdataset (`--include-super`)
+
+   ```bash
+   datalad foreach-dataset [-r] [--include-super] -- <command>
+   ```
+
+   Examples:
+   ```bash
+   # Run datalad status on every subdataset
+   datalad foreach-dataset -r -- datalad status
+
+   # Update all subdatasets
+   datalad foreach-dataset -r -- datalad update --how=merge
+
+   # Check annex usage in every subdataset
+   datalad foreach-dataset -r -- git annex info --fast
+   ```
+
+   Always show the full command before executing and warn that errors in one subdataset
+   will be reported but processing continues for the rest.
 
 4. **Interpret output** — explain the results to the user:
    - `state: present` — the subdataset is cloned and accessible locally

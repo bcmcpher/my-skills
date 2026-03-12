@@ -2,12 +2,14 @@
 name: datalad-siblings
 description: >
   Auto-invoke when the user wants to inspect, add, configure, or remove dataset remotes;
-  set up a GitHub, OSF, S3, or other storage sibling; check what remotes exist; or
-  configure where to push annexed data. Trigger on "list remotes", "add a remote",
-  "configure sibling", "set up GitHub", "add OSF storage", "what siblings exist",
-  "where is this data stored", or /datalad-siblings. Do NOT trigger for plain git
-  remote operations outside a DataLad dataset.
-argument-hint: [query|add|configure|remove|enable] [-s name] [--url url]
+  set up a GitHub, GitLab, RIA store, GIN, WebDAV, OSF, S3, or other storage sibling;
+  check what remotes exist; or configure where to push annexed data. Trigger on "list
+  remotes", "add a remote", "configure sibling", "set up GitHub", "create GitHub sibling",
+  "publish to GitHub", "create GitLab sibling", "set up RIA store", "add GIN sibling",
+  "create WebDAV sibling", "add OSF storage", "what siblings exist", "where is this data
+  stored", or /datalad-siblings. Do NOT trigger for plain git remote operations outside
+  a DataLad dataset.
+argument-hint: [create-github|create-gitlab|create-ria|create-gin|query|add|configure|remove|enable] [-s name] [--url url]
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -85,6 +87,66 @@ annexed file content can be pushed and pulled.
    datalad siblings enable -s <name>
    ```
 
+   ### create-sibling-github / create-sibling-gitlab / create-sibling-ria / create-sibling-gin
+   When the user wants to create a new remote repository and register it as a sibling in
+   one step, use the appropriate `create-sibling-*` command. Load
+   `${CLAUDE_PLUGIN_ROOT}/../references/siblings-and-remotes.md` for platform-specific
+   flags, then:
+
+   a. Identify the target platform (GitHub, GitLab, RIA, GIN, WebDAV, or generic SSH).
+   b. Gather required parameters (repo name, organization/namespace, access token if
+      needed, RIA store path if applicable).
+   c. Construct and display the command before executing:
+
+   **GitHub:**
+   ```bash
+   datalad create-sibling-github \
+     --dataset . \
+     --reponame <repo-name> \
+     [--github-organization <org>] \
+     [-s github] \
+     [--publish-depends <storage-sibling>]
+   ```
+
+   **GitLab:**
+   ```bash
+   datalad create-sibling-gitlab \
+     --dataset . \
+     --reponame <namespace>/<repo-name> \
+     --gitlab-host <host> \
+     [-s gitlab] \
+     [--publish-depends <storage-sibling>]
+   ```
+
+   **RIA store:**
+   ```bash
+   datalad create-sibling-ria \
+     --dataset . \
+     --name ria-storage \
+     ria+ssh://user@host/path/to/ria-store
+   ```
+
+   **GIN:**
+   ```bash
+   datalad create-sibling-gin \
+     --dataset . \
+     --reponame <repo-name> \
+     [-s gin]
+   ```
+
+   **WebDAV:**
+   ```bash
+   datalad create-sibling-webdav \
+     --dataset . \
+     --url webdavs://<host>/path/to/dataset \
+     [-s webdav]
+   ```
+
+   d. After creation, suggest pushing: `datalad push --to <name>`.
+
+   If the user asks for `create-sibling` (generic SSH/local path), gather the URL and
+   construct: `datalad create-sibling --name <name> --url <url>`.
+
 4. **Show command and execute** — always display the full command before running.
 
 5. **Post-add suggestion** — after adding or configuring a sibling, suggest:
@@ -93,7 +155,8 @@ annexed file content can be pushed and pulled.
 ## Reference
 
 Always load `${CLAUDE_PLUGIN_ROOT}/../references/siblings-and-remotes.md` for URL
-formats, special remote types, publish-depends patterns, and annex-wanted expressions.
+formats, special remote types, platform flags, publish-depends patterns, and
+annex-wanted expressions.
 
 ## Constraints
 

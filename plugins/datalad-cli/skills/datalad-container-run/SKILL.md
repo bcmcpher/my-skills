@@ -4,9 +4,10 @@ description: >
   Auto-invoke when about to execute a command inside a container (Singularity .sif file,
   Apptainer image, Docker image) that produces output files inside a DataLad dataset.
   Trigger on "run in container", "run with Singularity", "run with Apptainer",
-  "run with Docker", "containerized analysis", or /datalad-container-run. Records both
-  the command and the container image in dataset provenance. Do NOT trigger for bare
-  datalad run commands without a container — use datalad-run for those.
+  "run with Docker", "containerized analysis", "remove a container", "unregister container",
+  or /datalad-container-run. Records both the command and the container image in dataset
+  provenance. Do NOT trigger for bare datalad run commands without a container — use
+  datalad-run for those.
 argument-hint: [container-name command]
 user-invocable: true
 disable-model-invocation: false
@@ -83,6 +84,31 @@ registration or container-run step.
      recorded, and that the container image and command are now in dataset history.
    - On **failure**: show error output; note that nothing was committed.
 
+## Removing a registered container (`datalad containers-remove`)
+
+When the user wants to deregister a container:
+
+1. **List registered containers** to confirm the name:
+   ```bash
+   datalad containers-list
+   ```
+
+2. **Warn the user** — removing a container drops its registration and annexed image
+   from the dataset. Runs that used this container remain in history but cannot be
+   replayed (the image would need to be re-added):
+   > "Removing '<name>' will drop the container image from the dataset. Past runs
+   > referencing it will no longer be replayable unless you re-add the image. Proceed?"
+
+3. **Remove after confirmation**:
+   ```bash
+   datalad containers-remove <name>
+   ```
+
+4. **Save the change**:
+   ```bash
+   datalad save -m "remove container <name>"
+   ```
+
 ## Constraints
 
 - Always load `${CLAUDE_PLUGIN_ROOT}/references/container-run.md` before any container
@@ -95,3 +121,5 @@ registration or container-run step.
   container call.
 - The `--call-fmt` must contain both `{img}` and `{cmd}` placeholders — if either is
   missing, the container will be invoked incorrectly. Flag this to the user.
+- For `containers-remove`: always confirm before executing and always follow with
+  `datalad save` to record the removal.
