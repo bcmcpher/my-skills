@@ -4,11 +4,12 @@
 # Usage:
 #   bin/new-plugin <type> <name>
 #
-#   type   skill | agent | hook
+#   type   skill | agent | hook | mcp
 #   name   kebab-case name for the new plugin (e.g. my-formatter)
 #
-# Creates plugins/<name>/ from templates/<type>/, replaces all placeholders,
-# and renames placeholder directories to match <name>.
+# skill/agent: creates plugins/<name>/ from template, replaces placeholders.
+# hook:        creates config/hooks/<name>.sh from template.
+# mcp:         adds servers/<name>/ and .mcp.json to an existing plugins/<name>/.
 
 set -euo pipefail
 
@@ -20,13 +21,14 @@ CONFIG_HOOKS_DIR="$REPO_ROOT/config/hooks"
 usage() {
   echo "Usage: $(basename "$0") <type> <name>"
   echo ""
-  echo "  type   skill | agent | hook"
+  echo "  type   skill | agent | hook | mcp"
   echo "  name   kebab-case name (e.g. my-formatter, code-reviewer)"
   echo ""
   echo "Examples:"
   echo "  $(basename "$0") skill  my-formatter"
   echo "  $(basename "$0") agent  code-reviewer"
   echo "  $(basename "$0") hook   my-guard"
+  echo "  $(basename "$0") mcp    my-formatter  # adds MCP server to existing plugin"
   exit 1
 }
 
@@ -37,8 +39,8 @@ NAME="$2"
 
 # Validate type
 case "$TYPE" in
-  skill|agent|hook) ;;
-  *) echo "Error: type must be skill, agent, or hook" >&2; usage ;;
+  skill|agent|hook|mcp) ;;
+  *) echo "Error: type must be skill, agent, hook, or mcp" >&2; usage ;;
 esac
 
 # Validate name: lowercase, digits, hyphens; must start with a letter
@@ -76,6 +78,68 @@ if [[ "$TYPE" == "hook" ]]; then
   echo "     { \"matcher\": \"Bash|Edit|Write\", \"hooks\": [{ \"type\": \"command\", \"command\": \"~/.claude/hooks/$NAME.sh\" }] }"
   echo "  3. Apply to ~/.claude/:"
   echo "     bin/sync-config push"
+  exit 0
+fi
+
+# ── MCP type: add server scaffolding to an existing plugin ────────────────────
+
+if [[ "$TYPE" == "mcp" ]]; then
+  MCP_TEMPLATE="$TEMPLATES_DIR/mcp"
+  DEST="$PLUGINS_DIR/$NAME"
+  PLUGIN_JSON="$DEST/.claude-plugin/plugin.json"
+
+  if [[ ! -d "$MCP_TEMPLATE" ]]; then
+    echo "Error: mcp template not found at $MCP_TEMPLATE" >&2
+    exit 1
+  fi
+
+  if [[ ! -d "$DEST" ]]; then
+    echo "Error: plugins/$NAME does not exist — create the plugin first:" >&2
+    echo "  bin/new-plugin skill $NAME" >&2
+    exit 1
+  fi
+
+  if [[ -f "$DEST/.mcp.json" ]]; then
+    echo "Error: plugins/$NAME/.mcp.json already exists" >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$PLUGIN_JSON" ]]; then
+    echo "Error: $PLUGIN_JSON not found — is plugins/$NAME a valid plugin?" >&2
+    exit 1
+  fi
+
+  # Copy server files and .mcp.json from template
+  cp -r "$MCP_TEMPLATE/servers/PLUGIN_NAME" "$DEST/servers/$NAME"
+  cp "$MCP_TEMPLATE/.mcp.json" "$DEST/.mcp.json"
+
+  # Token substitution in the new files only
+  find "$DEST/servers/$NAME" "$DEST/.mcp.json" -type f | while IFS= read -r file; do
+    sed -i -e "s/PLUGIN_NAME/$NAME/g" "$file"
+  done
+
+  # Make launchers executable
+  chmod +x "$DEST/servers/$NAME/run.sh"
+  chmod +x "$DEST/servers/$NAME/docker/run.sh"
+
+  # Patch plugin.json to add mcpConfig key
+  python3 - "$PLUGIN_JSON" <<'EOF'
+import json, sys
+with open(sys.argv[1]) as f:
+    d = json.load(f)
+d["mcpConfig"] = "./.mcp.json"
+with open(sys.argv[1], "w") as f:
+    json.dump(d, f, indent=2)
+    f.write("\n")
+EOF
+
+  echo "Updated: plugins/$NAME"
+  echo "  + servers/$NAME/"
+  echo "  + .mcp.json"
+  echo "  + mcpConfig key added to .claude-plugin/plugin.json"
+  echo ""
+  echo "Next: edit servers/$NAME/run_server.py to implement your tools, then:"
+  echo "  claude --plugin-dir $DEST"
   exit 0
 fi
 

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "PLUGIN_NAME": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/servers/PLUGIN_NAME/run.sh",
+      "args": []
+    }
+  }
+}
