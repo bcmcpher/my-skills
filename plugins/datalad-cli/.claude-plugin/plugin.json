@@ -12,7 +12,13 @@
     "./skills/datalad-container-run",
     "./skills/datalad-status",
     "./skills/datalad-diff",
-    "./skills/datalad-untrack"
+    "./skills/datalad-untrack",
+    "./skills/datalad-clone",
+    "./skills/datalad-get",
+    "./skills/datalad-siblings",
+    "./skills/datalad-push",
+    "./skills/datalad-update",
+    "./skills/datalad-subdatasets"
   ],
   "hooks": "./hooks/hooks.json"
 }
