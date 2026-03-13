@@ -1,0 +1,9 @@
+{
+  "name": "bids",
+  "description": "BIDS (Brain Imaging Data Structure) conventions — naming rules, entity ordering, sidecar fields, and dataset structure for neuroimaging datasets.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["bids", "neuroimaging", "mri", "fmri", "dwi", "eeg", "pet"],
+  "skills": ["./skills/bids"]
+}
