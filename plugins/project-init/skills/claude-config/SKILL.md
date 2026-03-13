@@ -1,0 +1,224 @@
+---
+name: claude-config
+description: >
+  Configure Claude Code tooling for the current project: generate or update CLAUDE.md,
+  set up an LSP language server, add PostToolUse hooks, configure MCP servers (DataLad,
+  web search, GitHub), scaffold project-specific agents and skills in .claude/, and
+  create .editorconfig. Use when the user says "configure Claude", "set up Claude Code",
+  "add an LSP", "add hooks", "set up MCP", "scaffold an agent", "scaffold a skill",
+  or "/claude-config". Safe to run on new or existing projects; safe to re-run to add
+  options later. Detects project type from CLAUDE.md or asks.
+argument-hint: [coding-tool|data-analysis|info-management]
+user-invocable: true
+disable-model-invocation: false
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
+---
+
+# Skill: claude-config
+
+Configure Claude Code tooling for the current project. Safe to run at any time —
+including immediately after `/new-project` or on a project that already has partial
+configuration. Each option is independently selectable and re-runnable.
+
+---
+
+## Phase 0: Establish context
+
+### Step 1 — Detect project type
+
+If `$ARGUMENTS` names a type explicitly, use it:
+
+| Keywords | Type |
+|---|---|
+| "coding-tool", "package", "library", "cli", "tool" | `coding-tool` |
+| "data-analysis", "data", "analysis", "research", "science" | `data-analysis` |
+| "info-management", "info", "notes", "knowledge", "vault" | `info-management` |
+
+Otherwise, check `CLAUDE.md` for a `**Type:**` field in any `## Project` section.
+
+If still unknown, ask:
+
+> "What type of project is this?
+>
+> 1. Coding tool / package
+> 2. Data analysis
+> 3. Information management"
+
+### Step 2 — Load project type reference
+
+| Type | Reference |
+|---|---|
+| `coding-tool` | `${CLAUDE_PLUGIN_ROOT}/../references/project-types/coding-tool.md` |
+| `data-analysis` | `${CLAUDE_PLUGIN_ROOT}/../references/project-types/data-analysis.md` |
+| `info-management` | `${CLAUDE_PLUGIN_ROOT}/../references/project-types/info-management.md` |
+
+### Step 3 — Detect language
+
+Check `CLAUDE.md` for a `**Language:**` field, or scan for signal files:
+
+| Signal files | Language |
+|---|---|
+| `pyproject.toml`, `setup.py`, `requirements.txt`, `Pipfile` | Python |
+| `package.json` (no `tsconfig.json`) | JavaScript |
+| `package.json` + `tsconfig.json` | TypeScript |
+| `Cargo.toml` | Rust |
+| `go.mod` | Go |
+| `DESCRIPTION`, `renv.lock`, `.Rprofile` | R |
+
+For `info-management` projects, language is not applicable — skip.
+
+---
+
+## Phase 1: Configuration menu
+
+Present the menu with profile-specific recommendations highlighted:
+
+> "Which Claude Code configurations would you like to set up?
+>
+> 1. **CLAUDE.md** — generate or update with project-type content and AI instructions
+> 2. **LSP** — language server for real-time diagnostics and code navigation
+> 3. **Hooks** — PostToolUse automation (format, lint after file edits)
+> 4. **MCP servers** — tool integrations (DataLad, web search, GitHub)
+> 5. **Agents** — project-specific subagents in `.claude/agents/`
+> 6. **Local skills** — project-specific slash commands in `.claude/skills/`
+> 7. **`.editorconfig`** — consistent editor settings across contributors
+>
+> [Profile: `<type>`] Recommended for this project type: <comma-separated list from
+> the reference's **Recommended Claude configuration** section>
+>
+> Reply with numbers (e.g., `1 3 5`), **all**, or **none** to exit."
+
+Wait for the user's response, then execute each selected option in order.
+
+---
+
+## Phase 2: Execute selected options
+
+### Option 1 — CLAUDE.md
+
+Load the **CLAUDE.md template** section from the project type reference.
+
+Check current state:
+
+- **No CLAUDE.md** → write the full template. Substitute known values (project name,
+  language, description). Leave placeholder fields marked with `<...>` for the user to
+  fill in.
+- **CLAUDE.md exists, no project-type section** → append the template's content after
+  existing sections. Do not alter existing content.
+- **CLAUDE.md exists with project-type content** → show the current content of the
+  relevant sections and ask: "Update to the current template (merging your existing
+  values), or leave as-is?"
+
+After writing, tell the user which `<placeholder>` fields still need their input.
+
+### Option 2 — LSP
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/lsp.md`.
+
+Follow the setup steps for the detected language. Output the `.lsp.json` content,
+write it to the project root, and note any binary that must be installed separately.
+
+For `info-management` projects: note that LSP is not applicable and skip.
+
+### Option 3 — Hooks
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/hooks.md`.
+
+Present the recommended hooks for the detected language and project type. For each hook
+the user confirms:
+
+- Check whether `.claude/hooks.json` exists.
+  - **Exists**: show current content, append the new hook entries, confirm before
+    writing.
+  - **Does not exist**: create `.claude/hooks.json` with the selected hooks.
+
+Remind the user that Claude Code hooks and git pre-commit hooks are independent systems
+(see `references/git.md`).
+
+### Option 4 — MCP servers
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/mcp.md`.
+
+Present the recommended MCP servers for the project type. Note which are already
+configured in `.mcp.json` if that file exists.
+
+For each server the user selects, output the configuration snippet. Offer to append it
+to `.mcp.json` (creating the file if absent).
+
+**DataLad**: always mention DataLad for `data-analysis` and `info-management` projects.
+Note that it requires the `datalad-cli` plugin to be installed:
+`claude plugin install <path-to-datalad-cli>`. Reference the skills available in that
+plugin when describing what DataLad enables.
+
+### Option 5 — Agents
+
+Load the **Recommended agents** section from the project type reference.
+
+Present each recommended agent with a one-line description. For each the user selects:
+
+1. Create `.claude/agents/<agent-name>/` if it does not exist.
+2. Write a `SKILL.md` using the agent scaffold from the reference (frontmatter +
+   template body with `<placeholder>` fields).
+3. Tell the user which fields to customize.
+
+**DataLad awareness**: any agent in a `data-analysis` or `info-management` project
+that handles files should include a note in its body:
+
+> "DataLad tools are available via the `datalad-cli` plugin if installed. Use
+> `datalad save`, `datalad run`, `datalad get`, and `datalad push` as appropriate
+> when managing versioned data files or binary assets."
+
+### Option 6 — Local skills
+
+Present common local skill patterns for the project type (from the reference's
+**Recommended local skills** section, if present). For each the user selects:
+
+1. Create `.claude/skills/<skill-name>/` if it does not exist.
+2. Write a minimal `SKILL.md` with frontmatter and a short instruction body marked
+   with `<placeholder>` for the user to complete.
+
+### Option 7 — `.editorconfig`
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/editorconfig.md`.
+
+Check whether `.editorconfig` exists:
+
+- **Exists**: show the current content and offer to add or update the language-specific
+  block, or leave it unchanged.
+- **Does not exist**: generate a `.editorconfig` with the `[*]` universal block plus
+  a language-specific `[*.<ext>]` override from the reference. Write it and confirm.
+
+For `info-management` projects, generate a markdown-focused config:
+
+```ini
+# EditorConfig: https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.md]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+```
+
+(Trailing whitespace is intentionally preserved in Markdown — two trailing spaces
+produce a line break.)
+
+---
+
+## Constraints
+
+- Never overwrite an existing file without showing the current content and asking first.
+- Each option is independently safe to run; do not assume earlier options were selected.
+- Always load the relevant reference file before taking action on any option.
+- For Option 5 agents: always include the DataLad awareness note for `data-analysis`
+  and `info-management` project types, regardless of whether the datalad-cli plugin
+  is currently installed — the note is forward-compatible.
+- Do not modify project source files, manifests, or any file not listed above.
+- This skill may be invoked partway through `/new-project` — in that case, project type
+  and language are already established; use them directly without re-asking.

@@ -1,0 +1,13 @@
+{
+  "name": "project-init",
+  "description": "Scaffold and configure new projects for use with Claude Code — project structure, environment setup, and Claude-specific tooling for coding tools, data analysis, and information management.",
+  "version": "0.2.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["project", "scaffold", "venv", "environment", "python", "node", "rust", "go", "r", "data-analysis", "info-management", "claude-config", "lsp", "hooks", "mcp"],
+  "skills": [
+    "./skills/new-project",
+    "./skills/env-check",
+    "./skills/claude-config"
+  ]
+}

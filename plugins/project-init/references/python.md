@@ -122,6 +122,38 @@ ruff format $FILE
 
 ---
 
+## Conda environments
+
+Conda cannot be activated from within a running Claude Code session — `conda activate`
+modifies shell state that subprocesses cannot inherit. When conda is detected, document
+the environment in CLAUDE.md rather than attempting to create or activate it inline.
+
+**CLAUDE.md entry for conda environments:**
+
+```markdown
+## Active Environment
+
+- Language: Python (conda)
+- Environment: <conda env name>
+- Activate: conda activate <env-name>
+- Note: activate manually before launching Claude Code
+- Last setup: <YYYY-MM-DD>
+```
+
+If `environment.yml` exists, extract the env name and Python version from it:
+
+```yaml
+# Relevant fields in environment.yml
+name: <env-name>
+dependencies:
+  - python=<version>
+```
+
+Tell the user: "Run `conda activate <env-name>` before launching Claude Code.
+Once activated, Claude Code will pick up the correct interpreter automatically."
+
+---
+
 ## Beyond this skill
 
 - **Linter/formatter config** — the hooks above run with tool defaults. For
@@ -129,4 +161,4 @@ ruff format $FILE
   `pyproject.toml [tool.ruff]`, etc.).
 - **Test runner** — this skill sets up the runtime environment only. Test framework
   setup and configuration (pytest, unittest, etc.) is a separate step outside the
-  scope of `/venv`.
+  scope of `/env-check`.
