@@ -1,0 +1,82 @@
+{
+  "skill_name": "modular-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to write an R script that tests whether white matter FA and FW predict 13 different behavioral scores in a Parkinson's disease cohort, across 4 pipeline × model combinations. How should I structure this?",
+      "expected_output": "Skill guides user through: (1) unit-of-work sentence identifying metric × behavioral-score as the two dimensions, (2) MODES/BEHS/COVS constants block, (3) run_one() pseudocode before any function, (4) function contract table, (5) trivial entry point loop with tryCatch. Should NOT jump straight to writing fit_models() code.",
+      "assertions": [
+        {
+          "name": "unit-of-work sentence elicited or stated",
+          "description": "Skill produces or explicitly solicits a 'I want to run X for every A × B' sentence before proposing code structure"
+        },
+        {
+          "name": "constants block proposed before functions",
+          "description": "MODES/BEHS (or equivalent) constants are defined before any function pseudocode or implementation"
+        },
+        {
+          "name": "run_one pseudocode written before function implementations",
+          "description": "Orchestrator pseudocode or skeleton appears before the atomic function implementations are drafted"
+        },
+        {
+          "name": "entry point loop is trivial",
+          "description": "The outermost loop is shown as a simple nested for loop with error handling — not complex logic"
+        },
+        {
+          "name": "error handling in entry point",
+          "description": "tryCatch, try-except, or equivalent wrapper is included in the entry point"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm building a Python pipeline that extracts connectivity features from fMRI data. I need to run the same extraction for every subject × session × atlas combination and save the results. There are 3 atlases, 2 sessions per subject, and about 200 subjects. Help me structure this.",
+      "expected_output": "Skill adapts to a non-statistical use case (feature extraction) and non-R language. Should identify subject × session × atlas as the iteration dimensions, propose constants for the three dimensions, sketch run_one() pseudocode for extraction, and show a Python-idiomatic entry point (nested for loops with try/except). Should not assume lmer or statistical modeling.",
+      "assertions": [
+        {
+          "name": "adapts to non-statistical use case",
+          "description": "Skill does not suggest statistical modeling functions (lmer, fit_models) — it works with the feature extraction framing"
+        },
+        {
+          "name": "uses Python idioms",
+          "description": "Code examples use Python syntax (try/except, os.makedirs, f-strings or .format) rather than R syntax"
+        },
+        {
+          "name": "all three dimensions represented in constants",
+          "description": "ATLASES (or equivalent), SESSIONS, and some subject-handling strategy appear in the proposed constants"
+        },
+        {
+          "name": "output naming convention proposed",
+          "description": "Skill proposes a file naming pattern like subject_session_atlas_type.ext"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Here's my analysis script — can you clean it up? It's getting unwieldy.\n\n```r\n# Load data\ndf <- read.delim('data/merged.tsv')\ndf <- df[df$shell == 'multi' & df$softmod != 'dipy-dti', ]\ndf$pipeline <- factor(df$pipeline)\ndf$softmod  <- factor(df$softmod)\ndf$subj     <- factor(df$subj)\n\n# FA ~ UPDRS_1\ndat_fa_u1 <- df[complete.cases(df[, c('fa', 'UPDRS_1', 'age', 'sex')]), ]\nm_fa_u1   <- lmer(UPDRS_1 ~ fa + age + sex + (1|subj) + (1|roi_labels), data = dat_fa_u1, REML = FALSE)\nwrite.csv(broom.mixed::tidy(m_fa_u1), 'results/fa_UPDRS_1_fixed.csv', row.names = FALSE)\nggsave('results/fa_UPDRS_1_scatter.png', ggplot(dat_fa_u1, aes(fa, UPDRS_1)) + geom_point() + geom_smooth(method='lm'))\n\n# FA ~ UPDRS_2\ndat_fa_u2 <- df[complete.cases(df[, c('fa', 'UPDRS_2', 'age', 'sex')]), ]\nm_fa_u2   <- lmer(UPDRS_2 ~ fa + age + sex + (1|subj) + (1|roi_labels), data = dat_fa_u2, REML = FALSE)\nwrite.csv(broom.mixed::tidy(m_fa_u2), 'results/fa_UPDRS_2_fixed.csv', row.names = FALSE)\nggsave('results/fa_UPDRS_2_scatter.png', ggplot(dat_fa_u2, aes(fa, UPDRS_2)) + geom_point() + geom_smooth(method='lm'))\n\n# FA ~ MOCA\ndat_fa_mc <- df[complete.cases(df[, c('fa', 'MOCA', 'age', 'sex')]), ]\nm_fa_mc   <- lmer(MOCA ~ fa + age + sex + (1|subj) + (1|roi_labels), data = dat_fa_mc, REML = FALSE)\nwrite.csv(broom.mixed::tidy(m_fa_mc), 'results/fa_MOCA_fixed.csv', row.names = FALSE)\nggsave('results/fa_MOCA_scatter.png', ggplot(dat_fa_mc, aes(fa, MOCA)) + geom_point() + geom_smooth(method='lm'))\n```\n\n(same pattern continues for fw...)",
+      "expected_output": "Skill identifies the repeating unit (lmer fit for one metric × outcome pair), extracts MODES and BEHS constants, proposes fit_models() and plot_scatter() as atomic functions, separates the ggsave call into a plot function that receives out_path, and proposes run_one() + trivial entry point. Should also note the constants buried in the code (covariates age/sex, data path, output dir).",
+      "assertions": [
+        {
+          "name": "repeating unit identified",
+          "description": "Skill explicitly states the repeating unit as metric × behavioral outcome (or equivalent)"
+        },
+        {
+          "name": "MODES and BEHS extracted as constants",
+          "description": "Proposes MODES = c('fa', 'fw') and BEHS with the three outcomes as top-level constants"
+        },
+        {
+          "name": "ggsave separated from fit call",
+          "description": "Proposes that the plot be in a separate function from the model fitting"
+        },
+        {
+          "name": "covariates extracted to constants",
+          "description": "age and sex (or COVS) are identified as a constant that was buried in the original code"
+        },
+        {
+          "name": "run_one proposed as orchestrator",
+          "description": "run_one() or equivalent is proposed to orchestrate the per-pair workflow"
+        }
+      ]
+    }
+  ]
+}
