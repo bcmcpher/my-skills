@@ -20,7 +20,10 @@ a subdataset inside an existing DataLad dataset (YODA-style nested layout).
 ## Steps
 
 1. **Identify source** — read the source URL or path from `$ARGUMENTS`. If not provided,
-   ask the user for the source before continuing.
+   ask the user for the source before continuing. If the URL begins with `ria+`, this is
+   a RIA store. Accepted formats: `ria+ssh://user@host/path`, `ria+http://host/path`,
+   `ria+file:///local/path`. Load `${CLAUDE_PLUGIN_ROOT}/../references/siblings-and-remotes.md`
+   for RIA store URL details.
 
 2. **Determine mode** — decide whether this clone should be:
    - **Standalone**: a new independent dataset (no `-d` flag)
@@ -50,6 +53,9 @@ a subdataset inside an existing DataLad dataset (YODA-style nested layout).
      ```
      datalad clone -d . <source> <dest>
      ```
+   When cloning on the same filesystem (e.g., HPC scratch → project directory),
+   `--reckless=shared-local` skips the safety copy and is substantially faster. Only use
+   on trusted local filesystems.
    Always show the full command before executing.
 
 5. **Execute** — run the command. Report the installed path and the commit SHA recorded.

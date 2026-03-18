@@ -43,7 +43,9 @@ Record the version string. Use `"unknown"` if it cannot be determined.
 ```
 
 If that returns an error or empty output, retry with `-h`. If still unhelpful, try
-running with no arguments. Capture the full output — you will parse it in step 5.
+running with no arguments (`<command> [subcommand] 2>&1`). If the tool requires a TTY
+to display help (output is empty or contains "not a terminal"), inform the user and ask
+them to paste the help text manually. Capture the full output — you will parse it in step 5.
 
 ### 4. Ask for the output path
 

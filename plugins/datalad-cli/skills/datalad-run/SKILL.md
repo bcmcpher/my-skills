@@ -54,6 +54,11 @@ automatically stages and commits the outputs. On failure, nothing is committed.
    bash -c 'cmd1 | cmd2'
    ```
 
+   If the user wants to use `--explicit`: all declared output paths (`-o`) must be
+   **pre-unlocked** before the run (`datalad unlock <output-path>`). Without pre-unlocking,
+   the run will fail with a locked-path error. Confirm outputs are unlocked before constructing
+   the command.
+
 4b. **Optional dry-run** — to verify the command before committing, suggest:
    ```
    datalad run --dry-run <command>
@@ -98,6 +103,9 @@ automatically stages and commits the outputs. On failure, nothing is committed.
   YODA directory conventions, where outputs should go, or why inputs are subdatasets.
 - Load `${CLAUDE_PLUGIN_ROOT}/../references/troubleshooting.md` when a run fails, the
   user has unlocked output files left over, or asks how to recover from a partial run.
+- If the run fails with a "locked" or "permission denied" error on output files, the fix
+  is: `datalad unlock <output-path>`, then re-run. Load
+  `${CLAUDE_PLUGIN_ROOT}/../references/troubleshooting.md` for the full recovery pattern.
 
 ## Replaying recorded runs (`datalad rerun`)
 

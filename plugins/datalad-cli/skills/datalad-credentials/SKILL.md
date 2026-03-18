@@ -29,6 +29,10 @@ automatically during `datalad push`, `datalad get`, and sibling operations.
    - S3 / AWS → access key + secret key
    - WebDAV / HTTP → username + password
    - Figshare → API token
+   - GIN (G-Node Infrastructure) → SSH key pair (no PAT equivalent for annex operations).
+     Generate a key with `ssh-keygen` and add the public key to your GIN account at
+     `gin.g-node.org` → Settings → SSH Keys. DataLad uses the SSH key automatically —
+     no `datalad credentials set` step is needed for GIN.
 
 2. **Check existing credentials** — list what is already stored:
    ```bash

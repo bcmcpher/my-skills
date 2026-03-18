@@ -59,6 +59,10 @@ This documents intent and becomes the checklist for Phase 2.
 
 ## Phase 2: Red → Green → Refactor (one behavior at a time)
 
+If the function has only 1–2 obvious behaviors with no ambiguous edge cases, the user
+may reply **"fast"** to skip the per-behavior confirmation pauses and complete all
+behaviors in one turn.
+
 **Load the language reference first.** Identify the language from the target file
 extension, then read `${CLAUDE_PLUGIN_ROOT}/references/<lang>.md` for test runner
 commands, file naming conventions, AI-generated marker style, and mock patterns.
@@ -116,7 +120,10 @@ If a prior test breaks, fix the implementation (not the test) before continuing.
 
 ### Step 3 — Refactor
 
-With all tests green, review the new test and the new source:
+With all tests green, review the new test and the new source. Prefer inline setup for
+single-use test data. Extract a fixture only when the same setup block appears in 3+
+tests — shared fixtures create coupling that makes individual test failures harder to
+diagnose.
 
 **Test quality — FIRST check:**
 - **F**ast — runs in milliseconds?
@@ -157,3 +164,6 @@ The user can reply "yes" or invoke `/tdd` again to start fresh with a clean cont
 - **Mock all external dependencies** — unit tests must not reach real external systems.
 - **One behavior per turn** — the pause is intentional.
 - **Mark all new tests** with the AI-generated marker for the language (see reference).
+- For algorithmic or data-transformation functions with many valid input shapes, consider
+  property-based testing (Hypothesis for Python, proptest for Rust) as a complement to
+  example tests — check the language reference for availability.

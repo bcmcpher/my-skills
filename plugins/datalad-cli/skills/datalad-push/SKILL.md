@@ -53,6 +53,9 @@ before git history reaches the git host.
 
 5. **Determine recursion** — ask if the user wants to push subdatasets too:
    > "Push subdatasets recursively as well? (`-r`)"
+   If yes, also mention `--on-failure ignore` — without it a single subdataset failure
+   aborts the entire recursive push. With it, failures are logged and the push continues
+   across remaining subdatasets.
 
 6. **Construct and show command**:
    ```

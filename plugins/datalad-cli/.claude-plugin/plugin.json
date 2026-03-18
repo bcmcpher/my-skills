@@ -23,7 +23,8 @@
     "./skills/datalad-configuration",
     "./skills/datalad-export",
     "./skills/datalad-log",
-    "./skills/datalad-credentials"
+    "./skills/datalad-credentials",
+    "./skills/datalad-fsck"
   ],
   "hooks": "./hooks/hooks.json"
 }

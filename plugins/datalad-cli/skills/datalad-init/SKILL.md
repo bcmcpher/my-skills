@@ -27,6 +27,15 @@ correct directory layout and `.gitattributes` rules.
    - Check for an existing `.datalad/` directory at the target path. If found, stop:
      > "A DataLad dataset already exists at `<path>`. Re-initializing would overwrite
      > dataset configuration. Run `datalad status` to check its state."
+   - Check whether `.git/annex/` already exists at the target path:
+     ```bash
+     git annex config annex.backend 2>/dev/null
+     ```
+     If it returns `MD5E`, warn:
+     > "The existing annex uses the legacy MD5E backend. Migrating backends after the
+     > fact is complex. Consider initializing a fresh dataset at a new path and
+     > re-ingesting data."
+     Stop unless the user explicitly asks to continue anyway.
    - Check whether the target path is inside a plain git repository (not a datalad dataset):
      run `git rev-parse --git-dir` from the target path. If a `.git/` is found but no
      `.datalad/`, warn:

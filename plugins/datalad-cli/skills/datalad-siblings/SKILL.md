@@ -104,9 +104,11 @@ annexed file content can be pushed and pulled.
      --dataset . \
      --reponame <repo-name> \
      [--github-organization <org>] \
+     [--access {read|write}] \
      [-s github] \
      [--publish-depends <storage-sibling>]
    ```
+   Use `--access read` to create a read-only repository (default: `write`).
 
    **GitLab:**
    ```bash
@@ -114,9 +116,11 @@ annexed file content can be pushed and pulled.
      --dataset . \
      --reponame <namespace>/<repo-name> \
      --gitlab-host <host> \
+     [--access {read|write}] \
      [-s gitlab] \
      [--publish-depends <storage-sibling>]
    ```
+   Use `--access read` to create a read-only repository (default: `write`).
 
    **RIA store:**
    ```bash

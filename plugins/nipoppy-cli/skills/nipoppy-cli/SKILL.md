@@ -70,5 +70,9 @@ from raw DICOMs through BIDS conversion, pipeline execution, and IDP extraction.
 - nipoppy datasets can optionally be initialized as DataLad datasets for full provenance tracking. See `/datalad-init` for the YODA layout that pairs well with nipoppy's directory structure.
 - Never add participants to `manifest.tsv` by hand — instruct the user to edit the file directly or use nipoppy's manifest update workflow.
 - When explaining `process` or `extract`, always mention the `--pipeline`, `--pipeline-version`, and `--pipeline-step` options, as omitting them may apply the command to all configured pipelines unexpectedly.
-- For HPC workflows, prefer `--hpc slurm` or `--hpc sge` over the manual `--write-subcohort` pattern when the cluster type is known.
+- For HPC workflows, prefer `--hpc slurm` or `--hpc sge` when the cluster type is known
+  and supported — nipoppy generates and submits job scripts automatically. Use
+  `--write-subcohort` only when the HPC scheduler is unsupported or manual job submission
+  control is required; in that case, load `${CLAUDE_PLUGIN_ROOT}/references/process-command.md`
+  for the subcohort workflow.
 - The `nipoppy pipeline` subgroup manages the pipeline catalog (install/search/upload); it does not run pipelines. Use `process`, `bidsify`, or `extract` to actually run pipelines.

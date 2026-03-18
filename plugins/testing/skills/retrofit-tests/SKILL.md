@@ -47,7 +47,10 @@ as the marker.
 ### Step 2 — Inventory testable units
 
 Read the source file and list every testable unit. For each function or method, use
-**boundary value analysis** to identify test cases:
+**boundary value analysis** to identify test cases. If a function is an orchestrator or
+end-to-end pipeline (calls 3+ other functions, reads and writes files), note it in the
+TODO as a candidate for an **integration test** rather than a unit test — unit mocking
+of an orchestrator usually produces tests that are more brittle than useful.
 
 - **Equivalence classes:** what inputs are valid vs. invalid? Group them.
 - **Boundary values:** test at and around limits (0, 1, empty, single element,
