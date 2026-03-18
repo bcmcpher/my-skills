@@ -177,7 +177,10 @@ If **any** signal is true:
 - Conda: write environment details to `## Active Environment` in CLAUDE.md (name,
   activate command, Python version from `environment.yml` if present). Note the manual
   activation requirement. Skip Steps 3–4.
-- Venv: continue to Step 3.
+- Venv / uv env: continue to Step 3.
+
+If `uv` is on PATH (check with `which uv`), prefer `uv venv` + `uv pip install` over
+plain venv — it is faster and handles lockfiles with `uv pip compile`.
 
 If no conda signals, skip this step.
 

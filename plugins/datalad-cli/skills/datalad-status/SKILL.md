@@ -30,7 +30,11 @@ added, or deleted — without making any changes.
    ```bash
    datalad status [paths...]
    ```
-   Present the full output to the user.
+   Present the full output to the user. Additional flags to mention if relevant:
+   - `--annex` — shows verbose annex content state (number of copies, remote presence)
+     for each annexed file; useful for understanding data availability
+   - `--untracked=no` — suppresses untracked files from output (useful in large repos
+     with many untracked directories that would otherwise clutter the output)
 
 3. **Interpret the status symbols** — explain each symbol present in the output:
 

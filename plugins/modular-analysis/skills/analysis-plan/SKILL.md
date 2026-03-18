@@ -46,7 +46,9 @@ generating a figure, running a transformation, extracting features.
 If the user can't complete the sentence, ask one focused question:
 **"What is one unit of work — the smallest thing you'd run once, then repeat for every combination?"**
 
-Do not proceed to Phase 1 until this sentence is clear. Everything else follows from it.
+If that still doesn't yield clarity, ask: "What is the smallest meaningful result you
+want to produce? Who or what does each result belong to?" Do not proceed to Phase 1
+until the unit-of-work sentence is clear. Everything else follows from it.
 
 ---
 
@@ -201,3 +203,8 @@ rename files after hundreds have been written.
 - If the entry point loop looks non-trivial, push complexity down.
 - One failure must never abort the whole run.
 - Output functions receive paths from the caller — they never construct their own.
+- If the user already has a working script they want to improve, redirect to `/analysis-refactor`
+  instead of planning from scratch.
+- For parallel execution (dask, joblib, futures), the architecture still applies — the
+  `run_one()` function becomes the unit submitted to the parallel executor. Note this to
+  the user when they mention parallel processing.

@@ -165,7 +165,12 @@ Load the **Recommended agents** section from the project type reference.
 
 Present each recommended agent with a one-line description. For each the user selects:
 
-1. Create `.claude/agents/<agent-name>/` if it does not exist.
+1. Check whether `.claude/agents/<agent-name>/SKILL.md` already exists.
+   - **Does not exist**: create `.claude/agents/<agent-name>/` and proceed.
+   - **Exists**: show the current `SKILL.md` content and ask:
+     > "An agent named `<agent-name>` already exists. Update to the new template
+     > (merging your existing values), or leave as-is?"
+     Wait for the user's choice. If "leave as-is", skip this agent.
 2. Write a `SKILL.md` using the agent scaffold from the reference (frontmatter +
    template body with `<placeholder>` fields).
 3. Tell the user which fields to customize.

@@ -23,6 +23,11 @@ before choosing the operation.
 
 ## Steps
 
+0. **Check if the user wants to edit (not drop/remove)** — if the user wants to edit an
+   annexed file in place, use `datalad unlock` rather than drop or remove. Editing a
+   locked annex file without unlocking first corrupts the annex pointer. See the
+   **Unlocking** section below for the full workflow.
+
 1. **Verify DataLad context** — check for `.datalad/` in the current directory or any
    parent:
    ```bash

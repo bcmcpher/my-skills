@@ -138,6 +138,21 @@ Check for `.env.example`:
 
 ---
 
+### Step 3b — Check for already-active Python venv
+
+Before creating a new Python environment, check the `$VIRTUAL_ENV` environment variable:
+
+```bash
+echo "$VIRTUAL_ENV"
+```
+
+If `$VIRTUAL_ENV` is set and non-empty, the user is already inside an active venv. Ask:
+
+> "You are currently inside an active Python venv at `$VIRTUAL_ENV`. Create a new
+> environment anyway, or use the existing one?"
+
+Wait for the user's answer before proceeding.
+
 ### Step 4 — Check for existing environment
 
 Each language reference defines the environment indicator directory (`.venv/`,
@@ -199,7 +214,8 @@ If **any** signal is true, present this choice and wait for the user's response:
   Environment` section (environment name, `conda activate <name>` command, Python
   version if determinable from `environment.yml`). Note the manual activation
   requirement. Skip Phases 2 and 3 and go directly to Phase 4.
-- User picks venv: continue to Phase 2.
+- User picks venv / uv: continue to Phase 2. If `uv` is on PATH (`which uv` exits 0),
+  prefer `uv venv` + `uv pip install` over plain venv.
 
 If no conda signals are present, skip this phase entirely.
 
@@ -293,6 +309,11 @@ After writing CLAUDE.md, confirm what was set up (env path, interpreter version)
 - Never skip the conda check when any conda signal is present (Python only).
 - If a Bash command is blocked by Claude Code's permission system, surface the exact
   command and wait for "done" — do not retry or silently skip.
+- For R projects using `renv`, the standard workflow is:
+  - New project: run `renv::init()` to create `renv.lock` and `.Rprofile`
+  - After installing packages: run `renv::snapshot()` to update the lockfile
+  - On a fresh clone or to restore: run `renv::restore()` to install from lockfile
+  Always load the R language reference before advising on `renv` — do not invent `renv` commands from memory.
 - Do not modify project source files, `pyproject.toml`, `package.json`, or any other
   project config. Only `CLAUDE.md` may be written or updated.
 - Always verify with the interpreter path check before declaring success.

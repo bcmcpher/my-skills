@@ -179,7 +179,16 @@ Never apply AI-generated markers to tests that already exist in the file.
 - **Never modify or delete existing tests** — only append.
 - **Never change source code** to make tests pass. If a test fails due to a source bug,
   note it in a comment and mark the test as `xfail` (or language equivalent). Move on.
+- **If a test reveals a bug in the source**, mark the test with a `# BUG: <description>`
+  comment and add a TODO item. Never fix source bugs during retrofit — that is a
+  separate task.
+- **If a unit has no testable seam** (no parameters, direct I/O, global state, no
+  dependency injection), document it in the TODO as "requires refactoring for
+  testability" and skip — do not attempt to test it as-is.
 - **Mock all external dependencies** — unit tests must not reach real external systems.
 - **One unit per turn** — the pause between units is intentional.
 - **Always run tests** to confirm red, then green, then still green after refactor.
 - **Load only what you need** — targeted reads, not full-file loads during execution.
+- After all TODO items are checked, suggest running the project's coverage tool
+  (e.g., `pytest --cov=<module>`, `jest --coverage`) and report the resulting
+  line/branch coverage.

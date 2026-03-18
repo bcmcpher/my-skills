@@ -29,7 +29,8 @@ content from configured siblings (remotes) and makes files accessible locally.
    a DataLad dataset.
 
 2. **Identify targets** — read paths, globs, or subdataset handles from `$ARGUMENTS`.
-   If not specified, ask the user what they want to retrieve.
+   If not specified, ask the user what they want to retrieve. For large datasets with many
+   files, mention `--jobs N` (e.g., `--jobs 4`) to retrieve content in parallel.
 
    Determine the nature of each target:
    - **File or directory**: retrieve annexed content (`datalad get <path>`)

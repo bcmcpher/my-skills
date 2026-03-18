@@ -101,3 +101,6 @@ datalad siblings configure --name <sibling-name> --set-property credential <cred
   it is simpler to configure with `datalad credentials set`.
 - Always check `datalad credentials` (list) before asking the user to set credentials —
   the credential may already exist under a different name.
+- For rclone-based special remotes (`git-annex-remote-rclone`), credentials are managed
+  via `rclone config`, not `datalad credentials` — these are entirely separate systems.
+  Direct the user to `rclone config` for rclone remote authentication.

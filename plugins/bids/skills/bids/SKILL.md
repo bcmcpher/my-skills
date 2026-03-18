@@ -6,6 +6,7 @@ description: >
   structure, mentions entities like sub/ses/task/run, asks about JSON sidecars
   for MRI/fMRI/DWI/EEG/MEG/PET, or references a bids/ dataset directory.
   Use when validating filenames, suggesting sidecar fields, or organizing data.
+  Do NOT trigger for BIDS app execution questions (fMRIPrep, MRIQC) — those belong to nipoppy-cli.
 argument-hint: [datatype, path, or question]
 user-invocable: true
 disable-model-invocation: false
@@ -42,8 +43,9 @@ spans multiple aspects of the spec.
       state which spec rule was violated, and suggest the corrected filename or
       sidecar field.
    d. If the script reports "bids-validator not found", inform the user of the
-      installation steps from the README and note that the fallback structural
-      check ran instead with limited coverage. The recommended install is
+      installation steps from the README. Note that the fallback structural check
+      ran instead; it checks for required dataset files and entity/suffix validity
+      but does not validate sidecar JSON content. The recommended install is
       `pip install bids-validator-deno` (2.x, Deno bundled).
 4. If validating or constructing a filename without running the validator:
    - Confirm required entities are present (`sub` always; `task` for func/beh/eeg/meg).
@@ -51,12 +53,19 @@ spans multiple aspects of the spec.
    - Confirm label values are alphanumeric only (no hyphens, no underscores).
    - Confirm the suffix is valid for the datatype.
 5. If advising on sidecar JSON:
+   - Note that sidecars inherit from higher to lower levels: dataset-level → subject-level →
+     session-level → run-level. Only recommend fields not already covered by a parent sidecar
+     to avoid redundancy.
    - List REQUIRED fields first; note which are missing.
    - Then list STRONGLY RECOMMENDED fields for that modality.
    - For field maps, always check that `IntendedFor` is present and paths are
      relative to the subject directory.
 6. If the user asks about dataset structure, confirm dataset-level required files
-   (`dataset_description.json`, `README`) exist or should exist.
+   (`dataset_description.json`, `README`, `participants.tsv`) exist or should exist.
+   Note that `scans.tsv` (per-subject scan log) is recommended for flagging bad scans.
+6b. If a `func` datatype is present or described, check for corresponding `_events.tsv`
+   files (one per task run). These are required for all functional task data and follow
+   the same entity pattern as the BOLD file but with the `_events.tsv` suffix.
 7. When working with derivatives, remind the user that derivatives live under
    `derivatives/<pipeline>/` outside the raw BIDS root, and use `desc` and
    `space` entities to distinguish processed variants.

@@ -83,3 +83,6 @@ update behavior and subdataset pinning.
 - Always show the full command before executing.
 - Never use `git pull` inside a DataLad dataset — it bypasses subdataset update logic
   and `--follow` policy.
+- If `--how=merge` fails due to diverged histories, inform the user that a manual
+  `git merge --allow-unrelated-histories` may be needed as a fallback for first-time
+  merges after non-linear setup.

@@ -76,7 +76,15 @@ Repeat this cycle for each behavior in the contract:
 
 ### Step 1 — Red: Write one failing test
 
-Pick the next behavior from the contract. Write a single test for it using AAA structure:
+Pick the next behavior from the contract. For functions with many input variants
+(validation, type coercion, numeric ranges), consider a parametrized test table rather
+than separate test functions — check the language reference for the framework's
+parametrize syntax (e.g., `@pytest.mark.parametrize` in Python).
+
+If C/C++, check the language reference (`${CLAUDE_PLUGIN_ROOT}/references/c_cpp.md`)
+for the preferred test framework (Catch2 vs googletest) before writing the first test.
+
+Write a single test for it using AAA structure:
 
 ```
 # Arrange — set up inputs, mocks, and fixtures

@@ -1,0 +1,6 @@
+{
+  "name": "modular-analysis",
+  "description": "Design and refactor repeated analysis scripts using five-layer architecture.",
+  "version": "0.1.0",
+  "skills": ["./skills/analysis-plan", "./skills/analysis-refactor"]
+}

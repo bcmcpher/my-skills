@@ -54,6 +54,13 @@ automatically stages and commits the outputs. On failure, nothing is committed.
    bash -c 'cmd1 | cmd2'
    ```
 
+4b. **Optional dry-run** — to verify the command before committing, suggest:
+   ```
+   datalad run --dry-run <command>
+   ```
+   This executes the command without creating a commit, letting the user confirm
+   outputs are produced as expected before recording provenance.
+
 5. **Construct and show the command** — build the full `datalad run` invocation and
    display it to the user before executing:
    ```

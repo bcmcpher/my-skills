@@ -25,6 +25,9 @@ organized, so the analysis is easier to extend, debug, and reuse without copy-pa
 
 ## Phase 0: Read the script and identify the repeating unit
 
+If the user is starting from scratch rather than refactoring an existing script, redirect
+to `/analysis-plan` instead.
+
 Read the full script before proposing any changes. Find the implicit loop structure —
 most linear analysis scripts have one, even if it isn't written as a loop.
 
@@ -210,3 +213,13 @@ Refactoring is structure-preserving. Do not silently change:
 
 If you notice a potential bug or questionable choice while refactoring, flag it to the
 user as a separate, explicit issue. Never fix it silently inside a structural change.
+
+If the existing script has tests, preserve them. Flag any test that would break due to
+the refactoring, but do not delete tests — they document prior behavior.
+
+If the script is already well-modularized (each function < 30 lines, no repeated blocks,
+clear entry point), note this to the user and confirm refactoring is still desired
+before proceeding.
+
+After the refactored structure is in place, suggest adding tests with `/retrofit-tests`
+to validate the extracted functions.

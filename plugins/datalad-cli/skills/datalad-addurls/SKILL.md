@@ -49,8 +49,11 @@ content on demand with `datalad get`.
    - `--url-format` (or positional URL column): the column/key holding the URL
    - `--filename-format` (or positional filename column): the column/key for the local path
    - `--jobs N`: parallel downloads (default 1; suggest 4–8 for large manifests)
-   - `-m`: commit message for the resulting dataset commit
+   - `-m`: commit message for the resulting dataset commit (required; the auto-generated
+     message is unhelpful — always ask the user for a meaningful message)
    - Whether to `--ifexists skip` (skip already-present files) or `overwrite`
+   - `--missing-values`: how to handle optional URL fields that are absent in some rows
+     (e.g., `--missing-values skip` to skip rows with missing URLs)
 
 5. **Construct and show the command**:
 

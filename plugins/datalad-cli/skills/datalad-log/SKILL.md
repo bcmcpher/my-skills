@@ -78,14 +78,12 @@ The auto-checkpoint hook creates commits with messages like:
 [datalad] checkpoint 2026-03-12T14:05:22Z: code/analysis.py outputs/result.csv
 ```
 These are **not** run records — they are auto-saves. They will appear in `git log` and
-`datalad log` output. To exclude them:
-```bash
-git log --oneline --grep="datalad run" --invert-grep --grep="checkpoint"
-```
-Or simply filter for `datalad run` commits only:
+`datalad log` output. To show only `datalad run` commits (excludes checkpoints and saves):
 ```bash
 git log --oneline --grep="\[datalad run\]"
 ```
+Note: using `--invert-grep` with multiple `--grep` flags uses OR logic and will not
+correctly exclude checkpoints — use the single `--grep="\[datalad run\]"` form instead.
 
 ## Constraints
 
@@ -95,3 +93,4 @@ git log --oneline --grep="\[datalad run\]"
   commits or checkpoint commits in your report.
 - If `datalad log` is not available (older DataLad), fall back to
   `git log --oneline --grep="datalad run"` and explain the fallback.
+- For file-level differences between two commits, direct the user to `/datalad-diff`.

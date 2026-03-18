@@ -43,8 +43,9 @@ before git history reaches the git host.
    ```
 
 4. **Determine data mode** — present the choice:
-   - **auto-if-wanted** (default): respects the sibling's `--annex-wanted` expression;
-     only pushes content the remote has declared it wants
+   - **auto-if-wanted** (default): pushes only content the sibling has declared it wants
+     via its `annex-wanted` expression. This is the default but **only works when the
+     sibling has `annex-wanted` configured** — if not configured, no content will be pushed
    - **nothing**: push git history only, skip all annexed content
    - **anything**: push all locally present annexed content regardless of wanted rules
 

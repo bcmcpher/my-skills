@@ -69,3 +69,6 @@ a DataLad dataset — it handles both git-tracked and annexed files correctly.
 - If the user asks to save outputs produced by a script, redirect them to `datalad run`
   instead — outputs should be recorded with the command that created them, not as
   standalone saves.
+- Use `datalad save --to-git <path>` to force a file into git tracking rather than annex
+  (useful for small config files, `.gitignore` fragments, etc. that should not be annexed).
+- Use `datalad save --version-tag <tag>` to tag an analysis milestone after saving.

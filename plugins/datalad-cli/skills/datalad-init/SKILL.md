@@ -39,7 +39,12 @@ correct directory layout and `.gitattributes` rules.
    ```
    datalad create -c yoda <path>
    ```
-   Show the command before executing. Report the full output.
+   Show the command before executing. Report the full output. Optionally suggest adding
+   `--annex-backend SHA256E` (recommended; avoids the legacy MD5E backend which causes
+   compatibility issues with some special remotes):
+   ```
+   datalad create -c yoda --annex-backend SHA256E <path>
+   ```
 
 4. **Report the YODA structure** — after creation, display what was created:
    ```

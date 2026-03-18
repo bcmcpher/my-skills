@@ -142,6 +142,16 @@ annexed file content can be pushed and pulled.
      [-s webdav]
    ```
 
+   **OSF (Open Science Framework):**
+   ```bash
+   datalad create-sibling-osf \
+     --dataset . \
+     --title "<dataset-title>" \
+     [-s osf-storage]
+   ```
+   Note: requires the `datalad-osf` extension (`pip install datalad-osf`). Verify it is
+   installed before suggesting this option.
+
    d. After creation, suggest pushing: `datalad push --to <name>`.
 
    If the user asks for `create-sibling` (generic SSH/local path), gather the URL and

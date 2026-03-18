@@ -16,8 +16,9 @@ allowed-tools: Bash, Write
 # Skill: boutiques
 
 Generate a Boutiques schema-version 0.5 JSON descriptor for a CLI tool by inspecting
-its help output. Read `references/boutiques-schema.md` when you need full field
-definitions or are uncertain about a field's valid values.
+its help output. Load `references/boutiques-schema.md` at the start of Step 5 when the
+tool has more than 10 flags or any ambiguous types; otherwise load it when uncertain
+about a field's valid values.
 
 ## Steps
 
@@ -107,6 +108,27 @@ Rules:
 - For `Number` inputs, add `"integer": true` when the metavar or description implies integers
 - For `Number` inputs, add `"minimum"` / `"maximum"` if the help text states a valid range
 - For `String` inputs with a fixed set of valid values, add `"value-choices": [...]`
+- For flags the tool accepts multiple times (e.g., repeated `-i file1 -i file2`), add
+  `"list": true` to the input object
+
+### 6.5. Add input groups for mutually exclusive options
+
+If the help text shows mutually exclusive options (e.g., "use `-T` or `-I` but not both"),
+add an `input-groups` entry:
+
+```json
+{
+  "id": "mode_group",
+  "name": "Mode selection",
+  "description": "Mutually exclusive mode flags.",
+  "mutually-exclusive": true,
+  "members": ["flag_t", "flag_i"]
+}
+```
+
+Load `references/boutiques-schema.md` for `exclusive`, `all-or-none`, and
+`one-is-required` group types before writing any `input-groups` entry — do not
+invent the syntax from memory.
 
 ### 7. Identify output files
 
@@ -162,6 +184,15 @@ the help text.
 Write the JSON to the path confirmed in step 4. Report the path when done and
 note any arguments that were ambiguous or could not be fully parsed.
 
+### 9.5. Suggest validation
+
+After writing, tell the user they can validate the descriptor with:
+```bash
+bosh validate <path>
+```
+This requires the `boutiques` Python package (`pip install boutiques`). Optional but
+recommended — it checks the descriptor against the Boutiques JSON schema.
+
 ## Constraints
 
 - Never invent flags or options not present in the help output. If help is
@@ -173,3 +204,5 @@ note any arguments that were ambiguous or could not be fully parsed.
 - Produce valid, pretty-printed JSON (2-space indent).
 - If the help text is very long or the tool has many subcommands, focus on the
   subcommand specified in $ARGUMENTS and note that other subcommands are not covered.
+- For `disables-inputs` / `requires-inputs` dependency relationships, load
+  `references/boutiques-schema.md` — do not invent the syntax from memory.
