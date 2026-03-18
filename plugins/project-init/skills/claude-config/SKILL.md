@@ -67,6 +67,15 @@ Check `CLAUDE.md` for a `**Language:**` field, or scan for signal files:
 
 For `info-management` projects, language is not applicable — skip.
 
+### Step 4 — Load portability reference
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config-notes.md`.
+
+Use this to inform the user of any configurations they may be able to copy from an existing
+project or machine rather than generating from scratch. Mention this briefly when presenting
+the menu in Phase 1 — e.g., "If you have an existing project with a similar stack, some of
+these config files can be copied directly (see portability notes)."
+
 ---
 
 ## Phase 1: Configuration menu
