@@ -5,6 +5,10 @@ tools: Read, Grep, Glob, Bash
 model: inherit
 permissionMode: default
 maxTurns: 20
+# isolation: worktree   # Uncomment to run agent in a temporary git worktree (isolated branch).
+#                       # Use when the agent will make independent file changes that shouldn't
+#                       # affect the main working tree. Worktree is cleaned up automatically
+#                       # if no changes are made; otherwise the branch/path is returned.
 ---
 
 You are a specialized assistant for [PURPOSE].

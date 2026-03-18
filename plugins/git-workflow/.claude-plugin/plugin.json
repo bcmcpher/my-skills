@@ -1,0 +1,9 @@
+{
+  "name": "git-workflow",
+  "description": "Git workflow best practices for Claude Code sessions: when to use worktrees vs branches, commit conventions, parallel-agent coordination, and conflict resolution.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["git", "workflow", "worktree", "parallel", "branches"],
+  "skills": ["./skills/git-workflow"]
+}
