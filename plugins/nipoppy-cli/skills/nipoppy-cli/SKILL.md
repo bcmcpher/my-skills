@@ -67,7 +67,6 @@ from raw DICOMs through BIDS conversion, pipeline execution, and IDP extraction.
 - Always verify `config.json` and `manifest.tsv` exist before recommending commands that require an initialized dataset (`reorg`, `bidsify`, `process`, `track-processing`, `extract`).
 - Always warn that nipoppy pipeline commands (`bidsify`, `process`, `extract`) require Linux and Apptainer; they will not work on macOS or Windows.
 - Never run nipoppy commands without `--simulate` or `--dry-run` unless the user explicitly confirms they want live execution. Note that `--simulate` and `--dry-run` availability varies by command — load the relevant reference to confirm which flag applies before suggesting it.
-- nipoppy datasets can optionally be initialized as DataLad datasets for full provenance tracking. See `/datalad-init` for the YODA layout that pairs well with nipoppy's directory structure.
 - Never add participants to `manifest.tsv` by hand — instruct the user to edit the file directly or use nipoppy's manifest update workflow.
 - When explaining `process` or `extract`, always mention the `--pipeline`, `--pipeline-version`, and `--pipeline-step` options, as omitting them may apply the command to all configured pipelines unexpectedly.
 - For HPC workflows, prefer `--hpc slurm` or `--hpc sge` when the cluster type is known

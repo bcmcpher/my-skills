@@ -6,7 +6,6 @@ description: >
   structure, mentions entities like sub/ses/task/run, asks about JSON sidecars
   for MRI/fMRI/DWI/EEG/MEG/PET, or references a bids/ dataset directory.
   Use when validating filenames, suggesting sidecar fields, or organizing data.
-  Do NOT trigger for BIDS app execution questions (fMRIPrep, MRIQC) — those belong to nipoppy-cli.
 argument-hint: [datatype, path, or question]
 user-invocable: true
 disable-model-invocation: false
