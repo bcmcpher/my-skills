@@ -138,6 +138,12 @@ diagnose.
 
 Make any cleanup edits, then re-run all tests to confirm still green.
 
+Once tests are green and the refactor is done, **offer a commit** for this behavior:
+suggest a short message in the form `test: add [behavior name] — red/green/refactor`.
+Keep it optional — the user may prefer to batch behaviors — but surface it as the
+natural cadence. Each committed behavior is independently revertable if a later
+behavior breaks something unexpected.
+
 ### Step 4 — Pause and report
 
 Report:

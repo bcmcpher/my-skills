@@ -37,6 +37,11 @@ references for command sequences and conflict resolution details.
 - Always include trailer: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 - One logical change per commit; don't bundle unrelated fixes
 
+**Commit cadence:** Commit at the completion of each logical unit of work — a passing
+behavior in TDD, a completed analysis phase, a reviewed chunk of a refactor. Don't
+accumulate changes until a full feature is done; small commits make bisect and revert
+precise. If using `/tdd`, each Red-Green-Refactor cycle is a natural commit boundary.
+
 ## Parallel agent coordination
 
 1. Assign each agent its own branch (or use `isolation: worktree` for full isolation)

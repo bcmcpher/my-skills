@@ -125,6 +125,25 @@ Check current state:
 
 After writing, tell the user which `<placeholder>` fields still need their input.
 
+Also note three structural practices:
+
+1. **`<important>` tags for critical rules** — any instruction that must not be
+   ignored should be wrapped in `<important>` tags. Claude pays closer attention to
+   these even as the file grows longer:
+   ```markdown
+   <important>Never edit files outside src/ without explicit confirmation.</important>
+   ```
+
+2. **200-line limit** — CLAUDE.md should stay under ~200 lines; content after that
+   may be truncated. If the file approaches that limit, split domain-specific sections
+   into `.claude/rules/` files and import them with `@path` (see Option 9 — Memory).
+
+3. **Monorepo / subdirectory awareness** — if this project lives inside a larger
+   monorepo or under a parent directory that has its own CLAUDE.md, ancestor files
+   (up to the filesystem root) are loaded automatically alongside this one. No
+   duplication needed. Descendant CLAUDE.md files in subdirectories are scoped to
+   that subtree and can override parent instructions locally.
+
 ### Option 2 — LSP
 
 Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/lsp.md`.
@@ -167,6 +186,18 @@ plugin when describing what DataLad enables.
 ### Option 5 — Agents
 
 Load the **Recommended agents** section from the project type reference.
+
+**Design guidance before scaffolding:** Feature-specific agents outperform broadly-scoped
+roles. An agent named `auth-token-reviewer` or `data-pipeline-debugger` that knows its
+exact domain will be delegated to correctly; an agent named `general-qa` or
+`backend-engineer` will either misfire or be ignored. Two design rules:
+- Scope the agent to a specific workflow, module, or decision type — not a job title.
+- The `description` field should state *when the main Claude should delegate* (the
+  trigger), not just what the agent does. Example: "Delegate to this agent when
+  reviewing any change to the auth or session handling code."
+
+The git-workflow plugin (`plugins/git-workflow/`) is a reference example of a
+well-scoped agent description.
 
 Present each recommended agent with a one-line description. For each the user selects:
 
@@ -249,6 +280,18 @@ Check whether `.claude/settings.json` exists:
 | `coding-tool` | `Bash(git *)`, `Read`, `Bash(* --version)` | `Bash(npm install *)`, `Write`, `Edit` | `Bash(rm -rf *)`, `Read(~/.ssh/*)` |
 | `data-analysis` | `Bash(git *)`, `Read`, `Bash(pip install *)` | `Write`, `Edit`, `Bash(jupyter *)` | `Bash(rm -rf *)`, `Read(~/.ssh/*)` |
 | `info-management` | `Bash(git *)`, `Read` | `Write`, `Edit` | `Bash(rm -rf *)`, `Read(~/.ssh/*)` |
+
+**Prefer scoped wildcard permissions over `dangerouslySkipPermissions`.** Instead of
+bypassing all permission checks, use wildcard syntax to allow only what the project
+needs:
+
+| Avoid | Prefer |
+|---|---|
+| `"dangerouslySkipPermissions": true` | `"Bash(npm run *)"`, `"Bash(git *)"` |
+| Allow-all Bash | `"Bash(make *)"`, `"Bash(cargo *)"` |
+| Allow-all Edit | `"Edit(src/**)"`, `"Edit(docs/**)"` |
+
+This keeps permission prompts minimal without removing the safety net entirely.
 
 After writing, tell the user:
 - Global security denies belong in `~/.claude/settings.json`, not committed here.

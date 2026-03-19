@@ -75,7 +75,18 @@ Generated: <date>
 - [ ] `ClassName.__init__` — valid args; invalid args raise ValueError
 ```
 
-### Step 4 — Begin immediately
+### Step 4 — Offer plan review (optional)
+
+Before starting Phase 2, offer: **"Would you like a subagent to review this test plan
+as a staff engineer before we begin writing tests?"** A reviewer subagent checks for
+coverage gaps, mocking strategy correctness, missing edge cases, and whether the
+planned unit order respects dependencies.
+
+If the user declines or doesn't respond, proceed immediately. The TODO file is already
+a reviewable artifact — the review offer is most valuable for large source files with
+complex dependency graphs.
+
+### Step 5 — Begin
 
 Tell the user "I've planned N units in `<todo-file>`. Starting unit 1 now..." then
 proceed directly to Phase 2 without waiting.
