@@ -3,11 +3,13 @@ name: claude-config
 description: >
   Configure Claude Code tooling for the current project: generate or update CLAUDE.md,
   set up an LSP language server, add PostToolUse hooks, configure MCP servers (DataLad,
-  web search, GitHub), scaffold project-specific agents and skills in .claude/, and
-  create .editorconfig. Use when the user says "configure Claude", "set up Claude Code",
-  "add an LSP", "add hooks", "set up MCP", "scaffold an agent", "scaffold a skill",
-  or "/claude-config". Safe to run on new or existing projects; safe to re-run to add
-  options later. Detects project type from CLAUDE.md or asks.
+  web search, GitHub), scaffold project-specific agents and skills in .claude/, create
+  .editorconfig, configure settings hierarchy and permissions, set up memory with
+  .claude/rules/ scaffolding, and add a status line to settings.json. Use when the user
+  says "configure Claude", "set up Claude Code", "add an LSP", "add hooks", "set up MCP",
+  "scaffold an agent", "scaffold a skill", "set up settings", "configure permissions",
+  "set up memory", "add status line", or "/claude-config". Safe to run on new or existing
+  projects; safe to re-run to add options later. Detects project type from CLAUDE.md or asks.
 argument-hint: [coding-tool|data-analysis|info-management]
 user-invocable: true
 disable-model-invocation: false
@@ -91,6 +93,9 @@ Present the menu with profile-specific recommendations highlighted:
 > 5. **Agents** — project-specific subagents in `.claude/agents/`
 > 6. **Local skills** — project-specific slash commands in `.claude/skills/`
 > 7. **`.editorconfig`** — consistent editor settings across contributors
+> 8. **Settings** — scaffold `.claude/settings.json` with project-appropriate permissions
+> 9. **Memory** — scaffold `.claude/rules/` and add `@path` imports to CLAUDE.md
+> 10. **Status line** — add `statusLine` block to settings.json
 >
 > [Profile: `<type>`] Recommended for this project type: <comma-separated list from
 > the reference's **Recommended Claude configuration** section>
@@ -222,6 +227,98 @@ trim_trailing_whitespace = false
 
 (Trailing whitespace is intentionally preserved in Markdown — two trailing spaces
 produce a line break.)
+
+### Option 8 — Settings
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/settings.md` if it exists;
+otherwise load `${CLAUDE_PLUGIN_ROOT}/../../../../reference/settings.md`.
+
+Explain the 5-scope hierarchy briefly (enterprise → CLI → local project → project → global).
+
+Check whether `.claude/settings.json` exists:
+
+- **Does not exist**: scaffold it with project-type-appropriate defaults (see below) and
+  write it, then remind the user to gitignore `.claude/settings.local.json` for secrets.
+- **Exists**: show the current content and offer to merge in missing sections (permissions
+  or env blocks), or leave as-is.
+
+**Project-type permission defaults:**
+
+| Project type | Allow | Ask | Deny |
+|---|---|---|---|
+| `coding-tool` | `Bash(git *)`, `Read`, `Bash(* --version)` | `Bash(npm install *)`, `Write`, `Edit` | `Bash(rm -rf *)`, `Read(~/.ssh/*)` |
+| `data-analysis` | `Bash(git *)`, `Read`, `Bash(pip install *)` | `Write`, `Edit`, `Bash(jupyter *)` | `Bash(rm -rf *)`, `Read(~/.ssh/*)` |
+| `info-management` | `Bash(git *)`, `Read` | `Write`, `Edit` | `Bash(rm -rf *)`, `Read(~/.ssh/*)` |
+
+After writing, tell the user:
+- Global security denies belong in `~/.claude/settings.json`, not committed here.
+- Machine-specific tokens belong in `.claude/settings.local.json` (add to `.gitignore`).
+
+### Option 9 — Memory
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/memory.md` if it exists;
+otherwise load `${CLAUDE_PLUGIN_ROOT}/../../../../reference/memory.md`.
+
+Step 1 — Scaffold `.claude/rules/`:
+
+Check whether `.claude/rules/` exists. If not, create it with a starter file:
+
+`.claude/rules/conventions.md`:
+```markdown
+# Project conventions
+
+<!-- Add project-specific rules here. Claude loads all files in .claude/rules/
+     automatically. Keep each file focused on one domain (git, testing, data, etc.). -->
+```
+
+Tell the user the auto-memory path for this project:
+`~/.claude/projects/<url-encoded-project-path>/memory/`
+
+Step 2 — Add `@path` imports to CLAUDE.md:
+
+Check whether `CLAUDE.md` exists. If it does, check whether it already imports from
+`.claude/rules/`. If not, offer to append:
+
+```markdown
+## Project rules
+
+@.claude/rules/conventions.md
+```
+
+Explain: adding `@path` imports keeps the root CLAUDE.md under the ~200-line limit
+while still loading all domain-specific rules.
+
+### Option 10 — Status line
+
+Load `${CLAUDE_PLUGIN_ROOT}/../../../../reference/statusline.md`.
+
+Check whether a `statusLine` block already exists in `.claude/settings.json` or
+`~/.claude/settings.json`. If found, show it and ask: "Update, or leave as-is?"
+
+If adding: offer two variants:
+
+**Project-scoped** (`.claude/settings.json`) — adds the block there. Good for team
+environments with a shared status line script.
+
+**Global** (`~/.claude/settings.json`) — installs it personally. Requires the script
+to be present on each machine.
+
+Suggested configuration:
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "bash ~/.claude/statusline-command.sh"
+}
+```
+
+Point the user to `config/statusline-command.sh` in the my-skills repo as a ready-to-use
+template. Provide the copy command:
+
+```bash
+cp <path-to-my-skills>/config/statusline-command.sh ~/.claude/statusline-command.sh
+chmod +x ~/.claude/statusline-command.sh
+```
 
 ---
 

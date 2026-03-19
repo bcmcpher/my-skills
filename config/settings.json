@@ -89,5 +89,9 @@
 	  "Read(**/*.key)"
 	],
 	"defaultMode": "default"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
   }
 }

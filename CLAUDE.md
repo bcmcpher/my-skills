@@ -95,6 +95,17 @@ See `reference/plugin/.lsp.json` for an annotated example covering Python, TypeS
 
 `skills` and `agents` are arrays of relative paths to the skill/agent directories. Omit `hooks` and `mcpConfig` keys entirely when not used — don't leave them empty.
 
+### Reference docs
+
+Quick-reference files for skill authors writing SKILL.md instructions:
+
+| File | What it covers |
+|---|---|
+| `reference/plugin/` | Plugin anatomy, SKILL.md frontmatter examples, .lsp.json |
+| `reference/settings.md` | 5-scope settings hierarchy, permissions model, env vars |
+| `reference/memory.md` | CLAUDE.md patterns, `.claude/rules/`, @path imports, auto-memory |
+| `reference/statusline.md` | statusLine config block, command contract, available JSON fields |
+
 ### Key design rules
 
 - **`description` quality is critical**: for skills, it controls auto-invocation reliability; for agents, it controls when the main Claude delegates. Vague descriptions cause misfires.
