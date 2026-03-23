@@ -106,6 +106,10 @@ automatically stages and commits the outputs. On failure, nothing is committed.
 - If the run fails with a "locked" or "permission denied" error on output files, the fix
   is: `datalad unlock <output-path>`, then re-run. Load
   `${CLAUDE_PLUGIN_ROOT}/../references/troubleshooting.md` for the full recovery pattern.
+- Load `${CLAUDE_PLUGIN_ROOT}/../references/global-options.md` when the user asks about
+  debugging a failed run (`-l debug`), suppressing result output in CI (`-f disabled`),
+  overriding annex config for a single run (`-c`), or running against a different working
+  directory (`-C`).
 
 ## Replaying recorded runs (`datalad rerun`)
 

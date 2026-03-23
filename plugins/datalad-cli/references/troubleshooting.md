@@ -1,5 +1,20 @@
 # DataLad Troubleshooting Reference
 
+## Step 0: increase log verbosity
+
+Before anything else, re-run the failing command with `-l debug` to see every
+git/annex call DataLad makes:
+
+```bash
+datalad -l debug <subcommand> [opts]
+```
+
+`-l debug` is the fastest way to distinguish a DataLad logic error from a network
+issue, a permission problem, or a git-annex version mismatch. Only escalate after
+reading the debug output.
+
+---
+
 ## First diagnostic: `datalad wtf`
 
 `datalad wtf` ("What The F...") is the standard first step for any DataLad issue.

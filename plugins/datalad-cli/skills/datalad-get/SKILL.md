@@ -69,6 +69,10 @@ content from configured siblings (remotes) and makes files accessible locally.
 Load `${CLAUDE_PLUGIN_ROOT}/../references/subdataset-patterns.md` for the absent/present
 subdataset model, the `-n` handle-only pattern, and the neuroimaging nested layout.
 
+Load `${CLAUDE_PLUGIN_ROOT}/../references/global-options.md` when the user asks about
+`--on-failure` behavior during recursive gets, wants JSON output, needs to override a
+config value, or asks why a get is failing (suggest `-l debug`).
+
 ## Constraints
 
 - `datalad get` is **read-only with respect to dataset metadata** — it never modifies

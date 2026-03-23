@@ -74,6 +74,10 @@ Load `${CLAUDE_PLUGIN_ROOT}/../references/siblings-and-remotes.md` for publish-d
 ordering, `--data` mode details, and why annexed content must reach storage before git
 history reaches the git host.
 
+Load `${CLAUDE_PLUGIN_ROOT}/../references/global-options.md` when the user asks about
+`--on-failure` for recursive pushes, wants JSON output from push results, or needs to
+debug a failed push (`-l debug`).
+
 ## Constraints
 
 - Always check for a dirty working tree before pushing — never push without this check.

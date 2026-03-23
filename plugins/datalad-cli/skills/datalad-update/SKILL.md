@@ -74,6 +74,10 @@ Load `${CLAUDE_PLUGIN_ROOT}/../references/siblings-and-remotes.md` for `--follow
 semantics and `${CLAUDE_PLUGIN_ROOT}/../references/subdataset-patterns.md` for recursive
 update behavior and subdataset pinning.
 
+Load `${CLAUDE_PLUGIN_ROOT}/../references/global-options.md` when the user asks about
+`--on-failure` for recursive updates, wants structured output, or needs to debug a
+failed update (`-l debug`).
+
 ## Constraints
 
 - Never skip the merge-strategy question — a silently applied merge can discard work or
