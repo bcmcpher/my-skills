@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Auto-invoke when starting multi-file or multi-component work, or when the task involves worktrees, branches, parallel agents, merging, rebasing, or resolving conflicts. Provides decision context for git operations in Claude Code sessions.
+description: Auto-invoke when the user asks about committing changes, writing a commit message, creating or reviewing a pull request, branching, rebasing, resolving merge conflicts, or coordinating parallel agents with worktrees. Provides decision context and references for git operations in Claude Code sessions.
 argument-hint: [describe task or ask about specific git operation]
 user-invocable: true
 disable-model-invocation: false
@@ -68,6 +68,7 @@ These commands execute the operations described above. Use them after deciding o
 
 ## Constraints
 
+- Always run `git fetch origin` before creating a new branch or worktree
 - Never force-push to `main` or `master`
 - Never commit secrets, `.env`, or credential files
 - Always verify `git status` is clean before switching branches or starting a worktree

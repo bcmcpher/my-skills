@@ -10,6 +10,7 @@ Step-by-step decision logic for resolving merge/rebase conflicts in Claude Code 
 | Merging a completed feature PR (preserve branch point) | `git merge --no-ff` |
 | Pulling a single commit from another branch | `git cherry-pick <sha>` |
 | History already public (pushed); rebasing would rewrite it | `git merge` (never rebase public history) |
+| Commit already pushed or merged; need to undo safely | `git revert <sha>` |
 
 ## Rebase workflow
 
@@ -28,6 +29,38 @@ git rebase --continue
 
 # 3. To abort and return to original state:
 git rebase --abort
+```
+
+## Interactive rebase (clean up before pushing)
+
+Use `git rebase -i` to squash, reorder, reword, or drop commits before pushing.
+Only use on commits that have not yet been pushed to a shared branch.
+
+```bash
+# Interactively rebase the last N commits
+git rebase -i HEAD~N
+
+# Rebase everything since branching from main
+git rebase -i $(git merge-base HEAD main)
+```
+
+The editor opens a list of commits. Change the verb on each line:
+
+| Verb | Effect |
+|---|---|
+| `pick` | Keep the commit as-is |
+| `reword` | Keep commit, edit its message |
+| `squash` | Merge into the previous commit, combine messages |
+| `fixup` | Merge into the previous commit, discard this message |
+| `drop` | Remove the commit entirely |
+
+Save and close. Git replays the commits in order. If conflicts arise, resolve
+them, run `git add <resolved>`, then `git rebase --continue`. To abort: `git rebase --abort`.
+
+**Common pattern — squash a fixup into its parent:**
+```bash
+git commit --fixup <parent-sha>   # creates a "fixup! ..." commit
+git rebase -i --autosquash HEAD~N # automatically moves fixup into position
 ```
 
 ## Merge conflict resolution
@@ -79,6 +112,28 @@ git cherry-pick --continue
 # Abort:
 git cherry-pick --abort
 ```
+
+## Revert (undo a public commit)
+
+Use `git revert` when the commit to undo has already been pushed or merged — it
+creates a new commit that inverts the changes rather than rewriting history.
+
+```bash
+# Revert a single commit (opens editor for commit message)
+git revert <sha>
+
+# Revert without opening the editor
+git revert --no-edit <sha>
+
+# Revert a merge commit (specify which parent to keep, usually 1)
+git revert -m 1 <merge-sha>
+
+# Revert a range of commits (oldest first)
+git revert <oldest-sha>..<newest-sha>
+```
+
+If the revert produces conflicts, resolve them the same way as a merge conflict
+(edit files, `git add <resolved>`, `git revert --continue`). To abort: `git revert --abort`.
 
 ## Checking divergence before acting
 

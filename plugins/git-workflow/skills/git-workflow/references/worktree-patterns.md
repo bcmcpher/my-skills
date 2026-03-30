@@ -55,6 +55,47 @@ git rebase feature/agent-b
 git branch -d feature/agent-a feature/agent-b
 ```
 
+## Stash (save work in progress without committing)
+
+Use `git stash` when you need to switch context mid-work and aren't ready to commit.
+
+```bash
+# Save all tracked modifications (staged and unstaged)
+git stash push -m "description of WIP"
+
+# Include untracked files too
+git stash push -u -m "description of WIP"
+
+# List saved stashes
+git stash list
+
+# Restore the most recent stash (keeps it in the list)
+git stash apply
+
+# Restore and remove from the list
+git stash pop
+
+# Restore a specific stash
+git stash apply stash@{2}
+
+# Discard a stash you no longer need
+git stash drop stash@{0}
+
+# Clear all stashes
+git stash clear
+```
+
+**When to stash vs. commit WIP:**
+
+| Situation | Prefer |
+|---|---|
+| Switching to a hotfix on the same repo | `git stash push -u` |
+| Work is coherent enough to checkpoint | WIP commit (`git commit -m "wip: ..."`) |
+| Pulling remote updates mid-work | `git stash push` → `git pull` → `git stash pop` |
+| Switching branches (clean working tree required) | `git stash push` |
+
+WIP commits are generally preferable to stashes for anything that will take more than a few minutes — stashes are easy to forget and don't appear in `git log`.
+
 ## Fetch before starting parallel work
 
 Always fetch to ensure branches start from the latest remote state:

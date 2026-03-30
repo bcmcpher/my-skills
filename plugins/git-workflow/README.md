@@ -1,6 +1,10 @@
 # git-workflow
 
-DESCRIPTION
+Git workflow best practices and PR lifecycle commands for Claude Code sessions.
+
+Provides decision context for choosing between in-place commits, branches, and
+worktrees; commit conventions; parallel-agent coordination; conflict resolution;
+and slash commands for the full commit → push → PR lifecycle.
 
 ## Install
 
@@ -12,23 +16,16 @@ claude --plugin-dir ./plugins/git-workflow
 claude plugin install ./plugins/git-workflow
 ```
 
-## Usage
+## Commands
 
-```
-/git-workflow              # Invoke the skill
-/git-workflow [arg]        # With optional argument
-```
+| Command | What it does |
+|---|---|
+| `/commit` | Stage and commit changes with a conventional message |
+| `/commit-push-pr` | Commit, push to origin, and open a GitHub PR |
+| `/review-pr [number]` | Review an open PR and post findings as a comment |
+| `/clean-gone` | Remove local branches/worktrees deleted on the remote |
 
-## Structure
+## Skill
 
-```
-git-workflow/
-├── .claude-plugin/
-│   └── plugin.json         # Manifest
-└── skills/
-    └── git-workflow/
-        ├── SKILL.md        # Skill definition
-        ├── scripts/        # Helper scripts (optional)
-        ├── references/     # Reference docs (optional)
-        └── assets/         # Static files (optional)
-```
+`/git-workflow` — Auto-invoked decision guide for git strategy, commit cadence,
+parallel agent coordination, and conflict resolution.

@@ -27,8 +27,11 @@ Clean up local branches marked as `[gone]` — branches whose remote tracking re
        echo "  Removing worktree: $worktree"
        git worktree remove --force "$worktree"
      fi
-     echo "  Deleting branch: $branch"
-     git branch -D "$branch"
+     if git branch -d "$branch" 2>/dev/null; then
+       echo "  Deleted branch: $branch"
+     else
+       echo "  SKIPPED (unmerged): $branch — run 'git branch -D $branch' to force-delete"
+     fi
    done
    ```
 
