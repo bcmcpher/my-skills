@@ -200,12 +200,95 @@ Only the directories listed as args are accessible. Do not include sensitive dir
 
 ---
 
+## General-purpose (documentation and browser)
+
+**Applicability:** coding-tool (strongly recommended), data-analysis (useful for library
+research), info-management (optional for web-sourced content).
+
+These servers are not project-type-specific — they are broadly useful across any
+project that involves external libraries, browser-visible UIs, or GitHub repositories.
+
+### Context7 MCP
+
+Fetches up-to-date library documentation into context. Prevents hallucinated APIs from
+outdated training data. Widely recommended as the highest-value coding MCP.
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    }
+  }
+}
+```
+
+No API key required.
+
+### Playwright MCP
+
+Browser automation — implement, test, and verify UI features autonomously. Screenshots,
+navigation, form testing.
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"]
+    }
+  }
+}
+```
+
+Requires `npx` and a Chromium install (Playwright downloads one automatically on first use).
+
+### DeepWiki MCP
+
+Fetches structured wiki-style documentation for any GitHub repository — architecture,
+API surface, relationships. Useful when working with third-party libraries or open-source
+dependencies.
+
+```json
+{
+  "mcpServers": {
+    "deepwiki": {
+      "command": "npx",
+      "args": ["-y", "deepwiki-mcp"]
+    }
+  }
+}
+```
+
+No API key required.
+
+### Claude in Chrome MCP
+
+Connects Claude to your real Chrome browser — inspect console, network traffic, and DOM.
+Useful for debugging what users actually see rather than what the code theoretically does.
+
+```json
+{
+  "mcpServers": {
+    "claude-in-chrome": {
+      "command": "npx",
+      "args": ["-y", "claude-code-in-chrome-mcp"]
+    }
+  }
+}
+```
+
+Requires the companion Chrome extension to be installed in the browser.
+
+---
+
 ## Recommendations by project type
 
 | Project type | Priority MCPs |
 |---|---|
-| `coding-tool` | GitHub MCP |
-| `data-analysis` | DataLad (plugin), GitHub MCP |
+| `coding-tool` | Context7, GitHub MCP, Playwright (if frontend), DeepWiki |
+| `data-analysis` | DataLad (plugin), GitHub MCP, Context7 (if using new libraries) |
 | `info-management` | Web search MCP, DataLad (plugin), Filesystem MCP (optional) |
 
 ---

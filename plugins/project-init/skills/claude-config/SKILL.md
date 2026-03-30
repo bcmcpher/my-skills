@@ -199,6 +199,21 @@ exact domain will be delegated to correctly; an agent named `general-qa` or
 The git-workflow plugin (`plugins/git-workflow/`) is a reference example of a
 well-scoped agent description.
 
+**Preloaded-skill pattern (optional):** For agents that need reusable domain knowledge —
+a spec, a checklist, or a lookup table — create a companion skill alongside the agent and
+load it via the `skills:` frontmatter field rather than embedding that knowledge in the
+agent body. Mark the companion skill with `user-invocable: false` to hide it from the `/`
+menu; it exists only to be injected at agent startup.
+
+Example: a `data-pipeline-debugger` agent with a separate `pipeline-conventions` skill
+(containing the project's pipeline standards) loaded as:
+```yaml
+skills:
+  - .claude/skills/pipeline-conventions
+```
+This keeps the agent body focused on behavior and the skill body focused on reference
+material — each independently updateable.
+
 Present each recommended agent with a one-line description. For each the user selects:
 
 1. Check whether `.claude/agents/<agent-name>/SKILL.md` already exists.
@@ -219,6 +234,20 @@ that handles files should include a note in its body:
 > when managing versioned data files or binary assets."
 
 ### Option 6 — Local skills
+
+Before presenting options, note the 5 bundled skills already installed with Claude Code
+that users commonly recreate unnecessarily:
+
+| Bundled skill | What it does |
+|---|---|
+| `simplify` | Review changed code for quality and eliminate duplication |
+| `batch` | Run a command across multiple files in bulk |
+| `debug` | Debug failing commands or code issues |
+| `loop` | Run a prompt or slash command on a recurring interval |
+| `claude-api` | Build apps with the Claude API; auto-triggers on `anthropic` imports |
+
+Tell the user: "These are already available via `/simplify`, `/batch`, etc. — no
+scaffolding needed. Run `/skills` in Claude to confirm they are active."
 
 Present common local skill patterns for the project type (from the reference's
 **Recommended local skills** section, if present). For each the user selects:
