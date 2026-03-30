@@ -7,6 +7,7 @@
   "keywords": ["statistics", "data-analysis", "R", "python", "julia", "jupytext"],
   "skills": [
     "./skills/merge-data",
+    "./skills/gen-data-dict",
     "./skills/plan-analysis",
     "./skills/gen-report"
   ],
