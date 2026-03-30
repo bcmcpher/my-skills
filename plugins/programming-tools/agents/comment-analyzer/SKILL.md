@@ -8,6 +8,8 @@ description: >
   accurate?", "review my documentation", or "look for comment rot".
 tools: Read, Grep, Glob, Bash
 model: inherit
+permissionMode: default
+maxTurns: 20
 color: green
 ---
 

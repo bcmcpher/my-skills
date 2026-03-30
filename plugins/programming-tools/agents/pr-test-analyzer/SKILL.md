@@ -8,6 +8,8 @@ description: >
   not line-coverage metrics.
 tools: Read, Grep, Glob, Bash
 model: inherit
+permissionMode: default
+maxTurns: 20
 color: cyan
 ---
 

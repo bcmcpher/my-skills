@@ -9,6 +9,8 @@ description: >
   modified code unless instructed otherwise.
 tools: Read, Grep, Glob, Bash, Edit
 model: opus
+permissionMode: default
+maxTurns: 20
 color: blue
 ---
 

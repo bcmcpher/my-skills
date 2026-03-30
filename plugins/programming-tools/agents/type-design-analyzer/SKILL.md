@@ -8,6 +8,8 @@ description: >
   typed languages (TypeScript, Rust, Go, Python with type annotations, Java, C#, etc.).
 tools: Read, Grep, Glob, Bash
 model: inherit
+permissionMode: default
+maxTurns: 20
 color: pink
 ---
 

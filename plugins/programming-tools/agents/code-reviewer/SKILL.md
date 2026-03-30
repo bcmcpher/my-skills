@@ -8,6 +8,8 @@ description: >
   changes from git diff; the caller may specify a different file set.
 tools: Read, Grep, Glob, Bash
 model: opus
+permissionMode: default
+maxTurns: 20
 color: green
 ---
 

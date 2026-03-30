@@ -61,7 +61,7 @@ has_placeholder() {
 # Extract frontmatter block (content between first two --- lines)
 get_frontmatter() {
   local file="$1"
-  awk '/^---/{f=!f; next} f' "$file" | head -20
+  awk 'NR==1{next} /^---/{exit} {print}' "$file"
 }
 
 check_frontmatter_field() {

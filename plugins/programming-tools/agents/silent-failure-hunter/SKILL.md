@@ -8,6 +8,8 @@ description: >
   when the diff contains try/catch, Result types, error callbacks, or fallback logic.
 tools: Read, Grep, Glob, Bash
 model: inherit
+permissionMode: default
+maxTurns: 20
 color: yellow
 ---
 
