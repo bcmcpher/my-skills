@@ -1,0 +1,16 @@
+{
+  "name": "stat-analysis",
+  "description": "Language-agnostic statistical analysis workflows: merge input data into an analysis-ready dataframe, select and plan the right statistical test with QC checks, and scaffold a jupytext report.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["statistics", "data-analysis", "R", "python", "julia", "jupytext"],
+  "skills": [
+    "./skills/merge-data",
+    "./skills/plan-analysis",
+    "./skills/gen-report"
+  ],
+  "agents": [
+    "./agents/merge-agent"
+  ]
+}
