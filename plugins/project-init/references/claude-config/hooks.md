@@ -202,6 +202,87 @@ Avoid `trim_trailing_whitespace = true` in `.editorconfig` for `.md` files.
 
 ---
 
+## Tool config file stubs
+
+When setting up hooks, also offer to create the tool's config file so the hook works
+correctly from the first edit rather than relying on defaults.
+
+### Python — `ruff.toml`
+
+```toml
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "UP"]
+ignore = []
+
+[format]
+quote-style = "double"
+indent-style = "space"
+```
+
+### JavaScript / TypeScript — `eslint.config.js` (flat config, ESLint 9+)
+
+```js
+import js from "@eslint/js";
+
+export default [
+  js.configs.recommended,
+  {
+    rules: {
+      // add project-specific rules here
+    },
+  },
+];
+```
+
+Also create `.prettierrc.json`:
+
+```json
+{
+  "semi": true,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "trailingComma": "es5"
+}
+```
+
+### JavaScript / TypeScript — `biome.json` (if using Biome instead)
+
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
+  "organizeImports": { "enabled": true },
+  "linter": {
+    "enabled": true,
+    "rules": { "recommended": true }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  }
+}
+```
+
+### Rust — no separate config needed
+
+`rustfmt` uses `rustfmt.toml` (optional). Defaults are idiomatic; only add a config if
+the project needs non-default settings (e.g., `max_width = 100`).
+
+### Go — no separate config needed
+
+`goimports` uses the standard Go formatting rules with no separate config file.
+
+### R — no separate config needed
+
+`styler` uses `tidyverse_style` by default. Add `.styler.R` only if non-default
+options are required.
+
+---
+
 ## Project-type recommendations
 
 | Project type | Recommended hooks |

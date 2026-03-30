@@ -10,6 +10,7 @@ description: >
   "scaffold an agent", "scaffold a skill", "set up settings", "configure permissions",
   "set up memory", "add status line", or "/claude-config". Safe to run on new or existing
   projects; safe to re-run to add options later. Detects project type from CLAUDE.md or asks.
+  Does not set up programming environments — use /env-check for that.
 argument-hint: [coding-tool|data-analysis|info-management]
 user-invocable: true
 disable-model-invocation: false
@@ -97,6 +98,8 @@ Present the menu with profile-specific recommendations highlighted:
 > 9. **Memory** — scaffold `.claude/rules/` and add `@path` imports to CLAUDE.md
 > 10. **Status line** — add `statusLine` block to settings.json
 >
+> 11. **Pre-commit hooks** — git-side quality gate using the same linter/formatter as Option 3
+>
 > [Profile: `<type>`] Recommended for this project type: <comma-separated list from
 > the reference's **Recommended Claude configuration** section>
 >
@@ -124,6 +127,7 @@ Check current state:
   values), or leave as-is?"
 
 After writing, tell the user which `<placeholder>` fields still need their input.
+Once placeholders are filled, run `/claude-md-audit` for a detailed quality assessment.
 
 Also note three structural practices:
 
@@ -164,6 +168,10 @@ the user confirms:
   - **Exists**: show current content, append the new hook entries, confirm before
     writing.
   - **Does not exist**: create `.claude/hooks.json` with the selected hooks.
+
+After writing the hook, also offer to create the tool's config file using the **Tool
+config file stubs** section of the reference. The config file makes the hook work
+correctly from the first edit rather than relying on tool defaults.
 
 Remind the user that Claude Code hooks and git pre-commit hooks are independent systems
 (see `references/git.md`).
@@ -326,6 +334,19 @@ After writing, tell the user:
 - Global security denies belong in `~/.claude/settings.json`, not committed here.
 - Machine-specific tokens belong in `.claude/settings.local.json` (add to `.gitignore`).
 
+**Security tooling note:** For `coding-tool` and `data-analysis` projects, recommend
+running a dependency audit periodically to catch known vulnerabilities:
+
+| Language | Command |
+|---|---|
+| Python | `pip-audit` (install: `pip install pip-audit`) |
+| JavaScript / TypeScript | `npm audit` or `pnpm audit` |
+| Rust | `cargo audit` (install: `cargo install cargo-audit`) |
+| Go | `govulncheck ./...` (install: `go install golang.org/x/vuln/cmd/govulncheck@latest`) |
+
+For `coding-tool` projects with CI already configured, suggest adding the audit command
+as a step in `.github/workflows/test.yml` to catch vulnerabilities automatically.
+
 ### Option 9 — Memory
 
 Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/memory.md` if it exists;
@@ -391,6 +412,34 @@ template. Provide the copy command:
 cp <path-to-my-skills>/config/statusline-command.sh ~/.claude/statusline-command.sh
 chmod +x ~/.claude/statusline-command.sh
 ```
+
+### Option 11 — Pre-commit hooks
+
+Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/pre-commit.md`.
+
+Explain the relationship to Claude Code hooks: pre-commit hooks run on `git commit`
+regardless of how code was changed; Claude Code PostToolUse hooks run only during
+Claude editing sessions. Both are recommended for `coding-tool` projects.
+
+Check whether `.pre-commit-config.yaml` already exists:
+
+- **Does not exist**: generate a config using the detected language stub from the
+  reference, plus the **Universal additions** block. Write it and confirm.
+- **Exists**: show the current content and offer to append the universal additions
+  block or a missing language hook, or leave it unchanged.
+
+After writing the config, offer to run the setup commands:
+
+```bash
+pip install pre-commit   # or remind user to install via their preferred method
+pre-commit install
+```
+
+If `pre-commit install` is blocked by Claude Code's permission system, surface the
+command and wait for "done" before continuing.
+
+Remind the user: "The linter and formatter in this config match your Claude Code
+PostToolUse hooks — both systems now enforce the same quality rules."
 
 ---
 

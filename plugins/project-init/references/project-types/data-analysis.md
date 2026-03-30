@@ -25,6 +25,10 @@ Python (most common) or R. Ask the user. Both may coexist in a single project.
 ├── models/               # trained model artifacts
 ├── figures/              # generated plots and visualizations
 ├── reports/              # final outputs: LaTeX, Quarto, Rmd, or Markdown
+├── tests/                # pipeline and unit tests
+├── .github/
+│   └── workflows/
+│       └── pipeline.yml  # CI: run tests and verify pipeline on push
 ├── .gitignore
 ├── README.md
 ├── Makefile              # or pipeline stub (see below)
@@ -105,6 +109,69 @@ reports: figures
 clean:
 	rm -rf data/processed/ figures/ models/
 	find . -name "*.pyc" -delete
+```
+
+### .github/workflows/pipeline.yml
+
+```yaml
+name: Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest tests/
+      - name: Verify pipeline targets exist
+        run: make --dry-run all
+```
+
+**Note for R projects**: replace the Python setup steps with `r-lib/actions/setup-r@v2`
+and `install.packages(c("renv")); renv::restore()`.
+
+**Note on full pipeline runs in CI**: running `make all` end-to-end in CI requires
+access to source data. Use `make --dry-run all` to verify the Makefile structure, or
+provide a small fixture dataset in `tests/fixtures/` for smoke testing.
+
+---
+
+### tests/test_pipeline.py
+
+A minimal smoke test that verifies the Makefile targets exist and the package is
+importable. Replace with real pipeline tests as the project grows.
+
+```python
+"""Smoke tests for the analysis pipeline."""
+import subprocess
+from pathlib import Path
+
+
+def test_makefile_exists():
+    """Verify Makefile is present and has required targets."""
+    makefile = Path("Makefile")
+    assert makefile.exists(), "Makefile not found"
+    content = makefile.read_text()
+    for target in ("all", "data", "figures", "reports", "clean"):
+        assert target in content, f"Makefile missing target: {target}"
+
+
+def test_package_importable():
+    """Verify the src package is importable."""
+    import importlib.util
+
+    # TODO: replace <name> with your actual package name
+    assert importlib.util.find_spec("<name>") is not None, (
+        "Package '<name>' not found — run /env-check to set up the environment"
+    )
 ```
 
 ---
@@ -206,7 +273,7 @@ suggesting data management steps.
 | Figures only | `make figures` |
 | Reports only | `make reports` |
 | Clean outputs | `make clean` |
-| Run tests | `<test command>` |
+| Run tests | `pytest tests/` |
 
 ## Reproducibility
 

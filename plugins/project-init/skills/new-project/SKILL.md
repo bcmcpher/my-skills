@@ -57,6 +57,13 @@ Wait for the user's choice.
 
 Optionally ask for a one-line description (used in README and package manifest stubs).
 
+**For `coding-tool` projects**, also ask:
+
+> "What license? (default: MIT — other common choices: Apache-2.0, GPL-3.0, BSD-2-Clause, or 'proprietary' to skip)"
+
+Default to MIT if the user does not answer. Store the choice for use in Phase 2 when
+writing the LICENSE file.
+
 ### Step 3 — Load project type reference
 
 | Type | Reference |
@@ -113,11 +120,11 @@ Run `git rev-parse --is-inside-work-tree` from within `<project-name>/`.
 **Not already a git repository** (expected for new projects):
 
 - Run `git init` inside the project directory.
-- Write `.gitignore` using the language entries from `references/git.md` plus any
+- Write `.gitignore` using the language entries from `references/git.md`, the
+  **Claude Code local files** entries from `references/git.md`, plus any
   project-type-specific entries from the loaded reference's **.gitignore additions**
   section.
-- Inform the user: "Git initialized. Review the scaffolded files, then run
-  `git add . && git commit -m 'Initial commit'` to record the starting state."
+- Inform the user: "Git initialized."
 
 **Already inside a git repository** (nested — less common for new projects):
 
@@ -137,68 +144,28 @@ reference explicitly advises against it (info-management projects often don't ne
 *Skip this phase for `info-management` projects — they have no programming environment.
 Proceed directly to Phase 5.*
 
-### Step 1 — Detect language
+Follow `${CLAUDE_PLUGIN_ROOT}/../skills/env-check/SKILL.md` **Phases 1–3**, with these
+adjustments for the new-project context:
 
-Check the reference's **Primary language** field first. If it specifies one, use it.
-Otherwise use signal files created during scaffolding (the manifest file created in
-Phase 2 is sufficient — no need to re-scan):
+- **Skip env-check Phase 0 Steps 2–4** (git status, `.gitignore` coverage, and `.env`
+  check) — Phase 3 of new-project already handled all of these.
+- **Skip the existing-environment check** in env-check Phase 0 Step 4 — this is a new
+  project with no prior environment.
+- Use the manifest file written in Phase 2 as the language signal (no need to re-scan):
 
-| Manifest created | Language | Reference |
-|---|---|---|
-| `pyproject.toml` | Python | `${CLAUDE_PLUGIN_ROOT}/../references/python.md` |
-| `package.json` (no `tsconfig.json`) | JavaScript | `${CLAUDE_PLUGIN_ROOT}/../references/javascript.md` |
-| `package.json` + `tsconfig.json` | TypeScript | `${CLAUDE_PLUGIN_ROOT}/../references/typescript.md` |
-| `Cargo.toml` | Rust | `${CLAUDE_PLUGIN_ROOT}/../references/rust.md` |
-| `go.mod` | Go | `${CLAUDE_PLUGIN_ROOT}/../references/go.md` |
-| `renv.lock` / `DESCRIPTION` | R | `${CLAUDE_PLUGIN_ROOT}/../references/r.md` |
+  | Manifest created | Language |
+  |---|---|
+  | `pyproject.toml` | Python |
+  | `package.json` (no `tsconfig.json`) | JavaScript |
+  | `package.json` + `tsconfig.json` | TypeScript |
+  | `Cargo.toml` | Rust |
+  | `go.mod` | Go |
+  | `renv.lock` / `DESCRIPTION` | R |
 
-**Load the language reference before continuing.**
+  If no manifest was created, ask the user which language to use before continuing.
 
-If no manifest was created (user is working in a language with no scaffold match), ask.
-
-### Step 2 — Conda check (Python only)
-
-Before creating a Python environment, check:
-1. `which conda` exits 0
-2. `environment.yml` exists in the project root
-3. `$ARGUMENTS` contains "conda" or "anaconda"
-
-If **any** signal is true:
-
-> "A conda installation was detected. Conda environments must be activated before
-> Claude Code launches — `conda activate` modifies shell state that subprocesses
-> cannot inherit.
->
-> Options:
-> 1. **Use conda manually** — I'll document the setup in CLAUDE.md. You activate
->    before launching Claude Code.
-> 2. **Use venv instead** — I'll set up a standard `.venv` (or `uv` env) right now."
-
-- Conda: write environment details to `## Active Environment` in CLAUDE.md (name,
-  activate command, Python version from `environment.yml` if present). Note the manual
-  activation requirement. Skip Steps 3–4.
-- Venv / uv env: continue to Step 3.
-
-If `uv` is on PATH (check with `which uv`), prefer `uv venv` + `uv pip install` over
-plain venv — it is faster and handles lockfiles with `uv pip compile`.
-
-If no conda signals, skip this step.
-
-### Step 3 — Create environment
-
-This is a new project — no existing environment check needed. Proceed directly to
-environment creation using the steps in the loaded language reference.
-
-**Permission-blocked commands:** surface the exact command and wait for "done" before
-continuing — do not retry or silently skip.
-
-### Step 4 — Verify
-
-Run the verification command from the language reference. Confirm the interpreter or
-toolchain resolves inside the new environment, not a system installation.
-
-If it points to a system binary, report the discrepancy and ask the user how to proceed
-— do not declare success.
+All conda detection, uv preference, environment creation, verification, and
+CLAUDE.md documentation logic is defined in env-check — follow it exactly.
 
 ---
 
@@ -229,8 +196,16 @@ Rules:
 ## Phase 6: Claude Code configuration
 
 Load `${CLAUDE_PLUGIN_ROOT}/../skills/claude-config/SKILL.md` and execute its full
-workflow. The project type and language are already established — pass them as context
-so the skill skips its detection steps and goes directly to the configuration menu.
+workflow with these adjustments:
+
+- **Skip Phase 0 Steps 1–3** (project type detection, reference loading, language
+  detection) — these are already established. Use the type and language from Phase 0
+  and Phase 4 of this skill directly.
+- Start at **Phase 1: Configuration menu**, presenting the full 11-option menu with the
+  known project type highlighted in the profile line.
+
+The user receives the full interactive configuration menu without re-answering questions
+already answered during this workflow.
 
 The user will receive the full menu of configuration options (CLAUDE.md refinement, LSP,
 hooks, MCP servers, agents, local skills, `.editorconfig`) without needing to invoke
@@ -238,10 +213,44 @@ hooks, MCP servers, agents, local skills, `.editorconfig`) without needing to in
 
 ---
 
+## Phase 7: Closing summary
+
+Print a structured summary of everything completed:
+
+```
+## Project initialized: <project-name>
+
+**Type:** <type>
+**Language:** <language or "none">
+**Location:** <absolute path to project directory>
+
+### Created
+- [list of directories and files written in Phase 2]
+- .gitignore (Phase 3)
+- CLAUDE.md (Phase 5)
+- [any Claude Code config files written in Phase 6]
+
+### Claude Code configuration
+- [list of options selected in Phase 6, or "none selected"]
+
+### Next steps
+1. `cd <project-name>`
+2. Fill in all `<placeholder>` fields in CLAUDE.md and any stub files
+3. `git add . && git commit -m "Initial commit"` to record the starting state
+4. Run `/claude-md-audit` once placeholders are filled to verify quality
+```
+
+If the user cancelled during Phase 6 (chose "none"), omit the Claude Code configuration
+section and note: "Claude Code tooling not configured — run `/claude-config` at any
+time to add it."
+
+---
+
 ## Constraints
 
 - Never overwrite a file that already exists during scaffolding — skip and note it.
-- Never skip the conda check when any conda signal is present (Python only).
+- Never skip the conda check when any conda signal is present (Python only) — this is
+  enforced by env-check; do not bypass it.
 - Do not create files outside `<project-name>/` unless the user explicitly requests it.
 - If a Bash command is blocked, surface the exact command and wait for "done" — do not
   retry or silently skip.

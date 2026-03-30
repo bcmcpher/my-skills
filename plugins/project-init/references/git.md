@@ -11,6 +11,17 @@
 | Go | *(nothing — `go.sum` should be committed; no env dir to exclude)* |
 | R | `renv/library/` (note: `renv.lock` and `renv/activate.R` should be committed) |
 
+## Claude Code local files (all projects)
+
+Always add these entries regardless of language — they contain machine-specific
+settings and tokens that must not be committed:
+
+```
+# Claude Code local overrides (machine-specific, never commit)
+.claude.local.md
+.claude/settings.local.json
+```
+
 ## `git init` guidance
 
 ```bash
