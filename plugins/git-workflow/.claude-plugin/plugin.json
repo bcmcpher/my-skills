@@ -1,9 +1,15 @@
 {
   "name": "git-workflow",
-  "description": "Git workflow best practices for Claude Code sessions: when to use worktrees vs branches, commit conventions, parallel-agent coordination, and conflict resolution.",
-  "version": "0.1.0",
+  "description": "Git workflow best practices and PR lifecycle commands for Claude Code sessions: when to use worktrees vs branches, commit conventions, parallel-agent coordination, conflict resolution, and slash commands for commit, push, PR creation, PR review, and branch cleanup.",
+  "version": "0.2.0",
   "author": { "name": "bcmcpher" },
   "license": "MIT",
-  "keywords": ["git", "workflow", "worktree", "parallel", "branches"],
-  "skills": ["./skills/git-workflow"]
+  "keywords": ["git", "workflow", "worktree", "parallel", "branches", "commit", "pr", "review"],
+  "skills": ["./skills/git-workflow"],
+  "commands": [
+    "./commands/commit",
+    "./commands/commit-push-pr",
+    "./commands/clean-gone",
+    "./commands/review-pr"
+  ]
 }

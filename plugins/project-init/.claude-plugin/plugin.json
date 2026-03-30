@@ -8,6 +8,7 @@
   "skills": [
     "./skills/new-project",
     "./skills/env-check",
-    "./skills/claude-config"
+    "./skills/claude-config",
+    "./skills/claude-md-audit"
   ]
 }

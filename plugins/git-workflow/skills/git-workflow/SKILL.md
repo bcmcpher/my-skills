@@ -55,6 +55,17 @@ precise. If using `/tdd`, each Red-Green-Refactor cycle is a natural commit boun
 See `${CLAUDE_PLUGIN_ROOT}/references/conflict-resolution.md` for step-by-step
 decision logic (rebase vs. merge vs. cherry-pick) and marker resolution patterns.
 
+## Available commands
+
+These commands execute the operations described above. Use them after deciding on the right strategy.
+
+| Command | When to use |
+|---|---|
+| `/commit` | Stage and commit with a conventional message (Co-Author trailer included) |
+| `/commit-push-pr` | Commit, push to origin, and open a GitHub PR in one step |
+| `/review-pr [number]` | Review an open GitHub PR and post findings as a PR comment |
+| `/clean-gone` | Remove local branches (and worktrees) deleted on the remote after merge |
+
 ## Constraints
 
 - Never force-push to `main` or `master`

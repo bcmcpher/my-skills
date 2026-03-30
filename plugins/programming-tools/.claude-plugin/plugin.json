@@ -1,0 +1,23 @@
+{
+  "name": "programming-tools",
+  "description": "Testing and code quality toolkit: TDD and retrofit-tests skills for writing tests; code-reviewer, pr-test-analyzer, code-simplifier, comment-analyzer, silent-failure-hunter, and type-design-analyzer agents for pre-commit review; and a /code-check command to orchestrate them.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["testing", "tdd", "unit-tests", "coverage", "retrofit", "code-review", "simplify", "error-handling", "types"],
+  "skills": [
+    "./skills/tdd",
+    "./skills/retrofit-tests"
+  ],
+  "agents": [
+    "./agents/code-reviewer",
+    "./agents/pr-test-analyzer",
+    "./agents/code-simplifier",
+    "./agents/comment-analyzer",
+    "./agents/silent-failure-hunter",
+    "./agents/type-design-analyzer"
+  ],
+  "commands": [
+    "./commands/code-check"
+  ]
+}
