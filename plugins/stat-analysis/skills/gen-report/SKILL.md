@@ -24,7 +24,7 @@ Reference files (load as directed):
   block, conversion commands, editor setup
 - `${CLAUDE_PLUGIN_ROOT}/references/report-sections.md` — section templates and
   cell content guidance
-- `${CLAUDE_PLUGIN_ROOT}/../plan-analysis/references/qc-metrics.md` — must-run
+- `${CLAUDE_PLUGIN_ROOT}/../../references/qc-metrics.md` — must-run
   diagnostic plots per method family (load in Phase 2)
 
 ---
@@ -65,7 +65,7 @@ If the user provided a plan-analysis output or model hierarchy, read it to extra
 
 ## Phase 2: Select method-appropriate QC cells
 
-Load `${CLAUDE_PLUGIN_ROOT}/../plan-analysis/references/qc-metrics.md`.
+Load `${CLAUDE_PLUGIN_ROOT}/../../references/qc-metrics.md`.
 
 Locate the row for the user's method family in the "Diagnostic plots quick-reference"
 table at the bottom of the file. Then pull the full code blocks for each listed plot

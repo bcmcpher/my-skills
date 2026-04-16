@@ -22,6 +22,9 @@ Reference files (load on demand):
   commands, delimiter/encoding detection heuristics
 - `${CLAUDE_PLUGIN_ROOT}/references/merge-strategies.md` — join types, key-name
   patterns, wide/long detection, duplicate handling, validation checklist
+- `${CLAUDE_PLUGIN_ROOT}/../../references/data-qc.md` — column profiling, missing-
+  value normalization, type validation, duplicate detection, outlier flagging,
+  cross-field consistency checks, and fuzzy key matching (Python/R/Julia)
 
 ---
 
@@ -52,24 +55,32 @@ Reference files (load on demand):
 
 ## Phase 1: Inspect each recognized file
 
-For each file, gather the following without modifying it:
+Load `${CLAUDE_PLUGIN_ROOT}/../../references/data-qc.md` for the full profiling and
+QC patterns. Run the following for each file without modifying it:
 
 1. **Row count** — `wc -l` for text formats; programmatic count for binary formats.
 2. **Column headers** — read the first row only.
 3. **Sample rows** — read 3–5 data rows to understand actual values.
-4. **Inferred dtypes** — note whether each column looks like an integer, float,
-   free text, a coded category, or a date.
-5. **Encoding and delimiter** — for text formats, apply the detection rules in
+4. **Column profile** — apply the profiling pattern from `data-qc.md §1` to get
+   dtype, null fraction, cardinality, and sample values per column.
+5. **Missing-value normalization** — apply `data-qc.md §2` to ensure blank strings,
+   coded NAs ("-9", "Unknown", etc.), and sentinels are replaced with true nulls
+   before inspecting further.
+6. **Type validation** — apply `data-qc.md §3` to catch numeric data stored as
+   strings or dates in inconsistent formats.
+7. **Encoding and delimiter** — for text formats, apply the detection rules in
    `input-formats.md`.
 
 Flag key-candidate columns immediately. A column is likely a merge key if its name
 matches patterns from `merge-strategies.md` (subject ID, session, run, participant,
 etc.) and it has low or zero nulls with cardinality close to the number of rows.
+If a key candidate has < 100% coverage across files after an exact match, check
+`data-qc.md §7` (fuzzy key matching) before concluding the keys are incompatible.
 
 Produce a compact summary table for the user:
 
-| File | Rows | Columns | Key candidate columns | Notes |
-|------|------|---------|----------------------|-------|
+| File | Rows | Columns | Key candidate columns | QC flags |
+|------|------|---------|----------------------|----------|
 
 ---
 

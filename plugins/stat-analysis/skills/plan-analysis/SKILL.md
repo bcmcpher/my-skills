@@ -19,7 +19,7 @@ Reference files (load as directed below):
 - `${CLAUDE_PLUGIN_ROOT}/references/regression-glm.md` — OLS, logistic, Poisson, ordinal, LME, GLMM
 - `${CLAUDE_PLUGIN_ROOT}/references/multivariate.md` — CCA, RDA, PERMANOVA, multivariate regression
 - `${CLAUDE_PLUGIN_ROOT}/references/factor-analysis.md` — EFA, CFA, PCA, SEM skeleton
-- `${CLAUDE_PLUGIN_ROOT}/references/qc-metrics.md` — shared diagnostics and assumption checks
+- `${CLAUDE_PLUGIN_ROOT}/../../references/qc-metrics.md` — shared diagnostics and assumption checks
 
 ---
 
@@ -53,6 +53,11 @@ from context before asking. Only ask about genuinely missing information.
 ## Phase 1: Navigate the decision tree
 
 Load `${CLAUDE_PLUGIN_ROOT}/references/test-selection.md`.
+
+For regression-family analyses, also consult
+`${CLAUDE_PLUGIN_ROOT}/references/worked-examples.md` for annotated workflows
+covering simple regression, hierarchical ΔR², curvilinear, categorical coding,
+and interaction/simple-slopes patterns (R/Python/Julia).
 
 Follow the tree to identify:
 - The recommended **statistical family** (e.g., "linear mixed effects regression")

@@ -249,3 +249,26 @@ After every merge, compute and log all of the following:
 Print all of the above as a validation block at the end of `build_merged()`. This
 block runs every time the script is executed and makes join problems immediately
 visible.
+
+---
+
+## When exact key matching fails
+
+If key coverage is < 100% after an exact join (step 3 above), the cause is
+usually one of:
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| "sub-01" vs "01" | BIDS prefix strip needed | Normalize to bare label (see BIDS section) |
+| "Site_A" vs "site a" | Case/space inconsistency | `str.lower().str.replace(r"\W+", "_")` |
+| "Healthy Control" vs "HC" | Abbreviation mismatch | Build an explicit recode map |
+| ≤ 2 characters different | Typographic error in data entry | Use fuzzy matching (see below) |
+
+For typographic variants and free-text keys, use fuzzy matching rather than
+trying to enumerate every normalization rule. See `data-qc.md §7` for
+`fuzzy_join` (Python / skrub), `stringdist_join` (R / fuzzyjoin), and
+`StringDistances.jl` (Julia) with worked examples.
+
+**Rule:** always audit fuzzy match results before accepting them. Print the
+matched-key pairs and distances; verify at least 20 samples manually before
+generating code that depends on the fuzzy join.
