@@ -5,7 +5,7 @@
 **P1 — Everything is a (sub)dataset**
 Input data belongs in its own dataset, linked to the analysis dataset as a subdataset
 (via `datalad clone` into `inputs/`). Never copy raw data into `inputs/` directly.
-This makes the input re-usable and the link auditable.
+This makes the input reusable and the link auditable.
 
 **P2 — Record where data comes from**
 Every file that enters the dataset should have its origin recorded. Use:
