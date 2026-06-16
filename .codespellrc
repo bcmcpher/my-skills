@@ -1,6 +1,12 @@
 [codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = .git,.gitignore,.gitattributes,.codespellrc
+skip = .git,.gitignore,.gitattributes,.codespellrc,.npm,.cache
 check-hidden = true
-# ignore-regex = 
-# ignore-words-list =
+# Ignore URLs (don't "fix" typos in links) and PascalCase identifiers
+# (e.g., ::testing::AtLeast in Google Test code samples)
+ignore-regex = https?://\S+|\b[A-Z][a-z]+[A-Z]\w*\b
+ignore-words-list =
+  # MRI Echo Time abbreviation used throughout BIDS sidecar reference
+  te,
+  # DICOM ImageType constant (Normalized / Non-Distortion-corrected)
+  nd
