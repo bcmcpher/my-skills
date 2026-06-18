@@ -1,0 +1,72 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "local",
+  "version": "0.1.0",
+  "description": "Personal Claude Code plugins for neuroimaging, data management, and software development workflows",
+  "owner": {
+    "name": "Brent McPherson",
+    "email": "bcmcpher@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "project-init",
+      "description": "Scaffold and configure new projects for use with Claude Code across coding-tool, data-analysis, and info-management project types",
+      "version": "0.2.0",
+      "source": "./plugins/project-init"
+    },
+    {
+      "name": "bids",
+      "description": "BIDS (Brain Imaging Data Structure) conventions and dataset validation for neuroimaging data",
+      "version": "0.1.0",
+      "source": "./plugins/bids"
+    },
+    {
+      "name": "boutiques",
+      "description": "Generate Boutiques schema-version 0.5 JSON descriptors for neuroimaging tools",
+      "version": "0.1.0",
+      "source": "./plugins/boutiques"
+    },
+    {
+      "name": "datalad-cli",
+      "description": "Routes data processing and file changes through DataLad for reproducible data management",
+      "version": "0.1.0",
+      "source": "./plugins/datalad-cli"
+    },
+    {
+      "name": "git-workflow",
+      "description": "Git workflow best practices and PR lifecycle commands for Claude Code sessions",
+      "version": "0.1.0",
+      "source": "./plugins/git-workflow"
+    },
+    {
+      "name": "modular-analysis",
+      "description": "Modular neuroimaging analysis workflows",
+      "version": "0.1.0",
+      "source": "./plugins/modular-analysis"
+    },
+    {
+      "name": "modular-analysis-workspace",
+      "description": "Workspace configuration for modular neuroimaging analysis",
+      "version": "0.1.0",
+      "source": "./plugins/modular-analysis-workspace"
+    },
+    {
+      "name": "nipoppy-cli",
+      "description": "Skills for the nipoppy neuroimaging pipeline management framework",
+      "version": "0.1.0",
+      "source": "./plugins/nipoppy-cli"
+    },
+    {
+      "name": "programming-tools",
+      "description": "Focused testing and programming tooling skills",
+      "version": "0.1.0",
+      "source": "./plugins/programming-tools"
+    },
+    {
+      "name": "stat-analysis",
+      "description": "Language-agnostic statistical analysis workflows for R, Python, and Julia",
+      "version": "0.1.0",
+      "source": "./plugins/stat-analysis"
+    }
+  ]
+}
