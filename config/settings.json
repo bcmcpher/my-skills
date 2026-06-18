@@ -84,7 +84,7 @@
 	  "Read(**/.env)",
 	  "Read(**/.env.*)",
 	  "Read(**/secrets/**)",
-	  "Read(**/*credintial*)",
+	  "Read(**/*credential*)",
 	  "Read(**/*.pem)",
 	  "Read(**/*.key)"
 	],
