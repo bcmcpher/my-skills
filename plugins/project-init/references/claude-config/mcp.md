@@ -37,11 +37,10 @@ DataLad is not an MCP server — it is a Claude Code plugin that provides skills
 (slash commands and auto-invoked behaviors) for data versioning and provenance
 tracking. It integrates with `git-annex` under the hood.
 
-**Install:**
+**Install:** from the my-skills repo's marketplace (run from the repo root):
 ```bash
-claude plugin install <path-to-datalad-cli>
-# or from the my-skills repo:
-claude plugin install ./plugins/datalad-cli
+claude plugin marketplace add .
+claude plugin install datalad-cli@local   # then restart Claude Code
 ```
 
 **What it enables:**

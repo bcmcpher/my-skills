@@ -81,8 +81,9 @@ Options:
 # Session-only test
 claude --plugin-dir ./plugins/project-init
 
-# Permanent install
-claude plugin install ./plugins/project-init
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install project-init@local        # then restart Claude Code
 ```
 
 ## Reference files

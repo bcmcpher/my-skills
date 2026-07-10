@@ -54,7 +54,7 @@ SES_RE   = re.compile(r"^ses-[A-Za-z0-9]+$")
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def parse_filename(name):
-    """Return (entities_in_order, suffix, ext) or None if unparseable."""
+    """Return (entities_in_order, suffix, ext) or None if unparsable."""
     stem, *exts = name.split(".")
     ext = "." + ".".join(exts) if exts else ""
     parts = stem.split("_")

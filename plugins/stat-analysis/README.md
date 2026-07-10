@@ -38,8 +38,9 @@ the next — but each is independently invocable so you can enter at any stage.
 # Session-only (for testing)
 claude --plugin-dir ./plugins/stat-analysis
 
-# Permanent install
-claude plugin install ./plugins/stat-analysis
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install stat-analysis@local        # then restart Claude Code
 ```
 
 ## Structure
