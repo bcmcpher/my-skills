@@ -1,5 +1,11 @@
 # YODA Layout Reference
 
+> YODA is the concrete dataset layout this plugin enforces, and is the **Self-containment (S)
+> + Modularity (M)** origin of the broader **STAMPED** framework. A YODA-compliant dataset is a
+> strong start but does not by itself satisfy STAMPED's Tracking, Actionability, Portability,
+> Ephemerality, or Distributability. See `stamped-principles.md` for the full seven and use
+> `/datalad-stamped-assess` to grade a dataset against them.
+
 ## The Three YODA Principles
 
 **P1 — Everything is a (sub)dataset**

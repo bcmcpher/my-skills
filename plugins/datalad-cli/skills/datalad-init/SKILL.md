@@ -71,6 +71,9 @@ correct directory layout and `.gitattributes` rules.
    - **P2 — Record data origins**: use `datalad download-url` or `datalad clone` with provenance
    - **P3 — Never modify a dataset you didn't create**: work only in `outputs/` and `code/`
 
+   YODA is the Self-containment + Modularity core of the broader **STAMPED** framework; run
+   `/datalad-stamped-assess` on the dataset to grade it across all seven STAMPED principles.
+
 6. **Suggest next steps** — close with:
    - Put scripts and analysis code in `code/`
    - Link input data as a subdataset: `datalad clone <source> inputs/<name>`

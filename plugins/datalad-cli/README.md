@@ -8,6 +8,7 @@ provenance tracking. Follows YODA principles for reproducible local analysis pro
 | Skill | Slash command | Trigger |
 |---|---|---|
 | `datalad-init` | `/datalad-init` | Explicit: creating a new dataset or YODA layout |
+| `datalad-stamped-assess` | `/datalad-stamped-assess` | Explicit: grading a dataset against the STAMPED reproducibility principles (add `--plan` for remediation) |
 | `datalad-run` | `/datalad-run` | Auto: executing scripts/pipelines that produce output files |
 | `datalad-save` | `/datalad-save` | Auto: saving code changes inside a DataLad dataset |
 | `datalad-container-run` | `/datalad-container-run` | Auto: running commands inside Singularity/Apptainer/Docker containers |
@@ -52,11 +53,22 @@ claude plugin install ./plugins/datalad-cli
 /datalad-save "add preprocessing step to analysis script"
 ```
 
-## YODA principles enforced
+## Reproducibility principles
+
+YODA gives the concrete dataset layout this plugin enforces, and is the **Self-containment +
+Modularity** core of the broader **STAMPED** framework (Self-containment, Tracking,
+Actionability, Modularity, Portability, Ephemerality, Distributability).
+
+YODA layout, enforced on init:
 
 - **P1**: Input data linked as subdatasets (`inputs/`), not copied
 - **P2**: Data origins recorded via `datalad download-url` or `datalad clone`
 - **P3**: `inputs/` treated as read-only; all results go to `outputs/`
+
+To grade a dataset across all seven STAMPED principles — and get an ordered plan of fixes
+mapped to the skills above — run `/datalad-stamped-assess [path] --plan`. See
+`references/stamped-principles.md` for the full checklist and `references/yoda-layout.md` for
+the YODA layout detail.
 
 ## Auto-checkpoint hook
 
