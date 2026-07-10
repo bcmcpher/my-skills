@@ -93,7 +93,8 @@ Tight iteration loop:
 Repeat until the output is consistently correct. Once stable, install permanently:
 
 ```bash
-claude plugin install ./plugins/my-skill-name
+claude plugin marketplace add .            # from the repo root
+claude plugin install my-skill-name@local  # then restart Claude Code
 ```
 
 ## Frontmatter fields

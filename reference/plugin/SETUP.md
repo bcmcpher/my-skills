@@ -158,7 +158,8 @@ claude --plugin-dir ./plugins/my-plugin-name
 ### 9. Install permanently
 
 ```bash
-claude plugin install ./plugins/my-plugin-name
+claude plugin marketplace add .              # from the repo root
+claude plugin install my-plugin-name@local   # then restart Claude Code
 ```
 
 ## Plugin manifest fields

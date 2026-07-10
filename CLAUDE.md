@@ -11,8 +11,9 @@ bin/new-plugin <type> <name>   # type: skill | agent | hook | mcp; name: kebab-c
 # Test a plugin in a session-only context (no permanent install)
 claude --plugin-dir ./plugins/<name>
 
-# Install a plugin permanently (user scope)
-claude plugin install ./plugins/<name>
+# Install a plugin permanently (user scope) — via this repo's marketplace, not a bare path
+claude plugin marketplace add .   # once, from the repo root
+claude plugin install <name>@local   # `install ./plugins/<name>` does NOT work
 
 # Check a plugin is fully converted from its template and ready to publish
 bin/graduate <plugin-name>

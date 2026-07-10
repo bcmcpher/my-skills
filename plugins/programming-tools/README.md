@@ -9,10 +9,11 @@ Two focused testing skills:
 
 ```bash
 # Session-only (for testing)
-claude --plugin-dir ./plugins/testing
+claude --plugin-dir ./plugins/programming-tools
 
-# Permanent install
-claude plugin install ./plugins/testing
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install programming-tools@local        # then restart Claude Code
 ```
 
 ## Usage

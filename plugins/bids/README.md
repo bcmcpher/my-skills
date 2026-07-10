@@ -11,8 +11,9 @@ sidecar field references, and full dataset compliance checking via
 # Session-only (for testing)
 claude --plugin-dir ./plugins/bids
 
-# Permanent install
-claude plugin install ./plugins/bids
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install bids@local        # then restart Claude Code
 ```
 
 ## Install bids-validator (required for full dataset validation)

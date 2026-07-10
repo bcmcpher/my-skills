@@ -9,8 +9,9 @@ descriptor for any CLI tool by inspecting its `--help` output.
 # Session-only (for testing)
 claude --plugin-dir ./plugins/boutiques
 
-# Permanent install
-claude plugin install ./plugins/boutiques
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install boutiques@local        # then restart Claude Code
 ```
 
 ## Usage
