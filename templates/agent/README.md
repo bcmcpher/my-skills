@@ -8,8 +8,9 @@ DESCRIPTION
 # Session-only (for testing)
 claude --plugin-dir ./plugins/PLUGIN_NAME
 
-# Permanent install
-claude plugin install ./plugins/PLUGIN_NAME
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install PLUGIN_NAME@local        # then restart Claude Code
 ```
 
 ## Usage

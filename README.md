@@ -7,16 +7,25 @@ hooks, and MCP server configs. Each plugin under `plugins/` is independently ins
 
 ## Installation
 
+Plugins install through a **marketplace**, not a bare path. This repo ships one
+(`.claude-plugin/marketplace.json`, named `local`), so register it once and then install any
+plugin by name:
+
 ```bash
-# Test locally during development (session-only)
+# Test locally during development (session-only, no install)
 claude --plugin-dir ./plugins/<name>
 
-# Install permanently (user scope)
-claude plugin install ./plugins/<name>
-
-# Install from GitHub (when a plugin has its own repo)
-claude plugin install https://github.com/bcmcpher/<plugin-name>
+# Install permanently (user scope):
+claude plugin marketplace add .          # once, from the repo root (a GitHub URL also works)
+claude plugin install <name>@local       # then restart Claude Code to load it
 ```
+
+> `claude plugin install ./plugins/<name>` does **not** work — `install` resolves plugins from
+> configured marketplaces, so the `<name>@local` form is required. Update the marketplace later
+> with `claude plugin marketplace update local`.
+
+Once a plugin graduates to its own repo you can add it as a standalone marketplace:
+`claude plugin marketplace add bcmcpher/<plugin-name>`.
 
 ---
 
@@ -102,9 +111,15 @@ Inside the session, invoke your skill with `/skill-name` or describe a task that
 
 ### 6. Install permanently
 
+Register this repo's marketplace once, then install the plugin by name:
+
 ```bash
-claude plugin install ./plugins/my-new-skill
+claude plugin marketplace add .          # from the repo root
+claude plugin install my-new-skill@local # restart Claude Code to load
 ```
+
+If you already added the marketplace and only changed the plugin, refresh it with
+`claude plugin marketplace update local` before installing.
 
 ---
 

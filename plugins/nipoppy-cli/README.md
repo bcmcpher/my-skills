@@ -15,8 +15,9 @@ dataset lifecycle: `init` → `track-curation` → `reorg` → `bidsify` → `ru
 # Session-only (for testing)
 claude --plugin-dir ./plugins/nipoppy-cli
 
-# Permanent install
-claude plugin install ./plugins/nipoppy-cli
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install nipoppy-cli@local        # then restart Claude Code
 ```
 
 ## Usage

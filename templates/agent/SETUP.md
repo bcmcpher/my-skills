@@ -89,7 +89,8 @@ If delegation never fires, tighten the `description` to be more specific about t
 Once stable, install permanently:
 
 ```bash
-claude plugin install ./plugins/my-agent-name
+claude plugin marketplace add .            # from the repo root
+claude plugin install my-agent-name@local  # then restart Claude Code
 ```
 
 ## Frontmatter fields

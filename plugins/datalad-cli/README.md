@@ -32,8 +32,9 @@ provenance tracking. Follows YODA principles for reproducible local analysis pro
 # Session-only (for testing)
 claude --plugin-dir ./plugins/datalad-cli
 
-# Permanent install
-claude plugin install ./plugins/datalad-cli
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install datalad-cli@local        # then restart Claude Code
 ```
 
 ## Quick workflow

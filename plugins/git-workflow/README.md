@@ -12,8 +12,9 @@ and slash commands for the full commit → push → PR lifecycle.
 # Session-only (for testing)
 claude --plugin-dir ./plugins/git-workflow
 
-# Permanent install
-claude plugin install ./plugins/git-workflow
+# Permanent install — via this repo's marketplace (run from the repo root)
+claude plugin marketplace add .
+claude plugin install git-workflow@local        # then restart Claude Code
 ```
 
 ## Commands
