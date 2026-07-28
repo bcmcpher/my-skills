@@ -19,6 +19,11 @@ Configure credentials that DataLad needs to authenticate with remote storage (Gi
 OSF, S3, WebDAV, HTTP). Credentials are stored in the system keyring and retrieved
 automatically during `datalad push`, `datalad get`, and sibling operations.
 
+> **Requires the datalad-next extension.** `datalad credentials` is not part of DataLad
+> core — it is provided by `datalad-next` (`pip install datalad-next`). Without it,
+> `datalad credentials` reports an unknown command and no extension hint. Verify with
+> `datalad wtf -S extensions` before relying on this skill.
+
 ## Steps
 
 ### Identifying the needed credential
