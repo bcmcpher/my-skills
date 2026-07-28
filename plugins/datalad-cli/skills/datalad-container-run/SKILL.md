@@ -8,7 +8,7 @@ description: >
   or /datalad-container-run. Records both the command and the container image in dataset
   provenance. Do NOT trigger for bare datalad run commands without a container — use
   datalad-run for those.
-argument-hint: [container-name command]
+argument-hint: '[container-name command]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -16,7 +16,7 @@ allowed-tools: Read, Bash, Glob
 
 # Skill: datalad-container-run
 
-Wrap a command in `datalad container-run` to record the container image, the command,
+Wrap a command in `datalad containers-run` to record the container image, the command,
 inputs, and outputs in the dataset history. The container image content hash is annexed,
 so the full computational environment is reproducible via `datalad rerun`.
 
@@ -70,7 +70,7 @@ registration or container-run step.
 6. **Construct and show the full command** — build the complete invocation and display
    it before executing:
    ```
-   datalad container-run \
+   datalad containers-run \
      --container-name <name> \
      -m "<message>" \
      [-i <input>...] \
@@ -113,7 +113,7 @@ When the user wants to deregister a container:
 
 - Always load `${CLAUDE_PLUGIN_ROOT}/references/container-run.md` before any container
   registration or container-run step.
-- Never call `datalad container-run` with an unregistered container name — always verify
+- Never call `datalad containers-run` with an unregistered container name — always verify
   with `datalad containers-list` first.
 - Never skip showing the full constructed command before executing.
 - Always require a meaningful `-m` message — never use empty or placeholder messages.

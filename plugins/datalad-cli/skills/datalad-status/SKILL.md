@@ -5,7 +5,7 @@ description: >
   changed, what is modified, what files are untracked, or what the current dataset state
   is. Trigger on "what changed", "check state", "show modified", "what's untracked",
   "dataset status", or /datalad-status. Read-only — never modifies any files.
-argument-hint: [paths...]
+argument-hint: '[paths...]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

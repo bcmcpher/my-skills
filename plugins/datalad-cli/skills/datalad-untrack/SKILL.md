@@ -8,7 +8,7 @@ description: >
   "delete this file from the dataset", "unlock this file", "I need to edit an annexed
   file", "make this file writable", or /datalad-untrack. Do NOT trigger for plain file
   deletion outside a DataLad dataset.
-argument-hint: [paths...]
+argument-hint: '[paths...]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

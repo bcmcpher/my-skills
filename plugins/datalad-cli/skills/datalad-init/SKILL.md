@@ -5,7 +5,7 @@ description: >
   an existing directory. Trigger on "create a new DataLad dataset", "set up YODA dataset",
   "initialize data provenance tracking", "start a datalad project", or /datalad-init.
   Does NOT trigger for saving changes (use datalad-save) or running commands (use datalad-run).
-argument-hint: [target-path]
+argument-hint: '[target-path]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

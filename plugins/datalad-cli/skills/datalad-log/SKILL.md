@@ -7,7 +7,7 @@ description: >
   run that made this file", "show provenance", "list recorded runs", "what was the last
   run", or /datalad-log. Do NOT trigger for running new commands (use datalad-run) or
   replaying existing runs (use datalad-run's rerun section).
-argument-hint: [path-or-commit]
+argument-hint: '[path-or-commit]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

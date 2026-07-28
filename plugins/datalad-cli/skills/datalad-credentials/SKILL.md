@@ -7,7 +7,7 @@ description: >
   error", "credential error", "how do I authenticate", "store my GitHub token for DataLad",
   "OSF token", "S3 credentials", or /datalad-credentials. Do NOT trigger for general
   SSH key setup or non-DataLad credential management.
-argument-hint: [credential-name]
+argument-hint: '[credential-name]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

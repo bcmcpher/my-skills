@@ -7,7 +7,7 @@ description: >
   "fetch data", "retrieve", "I can't open this file", "content missing", "file is empty",
   "broken symlink", or /datalad-get. Do NOT trigger for plain file copies or downloads
   unrelated to DataLad datasets.
-argument-hint: <path-or-glob> [-r] [-n]
+argument-hint: '<path-or-glob> [-r] [-n]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

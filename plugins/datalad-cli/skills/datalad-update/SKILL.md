@@ -6,7 +6,7 @@ description: >
   Trigger on "pull updates", "sync from remote", "get latest version", "update from
   sibling", "someone pushed new data", "fetch upstream changes", or /datalad-update.
   Do NOT trigger for plain git fetch/pull in repos without DataLad context.
-argument-hint: -s <sibling> [--how {fetch|merge|ff-only}] [--follow parentds] [-r]
+argument-hint: '-s <sibling> [--how {fetch|merge|ff-only}] [--follow parentds] [-r]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

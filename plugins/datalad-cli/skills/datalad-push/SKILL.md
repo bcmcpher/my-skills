@@ -6,7 +6,7 @@ description: >
   push to GitHub, OSF, or other storage. Trigger on "push to remote", "publish dataset",
   "upload to sibling", "share changes", "push to GitHub", "send to storage", or
   /datalad-push. Do NOT trigger for plain git push in repos without DataLad context.
-argument-hint: --to <sibling> [--data {nothing|anything|auto-if-wanted}] [-r]
+argument-hint: '--to <sibling> [--data {nothing|anything|auto-if-wanted}] [-r]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

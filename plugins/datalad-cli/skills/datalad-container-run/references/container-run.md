@@ -2,7 +2,7 @@
 
 ## Container registration: `datalad containers-add`
 
-Must be run once per container before any `datalad container-run` calls.
+Must be run once per container before any `datalad containers-run` calls.
 
 ```bash
 datalad containers-add <name> \
@@ -77,12 +77,12 @@ Deregisters the container from the dataset. Does not delete the image file.
 
 ---
 
-## Running inside a container: `datalad container-run`
+## Running inside a container: `datalad containers-run`
 
 Inherits all `datalad run` flags and adds `--container-name`.
 
 ```bash
-datalad container-run \
+datalad containers-run \
   --container-name <name> \
   -m "<meaningful message>" \
   [-i <input-path>...] \
@@ -133,7 +133,7 @@ datalad rerun --onto HEAD~5 HEAD
 The container will be invoked with an incomplete command. Always verify both placeholders
 are present before running `containers-add`.
 
-**Forgetting `containers-add` before `container-run`**
+**Forgetting `containers-add` before `containers-run`**
 DataLad will error: "unknown container name". Always check `datalad containers-list`
 first.
 

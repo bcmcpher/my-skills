@@ -6,7 +6,7 @@ description: >
   Trigger on "clone a dataset", "get a copy of", "install dataset", "add subdataset",
   "link this data as input", or /datalad-clone. Use instead of `git clone` when working
   with DataLad datasets. Do NOT trigger for plain git repos without DataLad context.
-argument-hint: <source-url-or-path> [dest-path]
+argument-hint: '<source-url-or-path> [dest-path]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

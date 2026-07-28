@@ -8,7 +8,7 @@ description: >
   "track this command", "record this analysis", "replay this run", "rerun a recorded
   command", "download this file with provenance", "record download", or /datalad-run.
   Do NOT trigger for commands that produce no output files (git log, ls, exploratory queries).
-argument-hint: [command-to-run]
+argument-hint: '[command-to-run]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

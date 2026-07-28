@@ -7,7 +7,7 @@ description: >
   "check reproducibility", "how reproducible is this dataset", "grade this dataset", or
   /datalad-stamped-assess. Read-only — never modifies the dataset. Add --plan for remediation
   steps. Does NOT create or save datasets (use datalad-init / datalad-save).
-argument-hint: [dataset-path] [--plan]
+argument-hint: '[dataset-path] [--plan]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob, Grep
