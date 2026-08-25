@@ -7,7 +7,7 @@ description: >
   run that made this file", "show provenance", "list recorded runs", "what was the last
   run", or /datalad-log. Do NOT trigger for running new commands (use datalad-run) or
   replaying existing runs (use datalad-run's rerun section).
-argument-hint: [path-or-commit]
+argument-hint: '[path-or-commit]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -28,13 +28,14 @@ specific run recorded, and trace which command produced a given output file.
    ```
    If not in a dataset, stop and inform the user.
 
-2. **List recorded runs** — show the run history with:
+2. **List recorded runs** — DataLad has no `log` command of its own; history is read
+   with git:
    ```bash
-   datalad log --oneline
+   git log --oneline
    ```
-   Or to show only `datalad run` commits (excludes saves, checkpoints, manual commits):
+   To show only `datalad run` commits (excludes saves, checkpoints, manual commits):
    ```bash
-   git log --oneline --grep="datalad run"
+   git log --oneline --grep="\[datalad run\]"
    ```
    Present the output as a numbered list showing commit SHA and message.
 
@@ -77,8 +78,8 @@ The auto-checkpoint hook creates commits with messages like:
 ```
 [datalad] checkpoint 2026-03-12T14:05:22Z: code/analysis.py outputs/result.csv
 ```
-These are **not** run records — they are auto-saves. They will appear in `git log` and
-`datalad log` output. To show only `datalad run` commits (excludes checkpoints and saves):
+These are **not** run records — they are auto-saves. They appear in `git log` alongside
+run commits. To show only `datalad run` commits (excludes checkpoints and saves):
 ```bash
 git log --oneline --grep="\[datalad run\]"
 ```
@@ -91,6 +92,6 @@ correctly exclude checkpoints — use the single `--grep="\[datalad run\]"` form
   `datalad rerun --report` for inspection, not `datalad rerun` alone.
 - Always distinguish between `datalad run` commits (provenance records) and plain save
   commits or checkpoint commits in your report.
-- If `datalad log` is not available (older DataLad), fall back to
-  `git log --oneline --grep="datalad run"` and explain the fallback.
+- Never call `datalad log` — no such command exists in DataLad core or any extension.
+  Use `git log` for history and `datalad rerun --report <sha>` for run records.
 - For file-level differences between two commits, direct the user to `/datalad-diff`.

@@ -226,6 +226,8 @@ datalad create-sibling-gin \
 
 ### `datalad create-sibling-webdav`
 
+Provided by the **datalad-next** extension, not DataLad core.
+
 WebDAV siblings work with Nextcloud, ownCloud, and institutional WebDAV servers.
 
 | Flag | Purpose |

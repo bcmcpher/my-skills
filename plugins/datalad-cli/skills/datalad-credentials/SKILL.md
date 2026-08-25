@@ -7,7 +7,7 @@ description: >
   error", "credential error", "how do I authenticate", "store my GitHub token for DataLad",
   "OSF token", "S3 credentials", or /datalad-credentials. Do NOT trigger for general
   SSH key setup or non-DataLad credential management.
-argument-hint: [credential-name]
+argument-hint: '[credential-name]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -18,6 +18,11 @@ allowed-tools: Read, Bash, Glob
 Configure credentials that DataLad needs to authenticate with remote storage (GitHub,
 OSF, S3, WebDAV, HTTP). Credentials are stored in the system keyring and retrieved
 automatically during `datalad push`, `datalad get`, and sibling operations.
+
+> **Requires the datalad-next extension.** `datalad credentials` is not part of DataLad
+> core — it is provided by `datalad-next` (`pip install datalad-next`). Without it,
+> `datalad credentials` reports an unknown command and no extension hint. Verify with
+> `datalad wtf -S extensions` before relying on this skill.
 
 ## Steps
 

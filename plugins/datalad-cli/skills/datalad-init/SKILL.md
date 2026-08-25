@@ -5,7 +5,7 @@ description: >
   an existing directory. Trigger on "create a new DataLad dataset", "set up YODA dataset",
   "initialize data provenance tracking", "start a datalad project", or /datalad-init.
   Does NOT trigger for saving changes (use datalad-save) or running commands (use datalad-run).
-argument-hint: [target-path]
+argument-hint: '[target-path]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -48,12 +48,22 @@ correct directory layout and `.gitattributes` rules.
    ```
    datalad create -c yoda <path>
    ```
-   Show the command before executing. Report the full output. Optionally suggest adding
-   `--annex-backend SHA256E` (recommended; avoids the legacy MD5E backend which causes
-   compatibility issues with some special remotes):
+   Show the command before executing. Report the full output.
+
+3a. **Switch the annex backend off MD5E** — `-c yoda` writes `* annex.backend=MD5E`
+   into `.gitattributes`, and that line wins over any config setting. Setting
+   `annex.backend` via `datalad -c`, `datalad configuration`, or `git config` has **no
+   effect** on a YODA dataset; the file will still be annexed as MD5E. There is also no
+   `--annex-backend` flag on `datalad create`.
+
+   To use SHA256E (recommended — MD5E causes compatibility issues with some special
+   remotes), edit `.gitattributes` immediately after create, before adding any data:
+   ```bash
+   sed -i 's/^\* annex.backend=MD5E/* annex.backend=SHA256E/' <path>/.gitattributes
+   datalad -C <path> save -m "use SHA256E annex backend"
    ```
-   datalad create -c yoda --annex-backend SHA256E <path>
-   ```
+   Do this before ingesting content: the backend applies to files annexed from then on,
+   and migrating already-annexed content is disruptive.
 
 4. **Report the YODA structure** — after creation, display what was created:
    ```
@@ -70,6 +80,9 @@ correct directory layout and `.gitattributes` rules.
    - **P1 — Everything is a dataset**: input data should be linked as subdatasets, not copied
    - **P2 — Record data origins**: use `datalad download-url` or `datalad clone` with provenance
    - **P3 — Never modify a dataset you didn't create**: work only in `outputs/` and `code/`
+
+   YODA is the Self-containment + Modularity core of the broader **STAMPED** framework; run
+   `/datalad-stamped-assess` on the dataset to grade it across all seven STAMPED principles.
 
 6. **Suggest next steps** — close with:
    - Put scripts and analysis code in `code/`
