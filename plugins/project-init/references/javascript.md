@@ -82,7 +82,9 @@ node v<version> (system or nvm default)
 
 ## Recommended hooks
 
-PostToolUse Edit hooks to run after Claude edits a JavaScript file:
+PostToolUse Edit hooks to run after Claude edits a JavaScript file. These are command
+bodies for the format-on-edit script in `claude-config/hooks.md` — `$FILE` is a shell
+variable that script sets from the event JSON, not something Claude Code provides:
 
 ```
 npx eslint --fix $FILE

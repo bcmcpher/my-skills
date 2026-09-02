@@ -110,7 +110,9 @@ source .venv/bin/activate
 
 ## Recommended hooks
 
-PostToolUse Edit hooks to run after Claude edits a Python file:
+PostToolUse Edit hooks to run after Claude edits a Python file. These are command
+bodies for the format-on-edit script in `claude-config/hooks.md` — `$FILE` is a shell
+variable that script sets from the event JSON, not something Claude Code provides:
 
 ```
 ruff check --fix $FILE

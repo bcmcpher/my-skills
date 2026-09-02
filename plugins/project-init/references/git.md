@@ -41,7 +41,7 @@ git commit -m "Initial commit"
 These are independent systems:
 
 - **Claude Code PostToolUse hooks** run while Claude edits files in a session. Configured
-  in `hooks.json` inside the plugin or `.claude/` directory.
+  under the `"hooks"` key of `.claude/settings.json`, or in a plugin's `hooks/hooks.json`.
 - **git pre-commit hooks** run before each `git commit`, entirely outside Claude Code.
   Configured and managed by your git tooling.
 

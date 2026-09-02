@@ -32,7 +32,7 @@ already has these configured — copying is faster than generating from scratch.
 
 | File | How to reuse |
 |------|--------------|
-| `hooks.json` | Copy to new project; adjust tool matchers and file-path patterns; verify tool names are still valid for this project's stack |
+| `.claude/settings.json` `"hooks"` block + `.claude/hooks/*.sh` | Copy both; adjust tool matchers and file-path patterns; verify tool names are still valid for this project's stack and still resolve without a login shell |
 | `.mcp.json` | Copy the entire file or individual server blocks; check that required env vars (`$GITHUB_TOKEN`, etc.) are still set on this machine |
 | `agents/<name>/SKILL.md` | Agent prompts are mostly project-agnostic; copy and customize the `description` and any project-specific constraints in the body |
 | `skills/<name>/SKILL.md` | Project slash commands; copy if the workflow transfers (e.g., a `/run-tests` skill works across projects of the same language) |
@@ -78,7 +78,8 @@ Hook exit codes: `0` = allow, `2` = block operation. Input arrives via stdin as 
 extract `tool_input.file_path` with `jq`.
 
 This format applies to both `~/.claude/settings.json` (global hooks) and
-`.claude/hooks.json` (project-level hooks) — same schema, different scope.
+`.claude/settings.json` (project-level hooks) — same schema, different scope. A plugin's
+`hooks/hooks.json` uses the same event entries but without the `"hooks"` wrapper key.
 
 ---
 

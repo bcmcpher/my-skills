@@ -147,7 +147,7 @@ private keys and API tokens.
 
 | System | When it runs | Configured in |
 |---|---|---|
-| Claude Code PostToolUse hooks | During Claude editing sessions | `.claude/hooks.json` |
+| Claude Code PostToolUse hooks | During Claude editing sessions | `"hooks"` in `.claude/settings.json` |
 | pre-commit hooks | On every `git commit` | `.pre-commit-config.yaml` |
 
 Configuring one does not configure the other. Both are recommended for coding-tool

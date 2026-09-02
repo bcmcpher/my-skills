@@ -282,12 +282,72 @@ Requires the companion Chrome extension to be installed in the browser.
 
 ---
 
+## code-review-graph
+
+A local MCP server that indexes the repository into a symbol graph, giving Claude
+precise call/reference navigation without grep. It is also the one server here that
+comes with **global hooks**, so it needs a word about opt-in.
+
+**Install** (harness tool, not a project dependency — see `lsp.md`):
+```bash
+uv pip install --python ~/.claude-lsp-tools/bin/python code-review-graph
+```
+
+**`.mcp.json`:**
+```json
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "${HOME}/.claude-lsp-tools/bin/code-review-graph",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Use the explicit `${HOME}/.claude-lsp-tools/bin/` path, not a bare `code-review-graph` —
+the server is launched non-interactively, where a `PATH` export from `.bashrc` does not apply.
+
+**Opting the repo in.** If the user's global config wires the `PostToolUse` /
+`SessionStart` / `SessionEnd` graph hooks, those hooks are typically **gated on the repo
+already having a graph**, so nothing happens until the repo opts in explicitly:
+
+```bash
+cd <repo> && code-review-graph build      # opt in
+rm -rf <repo>/.code-review-graph          # opt out
+```
+
+Check which applies before adding the MCP entry:
+
+```bash
+ls -d .code-review-graph 2>/dev/null && echo "opted in" || echo "not opted in"
+```
+
+`.code-review-graph/` ships its own `.gitignore` covering itself, so opting in adds
+nothing to the repo's index. The graph is derived data and rebuilds in seconds — which
+repos are opted in is machine-local state, not something to commit.
+
+**Do not run `code-review-graph install`** in a project you intend to keep portable. It
+writes `.claude/settings.json`, `.mcp.json`, graph instructions appended to `CLAUDE.md`,
+and a git pre-commit hook into the worktree — all committed, and all referencing
+`~/.claude-lsp-tools` paths that exist only on the machine that ran it.
+
+**Turning it off for one project** while leaving it installed globally — in
+`.claude/settings.json`:
+```json
+{ "disabledMcpjsonServers": ["code-review-graph"] }
+```
+Useful when the graph hooks should keep maintaining the index but the MCP tool surface
+is noise for the work at hand.
+
+---
+
 ## Recommendations by project type
 
 | Project type | Priority MCPs |
 |---|---|
-| `coding-tool` | Context7, GitHub MCP, Playwright (if frontend), DeepWiki |
-| `data-analysis` | DataLad (plugin), GitHub MCP, Context7 (if using new libraries) |
+| `coding-tool` | code-review-graph, Context7, GitHub MCP, Playwright (if frontend), DeepWiki |
+| `data-analysis` | DataLad (plugin), GitHub MCP, Context7 (if using new libraries), code-review-graph (if the repo has a real `src/`) |
 | `info-management` | Web search MCP, DataLad (plugin), Filesystem MCP (optional) |
 
 ---

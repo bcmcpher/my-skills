@@ -8,13 +8,38 @@ find-references beyond what grep can provide. The binary must be installed separ
 
 ## Recommended install pattern
 
-Keep LSP binaries in a dedicated environment independent of any project venv:
+LSP servers are **harness tools**, not project dependencies. Adding one to a project's
+`pyproject.toml` or `package.json` makes the lockfile lie and breaks the server the next
+time that environment is rebuilt. Keep them in dedicated per-language environments,
+one per language, shared by every project:
+
+| Language | Home | Create with | Install with |
+|---|---|---|---|
+| Python | `~/.claude-lsp-tools` | `uv venv ~/.claude-lsp-tools` | `uv pip install --python ~/.claude-lsp-tools/bin/python <pkg>` |
+| Node | `~/.claude-node-tools` | `mkdir -p ~/.claude-node-tools` | `npm --prefix ~/.claude-node-tools install -g <pkg>` |
 
 ```bash
-python -m venv ~/.claude-lsp-tools
-~/.claude-lsp-tools/bin/pip install pyright
+uv venv ~/.claude-lsp-tools
+uv pip install --python ~/.claude-lsp-tools/bin/python pyright
 # Add to shell rc: export PATH="$HOME/.claude-lsp-tools/bin:$PATH"
 ```
+
+`uv venv` deliberately does not install `pip`, so `~/.claude-lsp-tools/bin/pip` does
+**not** exist. Use `uv pip install --python <venv>/bin/python`, which targets the venv
+without activating it.
+
+Do not `sudo`, and do not install into `/usr/local` — npm's default global prefix, which
+is not user-writable on a correctly configured machine.
+
+**Verify it resolves without a login shell.** Claude Code launches servers the same way
+hooks run, so anything that depends on `.bashrc` (`nvm`, a `PATH` export, a `pyenv` shim)
+is absent:
+
+```bash
+env -i PATH="$HOME/.claude-lsp-tools/bin:/usr/bin:/bin" bash -c 'pyright --version'
+```
+
+If that fails, give the full path in `.lsp.json`'s `command` array rather than a bare name.
 
 ---
 
@@ -24,8 +49,7 @@ python -m venv ~/.claude-lsp-tools
 
 **Install:**
 ```bash
-pip install pyright          # into ~/.claude-lsp-tools or global
-# or: npm install -g pyright
+uv pip install --python ~/.claude-lsp-tools/bin/python pyright
 ```
 
 **`.lsp.json`:**
@@ -58,7 +82,7 @@ This tells Pyright which virtual environment to use for import resolution.
 
 **Install:**
 ```bash
-npm install -g typescript typescript-language-server
+npm --prefix ~/.claude-node-tools install -g typescript typescript-language-server
 ```
 
 **`.lsp.json`:**
@@ -189,7 +213,7 @@ Claude config if this is a local `.claude/` configuration):
 
 | Layer | Where | Controls |
 |---|---|---|
-| LSP binary | `~/.claude-lsp-tools/` or system PATH | What runs |
+| LSP binary | `~/.claude-lsp-tools/`, `~/.claude-node-tools/` | What runs |
 | Claude connection | `.lsp.json` in project root | How Claude connects |
 | Project environment | `pyrightconfig.json`, `tsconfig.json`, etc. | What the LSP checks |
 

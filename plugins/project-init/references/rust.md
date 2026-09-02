@@ -86,7 +86,9 @@ rustup) and the build artifacts live in `target/`. Document this in CLAUDE.md:
 
 ## Recommended hooks
 
-PostToolUse Edit hooks to run after Claude edits a Rust file:
+PostToolUse Edit hooks to run after Claude edits a Rust file. These are command
+bodies for the format-on-edit script in `claude-config/hooks.md` — `$FILE` is a shell
+variable that script sets from the event JSON, not something Claude Code provides:
 
 ```
 cargo clippy -- -D warnings

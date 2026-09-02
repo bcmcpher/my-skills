@@ -1,8 +1,8 @@
 # Hooks Configuration Reference
 
 Claude Code hooks run shell commands automatically in response to events. The most
-useful pattern for development projects is **PostToolUse Edit** — run a formatter or
-linter immediately after Claude edits a file.
+useful pattern for development projects is **PostToolUse on Edit/Write** — run a
+formatter or linter immediately after Claude edits a file.
 
 **Important:** Claude Code hooks and git pre-commit hooks are independent systems.
 Configuring one does not configure the other. See `references/git.md` for git
@@ -10,276 +10,233 @@ pre-commit hook tooling (`pre-commit`).
 
 ---
 
-## Hook file location
+## Where hooks are registered
 
-Hooks live in `hooks.json` inside a plugin or in `.claude/hooks.json` for a
-project-local configuration.
+There are two places, with different shapes. There is no `.claude/hooks.json`.
 
-**Project-local path:** `.claude/hooks.json`
+| Scope | File | Shape |
+|---|---|---|
+| Project | `.claude/settings.json` | events nested under a top-level `"hooks"` key |
+| User (global) | `~/.claude/settings.json` | same |
+| Plugin | `<plugin>/hooks/hooks.json`, referenced from `plugin.json` | events at the **top level**, no `"hooks"` wrapper |
 
----
+Scopes stack — a project hook and a global hook both fire; neither overrides the other.
 
-## hooks.json format
-
-```json
-{
-  "hooks": [
-    {
-      "event": "PostToolUse",
-      "tool": "Edit",
-      "command": "<shell command>",
-      "description": "<human-readable label>"
-    }
-  ]
-}
-```
-
-The `$FILE` variable is expanded to the path of the file that was just edited.
-
-Multiple hooks for the same event are run in order. If any hook exits non-zero, Claude
-is notified but execution continues (hooks are advisory, not blocking by default).
-
----
-
-## Per-language patterns
-
-### Python
-
-**Recommended: ruff (combines linting and formatting)**
+**Project (`.claude/settings.json`):**
 
 ```json
 {
-  "hooks": [
-    {
-      "event": "PostToolUse",
-      "tool": "Edit",
-      "command": "ruff check --fix $FILE && ruff format $FILE",
-      "description": "Lint and format Python file with ruff"
-    }
-  ]
-}
-```
-
-Install: `pip install ruff` (or `uv add ruff --dev`)
-
-**Alternative: black + flake8**
-
-```json
-{
-  "hooks": [
-    {
-      "event": "PostToolUse",
-      "tool": "Edit",
-      "command": "black $FILE && flake8 $FILE",
-      "description": "Format with black, lint with flake8"
-    }
-  ]
-}
-```
-
-**Scope to Python files only** (avoids running on YAML, Markdown, etc.):
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "case $FILE in *.py) ruff check --fix $FILE && ruff format $FILE;; esac",
-  "description": "Lint and format Python files only"
-}
-```
-
----
-
-### JavaScript / TypeScript
-
-**Recommended: eslint + prettier**
-
-```json
-{
-  "hooks": [
-    {
-      "event": "PostToolUse",
-      "tool": "Edit",
-      "command": "eslint --fix $FILE && prettier --write $FILE",
-      "description": "Lint with ESLint, format with Prettier"
-    }
-  ]
-}
-```
-
-Install: `npm install --save-dev eslint prettier`
-
-**Biome (unified linter + formatter, faster alternative):**
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "biome check --apply $FILE",
-  "description": "Lint and format with Biome"
-}
-```
-
----
-
-### Rust
-
-**rustfmt runs on the whole crate — not per-file. Scope to .rs files:**
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "case $FILE in *.rs) cargo fmt -- $FILE;; esac",
-  "description": "Format Rust source files"
-}
-```
-
-**With clippy (slower; runs whole workspace):**
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "case $FILE in *.rs) cargo fmt -- $FILE && cargo clippy --quiet 2>&1 | head -20;; esac",
-  "description": "Format and lint Rust"
-}
-```
-
----
-
-### Go
-
-**gofmt + goimports:**
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "case $FILE in *.go) goimports -w $FILE;; esac",
-  "description": "Format Go file with goimports"
-}
-```
-
-Install: `go install golang.org/x/tools/cmd/goimports@latest`
-
-Note: `goimports` is a superset of `gofmt` — it formats and manages import grouping.
-
----
-
-### R
-
-**styler:**
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "case $FILE in *.R|*.Rmd|*.qmd) Rscript -e \"styler::style_file('$FILE')\";; esac",
-  "description": "Format R file with styler"
-}
-```
-
-Install (from R): `install.packages("styler")`
-
----
-
-### Markdown (any project type)
-
-**prettier:**
-
-```json
-{
-  "event": "PostToolUse",
-  "tool": "Edit",
-  "command": "case $FILE in *.md) prettier --write $FILE;; esac",
-  "description": "Format Markdown with prettier"
-}
-```
-
-Note: prettier preserves two trailing spaces (intentional line breaks in Markdown).
-Avoid `trim_trailing_whitespace = true` in `.editorconfig` for `.md` files.
-
----
-
-## Tool config file stubs
-
-When setting up hooks, also offer to create the tool's config file so the hook works
-correctly from the first edit rather than relying on defaults.
-
-### Python — `ruff.toml`
-
-```toml
-line-length = 88
-indent-width = 4
-target-version = "py312"
-
-[lint]
-select = ["E", "F", "I", "UP"]
-ignore = []
-
-[format]
-quote-style = "double"
-indent-style = "space"
-```
-
-### JavaScript / TypeScript — `eslint.config.js` (flat config, ESLint 9+)
-
-```js
-import js from "@eslint/js";
-
-export default [
-  js.configs.recommended,
-  {
-    rules: {
-      // add project-specific rules here
-    },
-  },
-];
-```
-
-Also create `.prettierrc.json`:
-
-```json
-{
-  "semi": true,
-  "singleQuote": false,
-  "tabWidth": 2,
-  "trailingComma": "es5"
-}
-```
-
-### JavaScript / TypeScript — `biome.json` (if using Biome instead)
-
-```json
-{
-  "$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
-  "organizeImports": { "enabled": true },
-  "linter": {
-    "enabled": true,
-    "rules": { "recommended": true }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/format-on-edit.sh", "timeout": 30 }
+        ]
+      }
+    ]
   }
 }
 ```
 
-### Rust — no separate config needed
+**Plugin (`hooks/hooks.json`)** — same structure minus the wrapper, and use
+`${CLAUDE_PLUGIN_ROOT}` for script paths:
 
-`rustfmt` uses `rustfmt.toml` (optional). Defaults are idiomatic; only add a config if
-the project needs non-default settings (e.g., `max_width = 100`).
+```json
+{
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/format.sh" }
+      ]
+    }
+  ]
+}
+```
 
-### Go — no separate config needed
+`matcher` is a regex over the tool name (`Edit|Write|NotebookEdit`, `Bash`, `.*`).
+Omit it for events that have no tool, such as `SessionStart`, `SessionEnd`, and `Stop`.
 
-`goimports` uses the standard Go formatting rules with no separate config file.
+---
 
-### R — no separate config needed
+## How a hook receives the file path
 
-`styler` uses `tidyverse_style` by default. Add `.styler.R` only if non-default
-options are required.
+**There is no `$FILE` variable.** A hook is a plain command that receives a JSON
+event object on **stdin** and reads what it needs from it:
+
+| Field | Meaning |
+|---|---|
+| `.tool_name` | the tool that fired the event |
+| `.tool_input.file_path` | Edit / Write / NotebookEdit target |
+| `.tool_input.command` | Bash command text |
+| `.cwd` | session working directory |
+| `.hook_event_name` | e.g. `PostToolUse` |
+
+Because the payload is JSON, a hook is almost always a **small script**, not an
+inline one-liner. Put it in `.claude/hooks/` and commit it.
+
+---
+
+## Exit codes
+
+| Exit | PreToolUse | PostToolUse |
+|---|---|---|
+| `0` | allow the call | success; stdout ignored |
+| `2` | **block** the call; stderr is shown to Claude | stderr is fed back to Claude |
+| other | non-blocking error; the call proceeds | non-blocking error |
+
+Hooks are not advisory by default — a `PreToolUse` hook exiting 2 genuinely stops the
+tool call. Conversely, a hook that exits non-zero by accident (a status command that
+returns 1 when it has nothing to report) will surface as a hook error on every event.
+End such scripts with an explicit `exit 0` rather than masking the problem with
+`|| true`, which also swallows real failures.
+
+`SessionStart` is the exception worth knowing: its **stdout is added to the session
+context**, which is how a hook can report state at session open.
+
+---
+
+## Canonical format-on-edit script
+
+One script per project, dispatching on file extension. Create
+`.claude/hooks/format-on-edit.sh`, `chmod +x` it, and wire it as shown above.
+
+```bash
+#!/bin/bash
+# PostToolUse Edit|Write — format the file Claude just touched.
+
+FILE=$(jq -r '.tool_input.file_path // empty')
+[ -n "$FILE" ] && [ -f "$FILE" ] || exit 0
+
+case "$FILE" in
+  # <-- per-language arm goes here (see table below)
+  *.py) ruff check --fix "$FILE" && ruff format "$FILE" ;;
+esac
+
+exit 0
+```
+
+`jq` is required. The trailing `exit 0` matters: without it the script's status is
+that of the last `case` arm, so a linter finding an issue would report a hook failure.
+
+---
+
+## Per-language `case` arms
+
+Drop the matching arm into the script above.
+
+### Python
+
+**Recommended — ruff (linter and formatter in one):**
+```bash
+  *.py) ruff check --fix "$FILE" && ruff format "$FILE" ;;
+```
+Install: `uv add --dev ruff` (or `pip install ruff`)
+
+**Alternative — black + flake8:**
+```bash
+  *.py) black "$FILE" && flake8 "$FILE" ;;
+```
+
+### JavaScript / TypeScript
+
+**Recommended — eslint + prettier:**
+```bash
+  *.js|*.jsx|*.ts|*.tsx) eslint --fix "$FILE" && prettier --write "$FILE" ;;
+```
+Install: `npm install --save-dev eslint prettier`
+
+**Biome (unified, faster):**
+```bash
+  *.js|*.jsx|*.ts|*.tsx) biome check --write "$FILE" ;;
+```
+`biome check --apply` was renamed to `--write` in Biome 2.x.
+
+### Rust
+
+`rustfmt` formats a whole crate, so the file path is only used to decide *whether* to run:
+```bash
+  *.rs) cargo fmt ;;
+```
+
+**With clippy (slower; checks the whole workspace):**
+```bash
+  *.rs) cargo fmt && cargo clippy --quiet 2>&1 | head -20 ;;
+```
+
+### Go
+
+```bash
+  *.go) goimports -w "$FILE" ;;
+```
+Install: `go install golang.org/x/tools/cmd/goimports@latest`
+
+`goimports` is a superset of `gofmt` — it formats and manages import grouping.
+
+### R
+
+```bash
+  *.R|*.Rmd|*.qmd) Rscript -e "styler::style_file('$FILE')" ;;
+```
+Install (from R): `install.packages("styler")`
+
+### Markdown (any project type)
+
+```bash
+  *.md) prettier --write "$FILE" ;;
+```
+
+prettier preserves two trailing spaces (intentional line breaks in Markdown).
+Avoid `trim_trailing_whitespace = true` for `.md` files in `.editorconfig`.
+
+---
+
+## Tools must resolve without a login shell
+
+Hooks run in a **non-interactive** shell. Anything sourced from `.bashrc` — `nvm`,
+`conda activate`, a `pyenv` shim, a `PATH` export — is absent. A hook command that
+works when you paste it into your terminal can still fail every time Claude fires it.
+
+Check before wiring:
+
+```bash
+env -i PATH="/usr/bin:/bin" bash -c '<cmd> --version'
+```
+
+If it fails, use an explicit path in the hook command (`node_modules/.bin/eslint`,
+`.venv/bin/ruff`, `~/.claude-lsp-tools/bin/<cmd>`) rather than a bare name. `nvm` is
+the classic offender: it is a shell function, so `~/.nvm/versions/node/*/bin` does not
+exist on `PATH` where hooks run.
+
+---
+
+## Guard hooks (PreToolUse)
+
+Beyond formatting, `PreToolUse` can block a call outright. Two patterns worth knowing:
+
+**Protect files from edits** — matcher `Edit|Write|NotebookEdit`:
+```bash
+#!/bin/bash
+FILE=$(jq -r '.tool_input.file_path // empty')
+for pattern in ".env" "package-lock.json"; do
+  if [[ "$FILE" == *"$pattern"* ]]; then
+    echo "Blocked: $FILE matches protected pattern '$pattern'" >&2
+    exit 2
+  fi
+done
+exit 0
+```
+
+**Guard shell commands** — matcher `Bash`, reading `.tool_input.command`.
+
+When writing a Bash guard, match on an **argument position**, not on raw command text.
+A rule that greps the whole command string for a substring will fire on that substring
+inside a quoted argument or a `--exclude` flag, blocking legitimate commands. Guards
+that produce false positives get disabled, which is worse than not having them.
+
+Guards deserve a test table — a file of `command<TAB>expected-exit` cases run through
+the script — because a regression in a guard is silent until it blocks real work.
 
 ---
 
@@ -295,5 +252,6 @@ options are required.
 
 ## Disabling hooks for a session
 
-Run Claude with `--no-hooks` to disable all hooks temporarily (useful when hooks are
-interfering with exploratory work).
+Start Claude with `--bare`, which skips hooks, LSP, and plugins for that session.
+There is no `--no-hooks` flag. To disable a single hook, comment it out of
+`.claude/settings.json`; to see what fired, start with `--include-hook-events`.

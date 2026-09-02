@@ -164,10 +164,17 @@ Load `${CLAUDE_PLUGIN_ROOT}/../references/claude-config/hooks.md`.
 Present the recommended hooks for the detected language and project type. For each hook
 the user confirms:
 
-- Check whether `.claude/hooks.json` exists.
-  - **Exists**: show current content, append the new hook entries, confirm before
-    writing.
-  - **Does not exist**: create `.claude/hooks.json` with the selected hooks.
+- Project hooks live under the `"hooks"` key of `.claude/settings.json` — there is no
+  `.claude/hooks.json`.
+  - **Exists**: show the current `"hooks"` block, merge the new event entries into it,
+    confirm before writing. Do not clobber unrelated settings keys.
+  - **Does not exist**: create `.claude/settings.json` containing only the `"hooks"` key.
+- Write the hook body as a script in `.claude/hooks/` and `chmod +x` it, rather than an
+  inline one-liner. The hook receives the event as JSON on stdin, so it needs `jq` to
+  reach `.tool_input.file_path`; there is no `$FILE` variable.
+- Before wiring, confirm the tool resolves without a login shell
+  (`env -i PATH="/usr/bin:/bin" bash -c '<cmd> --version'`). If it does not, use an
+  explicit path such as `node_modules/.bin/eslint` or `.venv/bin/ruff`.
 
 After writing the hook, also offer to create the tool's config file using the **Tool
 config file stubs** section of the reference. The config file makes the hook work
@@ -185,6 +192,12 @@ configured in `.mcp.json` if that file exists.
 
 For each server the user selects, output the configuration snippet. Offer to append it
 to `.mcp.json` (creating the file if absent).
+
+**code-review-graph**: mention for any project with a real source tree. If the user's
+global config wires the graph hooks, they are usually gated on the repo already having a
+graph — check with `ls -d .code-review-graph` and tell the user that
+`code-review-graph build` is what opts this repo in. Do not run `code-review-graph
+install`; it writes machine-specific paths into committed files.
 
 **DataLad**: always mention DataLad for `data-analysis` and `info-management` projects.
 Note that it requires the `datalad-cli` plugin to be installed:

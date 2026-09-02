@@ -94,7 +94,9 @@ Document in CLAUDE.md:
 
 ## Recommended hooks
 
-PostToolUse Edit hooks to run after Claude edits an R file:
+PostToolUse Edit hooks to run after Claude edits an R file. These are command
+bodies for the format-on-edit script in `claude-config/hooks.md` — `$FILE` is a shell
+variable that script sets from the event JSON, not something Claude Code provides:
 
 ```
 Rscript -e "lintr::lint('$FILE')"
