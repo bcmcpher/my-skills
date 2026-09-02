@@ -1,0 +1,35 @@
+2	find . -delete
+2	find . -exec rm {} \;
+2	find /tmp -execdir rm {} \;
+2	cat .env
+2	head .env.local
+2	cat ~/.ssh/id_ed25519
+2	cat "$HOME/.ssh/id_rsa"
+2	rtk read ~/.aws/credentials
+2	strings secrets.pem
+2	gh api -X DELETE /repos/o/r
+2	gh api --method POST /repos/o/r/issues
+2	gh api -f title=x /repos/o/r/issues
+2	gh api graphql -f query='mutation { addStar(input:{}) { clientMutationId } }'
+2	echo x >> ~/.bashrc
+2	echo x > "$HOME/.bashrc"
+2	echo x > ${HOME}/.profile
+2	echo x > ~/.ssh/authorized_keys
+2	echo x > /etc/hosts
+2	printf y > secrets.pem
+0	find . -not -path "./.git/*"
+0	find . -name '*.py' -type f
+0	git status
+0	rtk git status
+0	gh api /user
+0	gh api graphql -f query='query { viewer { login } }'
+0	echo hi > /tmp/scratch
+0	cat README.md
+0	grep -rn TODO src/
+0	tail -50 config/settings.json
+0	git commit -m "docs: note that echo x >> ~/.bashrc is blocked"
+0	git commit -m 'docs: echo x > /etc/hosts is blocked'
+0	git commit -m "guard: block find . -delete and gh api -X DELETE"
+0	echo "reading .env via cat is blocked"
+0	grep -n 'cat ~/.ssh/id_rsa' notes.md
+0	sed -i 's/>/GT/' file.txt

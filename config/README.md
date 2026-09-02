@@ -144,10 +144,19 @@ paths that exist only on this machine.
 
 1. Write the script and place it in `config/hooks/`
 2. Wire it in `config/settings.json` under `hooks.PreToolUse` or `hooks.PostToolUse`
-3. Test it against both cases before wiring — a command it must block, and a similar one it must
-   let through. The deleted `git-guard.sh` matched `.git/` anywhere in the command text and so
-   blocked the ordinary idiom `find . -not -path "./.git/*"`.
+3. Add cases to `tests/bash-guard-cases.txt` — a command it must block, and a similar one it
+   must let through — and run `bin/test-hooks`
 4. Run `bin/sync-config push` to apply
+
+Both regressions these hooks have had were false positives on the **allow** side, so the
+let-through case matters at least as much as the block case:
+
+- `git-guard.sh` matched `.git/` anywhere in the command text, blocking the ordinary idiom
+  `find . -not -path "./.git/*"`. It was deleted.
+- `bash-guard.sh` matched redirection operators inside quoted strings, so
+  `git commit -m "docs: echo x >> ~/.bashrc is blocked"` was blocked — a false positive that
+  fires exactly when writing about the rules. Fixed by matching command words against a mask
+  with quoted spans blanked out, while still reading arguments from the original text.
 
 ## Adding a new standalone skill
 

@@ -26,6 +26,10 @@ bin/sync-config push           # config/ → ~/.claude/  (apply to a new machine
 bin/rebuild-tools --check      # verify only; exits 1 on a problem
 bin/rebuild-tools              # rebuild both envs from config/tools/*-lock.txt
 bin/rebuild-tools --freeze     # record the current envs back into the lock files
+
+# Exercise the PreToolUse hooks against the case table in tests/
+bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
+bin/test-hooks --repo          # test the tracked copies in config/hooks/
 ```
 
 Harness tools — hook binaries and LSP servers — live in `~/.claude-lsp-tools` (a `uv venv`) and

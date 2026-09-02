@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# test-hooks — exercise the PreToolUse hooks against a table of known cases.
+#
+# Usage:
+#   bin/test-hooks            Test the live hooks in ~/.claude/hooks/
+#   bin/test-hooks --repo     Test the tracked copies in config/hooks/
+#
+# Run this after touching a hook, and add a case for every rule you change --
+# one command it must block, one similar command it must let through. Both
+# regressions these hooks have had were false POSITIVES on the allow side:
+#
+#   * git-guard.sh matched ".git/" anywhere in the command text, blocking the
+#     ordinary idiom `find . -not -path "./.git/*"`. It was deleted.
+#   * bash-guard.sh matched redirection operators inside quoted strings, so
+#     `git commit -m "docs: echo x >> ~/.bashrc is blocked"` was blocked --
+#     a false positive that fires exactly when writing about the rules.
+#
+# Cases live in tests/bash-guard-cases.txt as `<expected-rc><TAB><command>`,
+# in a data file rather than inline in this script, because a heredoc of
+# commands like `find . -delete` is itself caught by the hook under test.
+#
+# Exit codes from a PreToolUse hook: 0 allows, 2 blocks.
+
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CASES="$REPO_ROOT/tests/bash-guard-cases.txt"
+
+case "${1:-}" in
+  --repo) HOOK_DIR="$REPO_ROOT/config/hooks" ;;
+  "")     HOOK_DIR="$HOME/.claude/hooks" ;;
+  *) echo "Usage: $(basename "$0") [--repo]" >&2; exit 1 ;;
+esac
+
+command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
+[[ -f "$CASES" ]] || { echo "missing case file: $CASES" >&2; exit 1; }
+
+pass=0; fail=0
+G=$'\033[32m'; R=$'\033[31m'; N=$'\033[0m'
+
+report() { # report <ok?> <want> <got> <label>
+  if [[ "$2" == "$3" ]]; then
+    pass=$((pass + 1))
+  else
+    printf '  %sFAIL%s want=%s got=%s  %s\n' "$R" "$N" "$2" "$3" "$4"
+    fail=$((fail + 1))
+  fi
+}
+
+# ------------------------------------------------------------- bash-guard.sh
+GUARD="$HOOK_DIR/bash-guard.sh"
+if [[ -x "$GUARD" || -f "$GUARD" ]]; then
+  while IFS=$'\t' read -r want cmd; do
+    [[ -z "${want:-}" || "$want" == \#* ]] && continue
+    got=$(printf '{"tool_input":{"command":%s}}' "$(jq -Rn --arg c "$cmd" '$c')" \
+            | bash "$GUARD" >/dev/null 2>&1; echo $?)
+    report "" "$want" "$got" "$cmd"
+  done < "$CASES"
+else
+  echo "  ${R}FAIL${N} bash-guard.sh not found at $GUARD"; fail=$((fail + 1))
+fi
+
+# ---------------------------------------------------------- protect-files.sh
+PROTECT="$HOOK_DIR/protect-files.sh"
+prot() {
+  printf '{"tool_input":{"file_path":%s}}' "$(jq -Rn --arg c "$1" '$c')" \
+    | bash "$PROTECT" >/dev/null 2>&1; echo $?
+}
+if [[ -f "$PROTECT" ]]; then
+  report "" 2 "$(prot /home/x/proj/.env)"             "protect .env"
+  report "" 2 "$(prot /home/x/proj/package-lock.json)" "protect package-lock.json"
+  report "" 2 "$(prot /home/x/proj/.git/config)"       "protect .git/config"
+  report "" 0 "$(prot /home/x/proj/src/main.py)"       "allow src/main.py"
+  report "" 0 "$(prot /home/x/proj/README.md)"         "allow README.md"
+else
+  echo "  ${R}FAIL${N} protect-files.sh not found at $PROTECT"; fail=$((fail + 1))
+fi
+
+# ------------------------------------------------------------ graph-update.sh
+# The gate must stay silent outside a repo and in a repo with no graph, and
+# must never propagate a non-zero exit into the hook.
+GRAPH="$HOOK_DIR/graph-update.sh"
+if [[ -f "$GRAPH" ]]; then
+  out=$( (cd /tmp && bash "$GRAPH" status) 2>&1 ); rc=$?
+  report "" 0 "$rc" "graph gate: exits 0 outside a repo"
+  report "" "" "$out" "graph gate: silent outside a repo"
+else
+  echo "  ${R}FAIL${N} graph-update.sh not found at $GRAPH"; fail=$((fail + 1))
+fi
+
+if [[ $fail -eq 0 ]]; then
+  printf '%s%s passed%s\n' "$G" "$pass" "$N"
+else
+  printf '%s%s passed, %s failed%s\n' "$R" "$pass" "$fail" "$N"
+fi
+exit $((fail > 0))
