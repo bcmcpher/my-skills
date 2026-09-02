@@ -122,7 +122,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude-lsp-tools/bin/code-review-graph update --skip-flows -q",
+            "command": "~/.claude/hooks/graph-update.sh update",
             "timeout": 30
           }
         ]
@@ -134,7 +134,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude-lsp-tools/bin/code-review-graph status || true",
+            "command": "~/.claude/hooks/graph-update.sh status",
             "timeout": 10
           }
         ]
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude-lsp-tools/bin/code-review-graph update -q || true",
+            "command": "~/.claude/hooks/graph-update.sh full-update",
             "timeout": 120
           }
         ]

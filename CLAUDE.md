@@ -21,7 +21,16 @@ bin/graduate <plugin-name>
 # Sync global ~/.claude/ config
 bin/sync-config pull           # ~/.claude/ → config/  (after changing settings in Claude)
 bin/sync-config push           # config/ → ~/.claude/  (apply to a new machine)
+
+# Rebuild or verify the harness tool environments (the CLIs hooks depend on)
+bin/rebuild-tools --check      # verify only; exits 1 on a problem
+bin/rebuild-tools              # rebuild both envs from config/tools/*-lock.txt
 ```
+
+Harness tools — hook binaries and LSP servers — live in `~/.claude-lsp-tools` (a `uv venv`) and
+`~/.claude-node-tools` (an npm prefix), never in a project environment. `bin/rebuild-tools`
+recreates both from the manifests in `config/tools/` and verifies each binary resolves under
+`env -i`, which is how hooks see them.
 
 ## Architecture
 
@@ -163,3 +172,8 @@ idiom `find . -not -path "./.git/*"` while letting `grep --exclude-dir=.git` thr
 The `bash-guard.sh` hook that replaced it guards a different set: destructive `find` flags, shell
 redirection into `$HOME` dotfiles or system paths, `gh api` with mutating verbs, and Bash reads of
 secret files. Every rule matches an argument position rather than raw command text.
+
+`graph-update.sh` gates the three global `code-review-graph` hooks on the presence of a
+`.code-review-graph/` directory, so a repo participates only after an explicit
+`code-review-graph build`. See `config/README.md` for why the gate is opt-in rather than a
+blocklist.

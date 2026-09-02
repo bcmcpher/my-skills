@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# rebuild-tools — rebuild (or verify) the harness tool environments.
+#
+# Usage:
+#   bin/rebuild-tools            Rebuild both envs from the lock files
+#   bin/rebuild-tools --latest   Re-resolve from the intent files, ignoring locks
+#   bin/rebuild-tools --check    Verify only; change nothing, exit 1 on a problem
+#
+# These environments hold the CLIs Claude Code itself depends on — hook binaries
+# and LSP servers. They are deliberately separate from every project environment:
+# a harness tool in a project's lockfile makes that lockfile lie, and breaks the
+# tool whenever the project environment is rebuilt.
+#
+# Python uses `uv venv`, matching how Python environments are managed everywhere
+# else here. Note that `uv venv` does not install pip, so there is no
+# <venv>/bin/pip — installs go through `uv pip install --python <venv>/bin/python`.
+#
+# Node uses a plain npm prefix directory, NOT nvm. nvm is a shell function
+# sourced from .bashrc, so its bin directory does not exist in non-interactive
+# shells — which is exactly where hooks run.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TOOLS_DIR="$REPO_ROOT/config/tools"
+PY_ENV="$HOME/.claude-lsp-tools"
+NODE_ENV="$HOME/.claude-node-tools"
+
+MODE="lock"
+case "${1:-}" in
+  --latest) MODE="latest" ;;
+  --check)  MODE="check" ;;
+  "")       ;;
+  *) echo "Usage: $(basename "$0") [--latest | --check]" >&2; exit 1 ;;
+esac
+
+fail=0
+ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
+bad()  { printf '  \033[31m✗\033[0m %s\n' "$1"; fail=1; }
+note() { printf '    %s\n' "$1"; }
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || { echo "required tool not found: $1" >&2; exit 1; }
+}
+
+# A tool that works in your shell but not in a hook is the failure mode this
+# whole layout exists to prevent, so verify with a scrubbed environment rather
+# than the current one.
+resolves_noninteractively() {
+  env -i PATH="$PY_ENV/bin:$NODE_ENV/bin:/usr/bin:/bin" HOME="$HOME" \
+    bash -c "command -v $1 >/dev/null 2>&1"
+}
+
+# ------------------------------------------------------------------ check
+if [[ "$MODE" == "check" ]]; then
+  echo "Checking harness tool environments"
+
+  if [[ -f "$PY_ENV/pyvenv.cfg" ]]; then
+    if grep -q '^uv = ' "$PY_ENV/pyvenv.cfg"; then
+      ok "$PY_ENV created by uv"
+    else
+      bad "$PY_ENV exists but was not created by uv"
+      note "rebuild with: bin/rebuild-tools"
+    fi
+  else
+    bad "$PY_ENV missing"
+  fi
+
+  [[ -d "$NODE_ENV" ]] && ok "$NODE_ENV present" || bad "$NODE_ENV missing"
+
+  while read -r pkg; do
+    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
+    want=$(grep -i "^${pkg}==" "$TOOLS_DIR/python-lock.txt" 2>/dev/null | head -1 || true)
+    if [[ -n "$want" ]]; then
+      have=$(uv pip freeze --python "$PY_ENV/bin/python" 2>/dev/null | grep -i "^${pkg}==" || true)
+      [[ "$have" == "$want" ]] && ok "$want" || bad "$pkg: want ${want:-?}, have ${have:-nothing}"
+    else
+      bad "$pkg not in python-lock.txt — run bin/sync-config pull"
+    fi
+  done < "$TOOLS_DIR/python-tools.txt"
+
+  while read -r pkg; do
+    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
+    want=$(grep -F "${pkg}@" "$TOOLS_DIR/node-lock.txt" 2>/dev/null | head -1 || true)
+    have=$(npm --prefix "$NODE_ENV" ls -g --depth=0 --json 2>/dev/null \
+             | jq -r --arg p "$pkg" '.dependencies[$p].version // empty' || true)
+    if [[ -n "$have" && "${pkg}@${have}" == "$want" ]]; then
+      ok "$want"
+    else
+      bad "$pkg: want ${want:-?}, have ${have:-nothing}"
+    fi
+  done < "$TOOLS_DIR/node-tools.txt"
+
+  echo "Resolution without a login shell (how hooks see these):"
+  for b in code-review-graph pyright openspec; do
+    resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
+  done
+
+  if [[ $fail -eq 0 ]]; then
+    echo "All good."
+  else
+    echo "Problems found — run bin/rebuild-tools to repair." >&2
+  fi
+  exit $fail
+fi
+
+# ---------------------------------------------------------------- rebuild
+need uv
+need npm
+
+echo "Rebuilding harness tool environments (mode: $MODE)"
+
+echo "Python → $PY_ENV"
+uv venv --clear "$PY_ENV"
+if [[ "$MODE" == "lock" && -s "$TOOLS_DIR/python-lock.txt" ]]; then
+  uv pip install --python "$PY_ENV/bin/python" -r "$TOOLS_DIR/python-lock.txt"
+else
+  # Intent file only; uv resolves current versions. Follow with
+  # `bin/sync-config pull` to record the new closure in the lock.
+  grep -vE '^\s*(#|$)' "$TOOLS_DIR/python-tools.txt" | xargs -r \
+    uv pip install --python "$PY_ENV/bin/python"
+fi
+
+echo "Node → $NODE_ENV"
+mkdir -p "$NODE_ENV"
+if [[ "$MODE" == "lock" && -s "$TOOLS_DIR/node-lock.txt" ]]; then
+  mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$TOOLS_DIR/node-lock.txt")
+else
+  mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$TOOLS_DIR/node-tools.txt")
+fi
+[[ ${#pkgs[@]} -gt 0 ]] && npm --prefix "$NODE_ENV" install -g "${pkgs[@]}"
+
+echo
+echo "Verifying"
+for b in code-review-graph pyright openspec; do
+  resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
+done
+
+cat <<'EOS'
+
+Add both to PATH in your shell rc if you have not already:
+
+  export PATH="$HOME/.claude-lsp-tools/bin:$HOME/.claude-node-tools/bin:$PATH"
+
+Hook commands in settings.json use explicit ~/.claude-*-tools/bin/ paths and do
+not depend on that line.
+EOS
+exit $fail
