@@ -83,14 +83,25 @@ Recreate them on a new machine with `bin/rebuild-tools`, which reads the manifes
 bin/rebuild-tools            # rebuild both envs from the lock files
 bin/rebuild-tools --latest   # re-resolve from the intent files, ignoring the locks
 bin/rebuild-tools --check    # verify only; changes nothing, exits 1 on a problem
+bin/rebuild-tools --freeze   # record the current envs into the lock files
 ```
 
-| Manifest | Holds |
-|---|---|
-| `config/tools/python-tools.txt` | intent — the packages actually wanted |
-| `config/tools/python-lock.txt` | the resolved closure, for a reproducible rebuild |
-| `config/tools/node-tools.txt` | intent |
-| `config/tools/node-lock.txt` | pinned versions |
+| Manifest | Holds | Edited by |
+|---|---|---|
+| `config/tools/python-tools.txt` | intent — the packages actually wanted | you |
+| `config/tools/python-lock.txt` | the resolved closure, for a reproducible rebuild | `--freeze` |
+| `config/tools/node-tools.txt` | intent | you |
+| `config/tools/node-lock.txt` | pinned versions | `--freeze` |
+
+`--check` compares the live environments against the locks, so it is the only drift detector in
+this setup — an unplanned version bump shows up there. That is why `--freeze` is a deliberate
+command and **not** part of `bin/sync-config pull`: a lock regenerated on every sync would agree
+with the environment by construction, `--check` could never fail, and a version you did not
+choose would be committed as though you had. `--freeze` refuses to write a lock from an
+environment that is missing something the intent files ask for.
+
+The usual sequence for upgrading a tool is `--latest`, then `--check`, then `--freeze` once the
+resulting diff looks right.
 
 `uv venv` does not install `pip`, so there is no `~/.claude-lsp-tools/bin/pip` — use
 `uv pip install --python <venv>/bin/python`, which targets the venv without activating it.
