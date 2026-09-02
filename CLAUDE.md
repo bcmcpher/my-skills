@@ -32,10 +32,16 @@ bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
 bin/test-hooks --repo          # test the tracked copies in config/hooks/
 ```
 
-Harness tools — hook binaries and LSP servers — live in `~/.claude-lsp-tools` (a `uv venv`) and
-`~/.claude-node-tools` (an npm prefix), never in a project environment. `bin/rebuild-tools`
-recreates both from the manifests in `config/tools/` and verifies each binary resolves under
-`env -i`, which is how hooks see them.
+Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
+`~/.claude-lsp-tools` (a `uv venv`) and `~/.claude-node-tools` (an npm prefix), never in a project
+environment. `bin/rebuild-tools` recreates both from the manifests in `config/tools/` and verifies
+each binary resolves under `env -i`, which is how hooks see them.
+
+When a capability ships both an MCP server and a CLI, take the CLI and put a skill around it. An
+MCP server's tool schemas are sent on every request whether used or not; a skill costs its
+frontmatter until it fires. `zotero-mcp` measures this on itself: 13,448 tokens per request for
+the default MCP profile versus 98 for the equivalent CLI skill. `config/README.md` has the full
+table and the exception (`code-review-graph`, queried constantly, so not idle weight).
 
 ## Architecture
 
@@ -175,8 +181,13 @@ idiom `find . -not -path "./.git/*"` while letting `grep --exclude-dir=.git` thr
 `.git/` is covered by the `Read(**/.git/*)` deny rule instead.
 
 The `bash-guard.sh` hook that replaced it guards a different set: destructive `find` flags, shell
-redirection into `$HOME` dotfiles or system paths, `gh api` with mutating verbs, and Bash reads of
-secret files. Every rule matches an argument position rather than raw command text.
+redirection into `$HOME` dotfiles or system paths, `gh api` with mutating verbs, Bash reads of
+secret files, and `rm` aimed at a filesystem/home root, a system directory, `..`, or a credential
+directory. Every rule matches an argument position rather than raw command text.
+
+Ordinary `rm` is in `ask`, not `deny` — it prompts and can be approved. Rule 5 is only the floor
+beneath that prompt, and it deliberately matches the whole target rather than a prefix, so
+`rm -rf /tmp/scratch` and `rm -rf ~/Projects/x/node_modules` pass. See `config/README.md` for why.
 
 `graph-update.sh` gates the three global `code-review-graph` hooks on the presence of a
 `.code-review-graph/` directory, so a repo participates only after an explicit

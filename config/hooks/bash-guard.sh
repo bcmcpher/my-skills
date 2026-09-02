@@ -56,6 +56,12 @@ CMD=$(printf '%s\n' "$CMD" | awk '
 # Blank every quoted span to spaces of equal length. Quote state carries across
 # lines, matching how the shell itself reads a multi-line command. In awk,
 # \047 is a single quote -- using the escape avoids unreadable shell quoting.
+#
+# A comment is blanked the same way, for the same reason quoted spans are: the
+# text after `#` is prose, not an invocation. `echo hi # cat ~/.ssh/id_rsa` reads
+# no secret. Only a WORD-INITIAL `#` starts a comment, which is also how the
+# shell reads it -- the fragment in `https://example.com/a#frag` is not one.
+# A comment ends at the newline, so `q` is deliberately left untouched.
 MASK=$(printf '%s\n' "$CMD" | awk '
   BEGIN { q = 0 }
   {
@@ -63,6 +69,10 @@ MASK=$(printf '%s\n' "$CMD" | awk '
     for (i = 1; i <= n; i++) {
       c = substr($0, i, 1)
       if (q == 0) {
+        if (c == "#" && (i == 1 || substr($0, i - 1, 1) ~ /[ \t]/)) {
+          while (i <= n) { out = out " "; i++ }
+          break
+        }
         if (c == "\047") { q = 1; out = out " "; continue }
         if (c == "\"")   { q = 2; out = out " "; continue }
         out = out c
@@ -183,6 +193,96 @@ if cmdword "${CW}(rtk[[:space:]]+read|${READERS})([[:space:]]|\$)"; then
   if arg "[[:space:]\"\x27](~|\\\$HOME|\\\$\{HOME\}|${HOME})/\.(ssh|aws|gnupg)/"; then
     block "reading a credential directory through Bash; the Read deny rules do not cover Bash"
   fi
+fi
+
+# ------------------------------------------------------------------ 5. rm floor
+# Ordinary `rm` lives in `ask` -- it prompts, and you can approve it. This rule
+# is only the floor beneath that prompt: the handful of targets that should stay
+# impossible no matter what the prompt says.
+#
+# The permission globs cannot express this. `Bash(rm -rf *)` is anchored to the
+# start of the command string, so `cd x && rm -rf /`, `rm -fr /`, `rm -Rf /` and
+# `xargs rm -rf` all walk past it. Matching an argument position catches every
+# spelling and every position in a pipeline.
+#
+# Two deliberate narrowings, both about false positives:
+#
+#   * The match is on the WHOLE normalised target, never a prefix. `rm -rf
+#     /tmp/scratch`, `rm -rf /tmp/*` and `rm -rf ~/Projects/x/node_modules` are
+#     ordinary work and must pass. Only the bare root itself is a floor.
+#   * Bare `.` is not blocked; `..` is. `rm -rf .` inside a build or scratch
+#     directory is a real idiom, `rm -rf ..` never is. `.` falls through to ask.
+#
+# The floor covers the mount roots `/home /srv /mnt /media` as well as the system
+# directories. `$HOME` is a floor, so its parent has to be one too -- `rm -rf
+# /home` takes every account with it. Whole-target matching keeps the cost at
+# nothing: `rm -rf /mnt/scratch/build` still passes.
+#
+# The credential-directory clause is narrower than rule 2's, which blocks
+# redirection into ANY $HOME dotfile. Blocking `rm ~/.cache/foo` would be pure
+# friction, so rm floors only .ssh/.aws/.gnupg. The asymmetry is intended.
+#
+# Flags are not required for a block. `rm /etc` fails on its own anyway, and not
+# special-casing -r/-f keeps the rule short and impossible to spell around.
+if cmdword "${CW}(rtk[[:space:]]+)?rm([[:space:]]|\$)"; then
+  # Targets are the non-flag words after each `rm`, with `--` ending the flags.
+  # Read from CMD, not MASK: a quoted "$HOME" is still a real target.
+  RM_TARGETS=$(printf '%s\n' "$CMD" | awk '
+    { line = $0
+      # Space the separators out before splitting. They are punctuation, not
+      # words, and `rm -rf ./build;ls /` glues one to the previous word -- which
+      # left `inrm` set and scanned `ls`'"'"'s argument as an rm target, blocking
+      # an ordinary command list. `&&` and `||` become two tokens, each of which
+      # the separator test below already matches.
+      gsub(/[;&|]/, " \\& ", line)
+      n = split(line, w, /[ \t]+/)
+      inrm = 0; endflags = 0
+      for (i = 1; i <= n; i++) {
+        t = w[i]
+        # Rest of the line is a comment. MASK already stops `cmdword` firing on
+        # a commented-out rm; this is the mirror case, a real rm whose trailing
+        # comment must not be read as arguments.
+        if (t ~ /^#/) break
+        if (t ~ /^(rtk|sudo|xargs|env)$/) continue
+        if (t == "rm") { inrm = 1; endflags = 0; continue }
+        if (!inrm) continue
+        # A shell separator ends this rm invocation.
+        if (t ~ /^(\||;|&&|\|\||&)$/) { inrm = 0; continue }
+        if (t == "--") { endflags = 1; continue }
+        if (!endflags && t ~ /^-/) continue
+        gsub(/^["\047]|["\047]$/, "", t)
+        if (t != "") print t
+      } }')
+
+  while IFS= read -r t; do
+    [ -z "$t" ] && continue
+    # Same three expansions rule 2 uses for redirection destinations. Without
+    # them `rm -rf "$HOME"` reads as a literal path and matches nothing.
+    case "$t" in
+      "~")         t="$HOME" ;;
+      "~/"*)       t="${HOME}${t#\~}" ;;
+      '$HOME')     t="$HOME" ;;
+      '$HOME/'*)   t="${HOME}${t#\$HOME}" ;;
+      '${HOME}')   t="$HOME" ;;
+      '${HOME}/'*) t="${HOME}${t#\$\{HOME\}}" ;;
+    esac
+    # Strip a single trailing slash so `/usr/` and `/usr` are one case. Not
+    # applied to "/" itself, which would otherwise become the empty string.
+    [ "$t" != "/" ] && t="${t%/}"
+
+    case "$t" in
+      /|"/*")
+        block "rm targeting the filesystem root: $t" ;;
+      "$HOME"|"$HOME/*")
+        block "rm targeting your home directory: $t" ;;
+      /etc|/usr|/var|/bin|/sbin|/boot|/lib|/lib64|/opt|/root|/home|/srv|/mnt|/media|"/etc/*"|"/usr/*"|"/var/*"|"/bin/*"|"/sbin/*"|"/boot/*"|"/lib/*"|"/lib64/*"|"/opt/*"|"/root/*"|"/home/*"|"/srv/*"|"/mnt/*"|"/media/*")
+        block "rm targeting a system directory: $t" ;;
+      ..)
+        block "rm targeting the parent directory: $t" ;;
+      "$HOME"/.ssh|"$HOME"/.ssh/*|"$HOME"/.aws|"$HOME"/.aws/*|"$HOME"/.gnupg|"$HOME"/.gnupg/*)
+        block "rm targeting a credential directory: $t" ;;
+    esac
+  done <<< "$RM_TARGETS"
 fi
 
 exit 0

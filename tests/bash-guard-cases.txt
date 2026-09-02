@@ -33,3 +33,48 @@
 0	echo "reading .env via cat is blocked"
 0	grep -n 'cat ~/.ssh/id_rsa' notes.md
 0	sed -i 's/>/GT/' file.txt
+2	rm -rf /
+2	rm -rf /*
+2	rm -rf ~
+2	rm -rf "$HOME"
+2	rm -rf ${HOME}/
+2	rm -fr /usr
+2	rm -Rf /etc
+2	rm -rf ~/.ssh
+2	rm -rf ..
+2	rtk rm -rf /
+2	rm -rf -- /
+2	rm --recursive --force /var
+0	rm -rf ./build
+0	rm -rf node_modules
+0	rm -rf /tmp/scratch
+0	rm -rf /tmp/*
+0	rm -rf "$HOME/Projects/x/dist"
+0	rm -rf ~/Projects/x/node_modules
+0	rm -rf ~/.cache/foo
+0	rm file.txt
+0	rm -rf .
+2	cd /tmp && rm -rf /
+0	git commit -m "guard: rm -rf / is now blocked"
+0	echo "rm -rf ~ is blocked"
+2	rm -rf /home
+2	rm -rf /srv
+2	rm -rf /mnt
+2	rm -rf /media
+0	rm -rf /mnt/scratch/build
+0	rm -rf ./build;ls /
+0	rm -rf ./build; ls /
+0	rm -rf dist;cd /etc
+0	rm -rf /tmp/a; echo /etc
+0	rm -rf ./build; git commit -m "wipe /"
+2	rm -rf ./build; rm -rf /
+2	git commit -m fix; rm -rf /
+0	echo hi # rm -rf /
+0	rm -rf ./build # cleans /
+0	echo hi # cat ~/.ssh/id_rsa
+0	echo hi # gh api -X POST /repos/o/r
+0	curl https://example.com/a#frag
+2	rm -rf a#b /home
+0	rm -rf ./build 2>/dev/null
+0	ls | xargs rm -rf
+2	ls | xargs rm -rf /

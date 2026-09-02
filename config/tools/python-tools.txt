@@ -1,2 +1,13 @@
 code-review-graph
 pyright
+
+# yt-dlp — used by the youtube-transcript skill to pull subtitle tracks.
+yt-dlp
+
+# zotero-mcp-server — 54yyyu/zotero-mcp. NOT the PyPI package named
+# "zotero-mcp", which is the unrelated kujenga/zotero-mcp project.
+# Provides the `zotero-cli` binary and `zotero-mcp install-skill`.
+# The MCP server itself is deliberately NOT enabled: its default profile costs
+# ~13.4k tokens of tool schemas on every request, versus ~98 for the CLI skill.
+# No [semantic] extra — it pulls torch via sentence-transformers.
+zotero-mcp-server

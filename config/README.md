@@ -4,6 +4,8 @@ Versioned copy of the portable files from `~/.claude/`, plus the handful of tool
 live elsewhere but are still part of the global Claude Code layer. Use `bin/sync-config` to keep
 this directory and your live config in sync.
 
+After changing anything here, work through [`VERIFY.md`](VERIFY.md) in a fresh session.
+
 ## What's tracked
 
 | File | Source | Purpose |
@@ -17,7 +19,7 @@ this directory and your live config in sync.
 | `hooks/notify.sh` | `~/.claude/hooks/notify.sh` | Notification hook — desktop alert when a prompt is waiting |
 | `xdg/openspec/config.json` | `~/.config/openspec/config.json` | openspec profile + telemetry opt-out |
 | `xdg/caveman/config.json` | `~/.config/caveman/config.json` | caveman default mode |
-| `skills/<name>/SKILL.md` | `~/.claude/skills/<name>/SKILL.md` | Standalone global skills (none tracked at present) |
+| `skills/youtube-transcript/SKILL.md` | `~/.claude/skills/youtube-transcript/SKILL.md` | Hand-written global skill — pulls YouTube captions via `yt-dlp` |
 
 ### One value is deliberately stripped
 
@@ -47,6 +49,12 @@ gets tool defaults. openspec re-enables telemetry, and caveman starts in mode `f
   from the `.mcp.json` scan, which otherwise drags in every third-party marketplace's MCP config.
 - Per-repo config — `openspec/` directories, per-project `.mcp.json`, `code-review-graph` graphs.
   These regenerate per repo and are not global.
+- **Generated global skills** — `~/.claude/skills/zotero-cli/`, and the flat `~/.claude/skills/*.md`
+  that `code-review-graph install --global` writes. These are emitted by their own tool and are
+  reproduced by re-running its installer, not by copying a snapshot. Tracking one means the repo
+  copy silently drifts from whatever version the package actually installs. `sync-config` copies
+  only `SKILL.md` from a skill directory anyway, so `zotero-cli/reference.md` would be lost.
+  Contrast `skills/youtube-transcript/`, which is hand-written, has no generator, and *is* tracked.
 
 ## Sync workflow
 
@@ -63,6 +71,15 @@ than this directory, `push` silently reverts it — always `pull` first if you a
 side is authoritative. And because `pull` only ever copies, a file you delete from `~/.claude/`
 survives here until you remove it by hand.
 
+**`push` is for bootstrapping a new machine, not for applying a single change to a working one.**
+It copies `settings.json` wholesale, so on an established machine it reverts every live-only key
+the baseline deliberately does not carry — per-machine `enabledPlugins` (`pyright-lsp`,
+`project-init`), the `extraKnownMarketplaces.local` absolute path, absolute-path deny rules. To
+land one change on a machine already in use, edit `config/` (still the source of truth), then
+hand-apply the same edit live — `jq` for `settings.json`, `cp` for a hook or skill. Do not reach
+for `pull` to reconcile afterwards; that contaminates the baseline with exactly the state listed
+above.
+
 ## External dependencies
 
 `settings.json` references binaries that are not installed by this repo. They live in dedicated
@@ -73,6 +90,8 @@ per-language environments, deliberately kept off any project environment:
 | `rtk` | `~/.local/bin` | PreToolUse Bash hook |
 | `code-review-graph` | `~/.claude-lsp-tools` (venv) | PostToolUse / SessionStart / SessionEnd, via `graph-update.sh` |
 | `pyright` | `~/.claude-lsp-tools` (venv) | `pyright-lsp` plugin, per-project |
+| `yt-dlp` | `~/.claude-lsp-tools` (venv) | the `youtube-transcript` skill |
+| `zotero-cli`, `zotero-mcp` | `~/.claude-lsp-tools` (venv) | the `zotero-cli` skill |
 | `openspec` | `~/.claude-node-tools` (npm prefix) | `openspec init` per repo |
 | `jq` | system | both hooks and the status line |
 
@@ -140,6 +159,38 @@ Upstream's alternative is `code-review-graph install` run per repo. It writes
 pre-commit hook into the worktree — all committed, and all referencing `~/.claude-lsp-tools`
 paths that exist only on this machine.
 
+## `rm` is gated, not denied
+
+`rm -rf *` and `rm -f *` used to sit in `deny`. They were removed. Two reasons:
+
+1. **Deny is absolute.** Every legitimate `rm -rf ./build` was a dead end with no way to approve
+   it, which is a steady source of friction against no observed unsafe case.
+2. **The globs gave less protection than they looked like.** Permission patterns anchor to the
+   start of the command string, so `cd x && rm -rf /`, `rm -fr /`, `rm -Rf /`,
+   `rm --recursive --force /` and `xargs rm -rf` all walked straight past them.
+
+Ordinary `rm` now sits in `ask` (`Bash(rm *)`, `Bash(rtk rm *)`) — it prompts, and you can approve
+it. Beneath that prompt, **rule 5 of `bash-guard.sh`** is a hard floor for targets that should stay
+impossible regardless of what the prompt says: the filesystem root, `$HOME`, `/etc /usr /var /bin
+/sbin /boot /lib /lib64 /opt /root`, the mount roots `/home /srv /mnt /media`, `..`, and
+`~/.ssh ~/.aws ~/.gnupg`. Like every other rule in that file it matches an argument position, so it
+catches all flag spellings and any position in a pipeline.
+
+`/home` is on that list because `$HOME` is — a floor whose parent is not a floor is not a floor.
+The other three mount roots follow the same reasoning and cost nothing, since whole-target matching
+lets `rm -rf /mnt/scratch/build` through.
+
+Two narrowings are deliberate and should not be "fixed" later:
+
+- **Whole-target match, never a prefix.** `rm -rf /tmp/scratch`, `rm -rf /tmp/*` and
+  `rm -rf ~/Projects/x/node_modules` are ordinary work and must pass. Only the bare root is a floor.
+- **Bare `.` is not blocked; `..` is.** `rm -rf .` inside a build or scratch directory is a real
+  idiom. `rm -rf ..` never is.
+
+The credential clause is also narrower than the redirection rule's, which blocks writes into *any*
+`$HOME` dotfile. Blocking `rm ~/.cache/foo` would be pure friction, so `rm` floors only the three
+credential directories.
+
 ## Adding a new global hook
 
 1. Write the script and place it in `config/hooks/`
@@ -157,6 +208,87 @@ let-through case matters at least as much as the block case:
   `git commit -m "docs: echo x >> ~/.bashrc is blocked"` was blocked — a false positive that
   fires exactly when writing about the rules. Fixed by matching command words against a mask
   with quoted spans blanked out, while still reading arguments from the original text.
+- `bash-guard.sh` read comment text as commands, so `echo hi # cat ~/.ssh/id_rsa` was blocked.
+  Same shape as the one above, and it hit all five rules. Fixed by blanking a word-initial `#` to
+  end of line in the same mask. A mid-word `#` is untouched, so a URL fragment still parses.
+- `bash-guard.sh` rule 5 ended an `rm` only on a *standalone* separator token, so a `;` glued to
+  the previous word — `rm -rf ./build;ls /` — left the scanner reading the next command's
+  arguments as `rm` targets. Fixed by spacing separators out before splitting into words. The
+  spaced form `rm -rf ./build ; ls /` always worked, which is what hid it.
+
+## Why capabilities arrive as CLI skills, not MCP servers
+
+An MCP server sends every enabled tool's name, description and full JSON parameter schema to the
+model on **every request**, before you have typed anything. A skill sends only its frontmatter
+description until the model decides it is relevant. For a capability used occasionally, that
+difference dominates.
+
+`zotero-mcp` publishes its own measurement, and it is the clearest available statement of the
+trade-off:
+
+| Route | Tokens in context | Paid |
+|---|---:|---|
+| MCP, default profile (38 tools) | 13,448 | every request |
+| MCP, `ZOTERO_MCP_TOOLSETS=none` (32 tools) | 11,761 | every request |
+| MCP, `ZOTERO_MCP_TOOLSETS=all` (50 tools) | 17,414 | every request |
+| CLI skill, frontmatter only | 98 | always |
+| CLI skill, body loaded | 1,368 | once the skill fires |
+
+`ZOTERO_MCP_TOOLSETS` only toggles *optional* groups — the ~32 core tools cannot be trimmed, so
+the floor is 11,761 tokens on every turn.
+
+**The rule for this config:** if a capability ships both an MCP server and a CLI, take the CLI and
+write (or generate) a skill around it. Reach for an MCP server only when it offers something a CLI
+genuinely cannot — a live connection, a stateful session, or a resource the model must be able to
+subscribe to. `code-review-graph` is the current exception, and it earns it: it is queried
+constantly during ordinary work, so its schemas are not idle weight.
+
+That is the fixed cost only. It says nothing about task success or round trips — a cheaper surface
+that gets the answer wrong is not cheaper.
+
+## Setting up Zotero on a new machine
+
+`zotero-mcp-server` is in `config/tools/python-tools.txt`, so `bin/rebuild-tools` installs the
+`zotero-cli` and `zotero-mcp` binaries. Two manual steps remain:
+
+1. **Generate the skill.** It is not tracked here (see "What's NOT tracked"):
+
+   ```bash
+   zotero-mcp install-skill --list-targets      # confirm the target name
+   zotero-mcp install-skill --target claude-user
+   ```
+
+   Use `--target claude-user` explicitly. Bare `install-skill` installs into *every* detected
+   harness, which in a repo means a project-scoped copy in `.claude/skills/` as well.
+
+2. **Enable Zotero's local API.** In Zotero desktop: Settings → Advanced → "Allow other
+   applications on this computer to communicate with Zotero". Without it, `zotero-cli` fails with
+   `Local API is not enabled` even though Zotero is running and its connector port answers.
+
+`settings.json` sets `ZOTERO_LOCAL=true`, which is read-only and needs no credentials — that is
+why it is safe to keep in the tracked config. Do **not** add `ZOTERO_API_KEY` here; it is a secret
+and belongs in `~/.claude/settings.local.json` or your shell rc. Adding it also converts the
+library from read-only to writable, which the allow-list below is not sized for.
+
+### The zotero-cli allow-list is scoped to read-only
+
+`settings.json` allow-lists only read subcommands: `search`/`s`, `get`/`g`,
+`collections`/`coll`, `annotations list`/`ann list`, `notes list`/`n list`, `outline`, `read`,
+`path`, `coverage`. Everything else prompts.
+
+Deliberately excluded, and worth not "tidying up" later:
+
+- `tags` — despite the name it is **`Batch update tags on matched items`**, a write.
+- `add`, `edit`, `delete`, `attach`, `batch`, `duplicates` (merges), `library` (switches library).
+- `export` — writes files, which would route around `Write`/`Edit` sitting in `ask`.
+- `config` — **prints `OPENAI_API_KEY` in full plaintext.** It masks `ZOTERO_LIBRARY_ID` with `*`
+  but not the OpenAI key, so an allow-listed `zotero-cli config` would splash a live credential
+  into the transcript unprompted. The generated skill suggests running it as a setup check; let it
+  prompt, or run `zotero-cli config | grep -v OPENAI` yourself.
+
+These are inert while `ZOTERO_LOCAL=true`, but allow-listing them would become a live write
+capability the moment an API key ever enters the environment. Keep the allow-list matched to the
+read-only guarantee, not to today's configuration.
 
 ## Adding a new standalone skill
 

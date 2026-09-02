@@ -25,6 +25,20 @@
       "Bash(echo *)",
       "Bash(gh api:*)",
       "Bash(rtk gh api:*)",
+      "Bash(zotero-cli search *)",
+      "Bash(zotero-cli s *)",
+      "Bash(zotero-cli get *)",
+      "Bash(zotero-cli g *)",
+      "Bash(zotero-cli collections *)",
+      "Bash(zotero-cli coll *)",
+      "Bash(zotero-cli annotations list *)",
+      "Bash(zotero-cli ann list *)",
+      "Bash(zotero-cli notes list *)",
+      "Bash(zotero-cli n list *)",
+      "Bash(zotero-cli outline *)",
+      "Bash(zotero-cli read *)",
+      "Bash(zotero-cli path *)",
+      "Bash(zotero-cli coverage *)",
       "Read",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:docs.datalad.org)",
@@ -37,8 +51,6 @@
       "WebFetch(domain:bids-specification.readthedocs.io)"
     ],
     "deny": [
-      "Bash(rm -rf *)",
-      "Bash(rm -f *)",
       "Bash(curl * | bash)",
       "Bash(wget * | bash)",
       "Bash(ssh * | bash)",
@@ -85,12 +97,17 @@
       "Bash(pip install *)",
       "Bash(rtk pip install *)",
       "Bash(pip uninstall *)",
+      "Bash(rm *)",
+      "Bash(rtk rm *)",
       "Write",
       "Edit"
     ],
     "defaultMode": "plan"
   },
   "model": "opus[1m]",
+  "env": {
+    "ZOTERO_LOCAL": "true"
+  },
   "hooks": {
     "PreToolUse": [
       {
