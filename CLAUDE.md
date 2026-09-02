@@ -77,8 +77,8 @@ Claude Code uses standard LSP servers for real-time code intelligence: diagnosti
 Recommended pattern: keep Python LSP binaries in a dedicated venv on `$PATH`, independent of any project venv:
 
 ```bash
-python -m venv ~/.claude-lsp-tools
-~/.claude-lsp-tools/bin/pip install pyright
+uv venv ~/.claude-lsp-tools
+uv pip install --python ~/.claude-lsp-tools/bin/python pyright
 # export PATH="$HOME/.claude-lsp-tools/bin:$PATH"  ← in shell rc
 ```
 
@@ -155,4 +155,11 @@ git ls-files --error-unmatch <path>
 - If tracked → use `git mv <src> <dst>`, not bare `mv`. This preserves rename history and keeps `git blame` accurate.
 - If not tracked (new or ignored file) → bare `mv` is fine.
 
-The `git-guard.sh` PreToolUse hook will block bare `mv` on tracked files and explain the correct command. `git mv` is in the allow list and proceeds without confirmation.
+This is a convention, not an enforced rule. The `git-guard.sh` hook that used to enforce it was
+removed: its second rule matched `.git/` anywhere in the command text, which blocked the ordinary
+idiom `find . -not -path "./.git/*"` while letting `grep --exclude-dir=.git` through. Reading
+`.git/` is covered by the `Read(**/.git/*)` deny rule instead.
+
+The `bash-guard.sh` hook that replaced it guards a different set: destructive `find` flags, shell
+redirection into `$HOME` dotfiles or system paths, `gh api` with mutating verbs, and Bash reads of
+secret files. Every rule matches an argument position rather than raw command text.

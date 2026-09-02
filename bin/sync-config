@@ -10,6 +10,16 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG_DIR="$REPO_ROOT/config"
 CLAUDE_DIR="$HOME/.claude"
+XDG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+# Tool configs that live outside ~/.claude/ but are still part of the global
+# Claude Code layer: without them a new machine silently gets tool defaults
+# (openspec re-enables telemetry; caveman starts in mode "full", not "lite").
+# Paths are relative to $XDG_DIR and mirrored under config/xdg/.
+XDG_TRACKED=(
+  "openspec/config.json"
+  "caveman/config.json"
+)
 
 usage() {
   echo "Usage: $(basename "$0") pull | push"
@@ -38,6 +48,20 @@ copy_file() {
 if [[ "$DIRECTION" == "pull" ]]; then
   echo "Pulling ~/.claude/ → config/"
   copy_file "$CLAUDE_DIR/settings.json"              "$CONFIG_DIR/settings.json"
+  # The `local` marketplace records an absolute path to wherever this repo was
+  # cloned, which is machine-specific by definition. Left in, a `push` on another
+  # machine registers a marketplace pointing at a directory that does not exist.
+  # Re-add it there with: claude plugin marketplace add <path-to-this-repo>
+  if command -v jq >/dev/null 2>&1 && [[ -f "$CONFIG_DIR/settings.json" ]]; then
+    if jq -e '.extraKnownMarketplaces.local' "$CONFIG_DIR/settings.json" >/dev/null 2>&1; then
+      tmp=$(mktemp)
+      jq 'del(.extraKnownMarketplaces.local)' "$CONFIG_DIR/settings.json" > "$tmp" \
+        && mv "$tmp" "$CONFIG_DIR/settings.json"
+      echo "  strip extraKnownMarketplaces.local (machine-specific path)"
+    fi
+  fi
+  copy_file "$CLAUDE_DIR/CLAUDE.md"                  "$CONFIG_DIR/CLAUDE.md"
+  copy_file "$CLAUDE_DIR/RTK.md"                     "$CONFIG_DIR/RTK.md"
   # Hooks: copy all .sh files
   if [[ -d "$CLAUDE_DIR/hooks" ]]; then
     while IFS= read -r -d '' f; do
@@ -56,12 +80,20 @@ if [[ "$DIRECTION" == "pull" ]]; then
   while IFS= read -r -d '' f; do
     rel="${f#$CLAUDE_DIR/}"
     copy_file "$f" "$CONFIG_DIR/$rel"
-  done < <(find "$CLAUDE_DIR" -name ".mcp.json" -not -path "*/.git/*" -print0 2>/dev/null)
+  done < <(find "$CLAUDE_DIR" -name ".mcp.json" -not -path "*/.git/*" -not -path "$CLAUDE_DIR/plugins/*" -print0 2>/dev/null)
+  # Status line: referenced by settings.json's statusLine block
+  copy_file "$CLAUDE_DIR/statusline-command.sh" "$CONFIG_DIR/statusline-command.sh"
+  # External tool configs (~/.config/<tool>/) → config/xdg/<tool>/
+  for rel in "${XDG_TRACKED[@]}"; do
+    copy_file "$XDG_DIR/$rel" "$CONFIG_DIR/xdg/$rel"
+  done
   echo "Done."
 
 elif [[ "$DIRECTION" == "push" ]]; then
   echo "Pushing config/ → ~/.claude/"
   copy_file "$CONFIG_DIR/settings.json"              "$CLAUDE_DIR/settings.json"
+  copy_file "$CONFIG_DIR/CLAUDE.md"                  "$CLAUDE_DIR/CLAUDE.md"
+  copy_file "$CONFIG_DIR/RTK.md"                     "$CLAUDE_DIR/RTK.md"
   # Hooks
   if [[ -d "$CONFIG_DIR/hooks" ]]; then
     while IFS= read -r -d '' f; do
@@ -82,6 +114,16 @@ elif [[ "$DIRECTION" == "push" ]]; then
   while IFS= read -r -d '' f; do
     rel="${f#$CONFIG_DIR/}"
     copy_file "$f" "$CLAUDE_DIR/$rel"
-  done < <(find "$CONFIG_DIR" -name ".mcp.json" -not -path "*/.git/*" -print0 2>/dev/null)
+  done < <(find "$CONFIG_DIR" -name ".mcp.json" -not -path "*/.git/*" -not -path "$CONFIG_DIR/plugins/*" -print0 2>/dev/null)
+  # Status line: referenced by settings.json's statusLine block, so it must
+  # travel with settings.json or a pushed config points at a missing script.
+  if [[ -f "$CONFIG_DIR/statusline-command.sh" ]]; then
+    copy_file "$CONFIG_DIR/statusline-command.sh" "$CLAUDE_DIR/statusline-command.sh"
+    chmod +x "$CLAUDE_DIR/statusline-command.sh"
+  fi
+  # External tool configs
+  for rel in "${XDG_TRACKED[@]}"; do
+    copy_file "$CONFIG_DIR/xdg/$rel" "$XDG_DIR/$rel"
+  done
   echo "Done."
 fi

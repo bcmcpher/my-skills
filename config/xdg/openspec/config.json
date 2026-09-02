@@ -1,0 +1,10 @@
+{
+  "featureFlags": {},
+  "profile": "core",
+  "delivery": "both",
+  "telemetry": {
+    "noticeSeen": true,
+    "anonymousId": "238817ea-1d7f-4bf6-a4b2-92f4ad460408",
+    "enabled": false
+  }
+}

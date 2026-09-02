@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code status line — mirrors ~/.bashrc PS1: user@host:path
-# with additional Claude session info appended.
+# with Claude session info and the caveman mode badge appended.
 
 input=$(cat)
 
@@ -19,4 +19,15 @@ if [ -n "$remaining" ]; then
 fi
 claude_part="$claude_part]"
 
-printf "%s %s\n" "$ps1_part" "$claude_part"
+# caveman mode badge. Delegated to the plugin's own script rather than
+# reimplemented: it reads session_id from the same stdin JSON and reports THIS
+# window's mode (the legacy ~/.claude/.caveman-active mirror is last-write-wins
+# across windows), and it renders nothing when the mode is off rather than a
+# misleading [CAVEMAN:OFF]. Guarded so the status line still works without caveman.
+caveman_part=""
+caveman_sl="$HOME/.claude/plugins/marketplaces/caveman/src/hooks/caveman-statusline.sh"
+if [ -r "$caveman_sl" ]; then
+    caveman_part=$(printf '%s' "$input" | bash "$caveman_sl" 2>/dev/null)
+fi
+
+printf "%s %s%s\n" "$ps1_part" "$claude_part" "${caveman_part:+ $caveman_part}"

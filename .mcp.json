@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "${HOME}/.claude-lsp-tools/bin/code-review-graph",
+      "args": ["mcp"]
+    }
+  }
+}
