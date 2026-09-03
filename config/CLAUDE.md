@@ -14,7 +14,13 @@ package path, never `nvm`.
 `uv venv` deliberately does not install `pip`, so `~/.claude-lsp-tools/bin/pip` does not exist —
 use `uv pip install --python <venv>/bin/python`, which targets the venv without activating it.
 
-Currently: `code-review-graph` and `pyright` in the first, `@fission-ai/openspec` in the second.
+Currently: `code-review-graph`, `pyright`, `yt-dlp`, `zotero-cli`/`zotero-mcp` and `opencite` in
+the first, `@fission-ai/openspec` in the second.
+
+The `opencite` skill's examples all say `uvx opencite`. Use the installed `opencite` instead: it
+is pinned in `config/tools/python-lock.txt`, and `uvx opencite` cannot reach the `[pdf]` extra
+those examples assume (that would need `uvx --from 'opencite[pdf]' opencite`), so PDF retrieval
+and conversion fail under `uvx`.
 
 Harness tools are not project dependencies. Adding one to a project's `pyproject.toml` or
 `package.json` makes the lockfile lie and breaks the tool when that environment is rebuilt.

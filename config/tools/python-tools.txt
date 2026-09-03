@@ -11,3 +11,20 @@ yt-dlp
 # ~13.4k tokens of tool schemas on every request, versus ~98 for the CLI skill.
 # No [semantic] extra — it pulls torch via sentence-transformers.
 zotero-mcp-server
+
+# opencite — academic literature search / citation / PDF retrieval CLI.
+# Used by the `opencite` skill (opencite@research-skills marketplace plugin).
+# The [pdf] extra is required for `opencite pdf`, `convert`,
+# `batch-fetch --convert`, and preprint HTML full-text; without it those
+# subcommands fail outright. It costs markitdown → magika → onnxruntime + numpy
+# (~250MB). Taken anyway, unlike zotero-mcp-server's [semantic] extra above,
+# because it gates core function rather than an optional search mode.
+opencite[pdf]
+
+# mistralai<2 — a constraint, not a tool. markit-mistral 0.2.3 asks for
+# `mistralai>=1.0.0` with no upper bound, but imports `DocumentURLChunk` from it,
+# which mistralai 2.x removed. Unconstrained, uv resolves 2.x and
+# `opencite convert --converter mistral` dies on ImportError. opencite imports
+# markit-mistral lazily and only when MISTRAL_API_KEY is set, so the failure is
+# invisible until the day a key is added — hence the pin rather than a note.
+mistralai<2

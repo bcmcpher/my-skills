@@ -29,6 +29,17 @@ curl -s -o /dev/null -w '%{http_code}\n' --max-time 4 \
   'http://localhost:23119/api/users/0/items?limit=1'                             # want: 200
 
 ls ~/.claude/skills/                # want: youtube-transcript/ and zotero-cli/ present
+
+# opencite: query verbs allow-listed, retrieval and config verbs are NOT
+jq -r '[.permissions.allow[]|select(test("opencite"))]|length' ~/.claude/settings.json           # want: 5
+jq -r '[.permissions.allow[]|select(test("opencite (pdf|convert|batch-fetch|config)"))]|length' \
+  ~/.claude/settings.json                                                                        # want: 0
+jq -r '.enabledPlugins["opencite@research-skills"]' ~/.claude/settings.json                      # want: true
+
+# opencite resolves the way a skill's Bash call sees it, and has the [pdf] extra
+env -i PATH="$HOME/.claude-lsp-tools/bin:/usr/bin:/bin" HOME="$HOME" \
+  bash -c 'opencite --version'                                                  # want: opencite 0.5.4+
+~/.claude-lsp-tools/bin/python -c 'import markitdown, markit_mistral'           # want: silence
 ```
 
 ## Manual — needs a live session
@@ -41,6 +52,9 @@ ls ~/.claude/skills/                # want: youtube-transcript/ and zotero-cli/ 
 | Paste a YouTube link, ask for a summary | `youtube-transcript` fires; prompts once for `yt-dlp` |
 | Ask about a paper in your library | `zotero-cli` runs **unprompted** (read subcommands are allow-listed) |
 | `claude mcp list` | **no** zotero server — it is a CLI skill on purpose, see `README.md` |
+| Ask to find papers on a topic | `opencite` skill fires; `opencite search` runs **unprompted** |
+| Ask it to download a paper's PDF | `opencite pdf` **prompts** — retrieval is not allow-listed |
+| Watch the command it writes | bare `opencite`, **not** `uvx opencite` (see `CLAUDE.md`) |
 
 ## If something fails
 

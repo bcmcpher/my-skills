@@ -43,6 +43,7 @@ gets tool defaults. openspec re-enables telemetry, and caveman starts in mode `f
 ## What's NOT tracked
 
 - `~/.claude/.credentials.json` — auth tokens, never commit
+- `~/.opencite/config.toml` — opencite's API keys, same reason
 - `~/.claude/history.jsonl`, `cache/`, `session-env/`, `projects/`, `sessions/` — runtime state
 - `~/.claude/plugins/` — the marketplace cache. Plugin *sources* live in `plugins/` in this repo;
   the cache is rebuilt by `claude plugin marketplace add`. `sync-config` explicitly excludes it
@@ -92,6 +93,7 @@ per-language environments, deliberately kept off any project environment:
 | `pyright` | `~/.claude-lsp-tools` (venv) | `pyright-lsp` plugin, per-project |
 | `yt-dlp` | `~/.claude-lsp-tools` (venv) | the `youtube-transcript` skill |
 | `zotero-cli`, `zotero-mcp` | `~/.claude-lsp-tools` (venv) | the `zotero-cli` skill |
+| `opencite` | `~/.claude-lsp-tools` (venv) | the `opencite` skill (`opencite@research-skills`) |
 | `openspec` | `~/.claude-node-tools` (npm prefix) | `openspec init` per repo |
 | `jq` | system | both hooks and the status line |
 
@@ -289,6 +291,160 @@ Deliberately excluded, and worth not "tidying up" later:
 These are inert while `ZOTERO_LOCAL=true`, but allow-listing them would become a live write
 capability the moment an API key ever enters the environment. Keep the allow-list matched to the
 read-only guarantee, not to today's configuration.
+
+## Setting up opencite on a new machine
+
+`opencite[pdf]` is in `config/tools/python-tools.txt`, so `bin/rebuild-tools` installs the
+`opencite` binary. It is consumed as a marketplace plugin, not a tracked skill:
+
+```bash
+claude plugin marketplace add neuromechanist/research-skills
+claude plugin install opencite@research-skills
+```
+
+Both are already recorded in the tracked `settings.json` (`extraKnownMarketplaces.research-skills`
+and `enabledPlugins`), so on a machine bootstrapped with `bin/sync-config push` Claude resolves
+them itself. The marketplace also carries `manuscript`, `figures`, `grant`, `project`,
+`neuroinformatics`, `presentation` and `ml-training`. Registering it only makes those installable;
+none are enabled.
+
+### System prerequisite
+
+`markit-mistral` pulls `python-magic`, which binds `libmagic` — a system library, not a wheel.
+Present on Ubuntu via the `file` package; check with `ldconfig -p | grep libmagic` before
+concluding a conversion failure is an opencite bug.
+
+### API keys
+
+**No key is required to use opencite.** It was verified working on 2026-09-03 with none of these
+set — `opencite search --source openalex` returned results unauthenticated, contradicting the
+upstream skill's `references/api-keys-and-config.md`, which lists `OPENALEX_API_KEY` as "required
+since Feb 2026". Treat every key below as a rate-limit upgrade, not an entry ticket.
+
+| Variable | Effect |
+|---|---|
+| `SEMANTIC_SCHOLAR_API_KEY` | The one worth getting, and free. Not a higher limit — a *dedicated* one: unauthenticated callers share a single 1000 req/sec pool globally, so throughput depends on everyone else's traffic. A plain `opencite search` here exhausted 3 retries and dropped the s2 source entirely. A key gives you 1 RPS that is yours |
+| `PUBMED_API_KEY` | Free, instant from an NCBI account. Raises E-utilities from 3 to 10 req/sec |
+| `OPENALEX_API_KEY` | Not needed — works unauthenticated. Only for the paid premium pool |
+| `MISTRAL_API_KEY` | Switches PDF→markdown from markitdown to markit-mistral (math, tables, image extraction) |
+| `CORE_API_KEY` | Free from core.ac.uk. Adds the CORE aggregator as a source |
+| `OPENCITE_ELSEVIER_KEY`, `OPENCITE_WILEY_TDM_TOKEN`, `OPENCITE_SPRINGER_KEY` | Authenticated publisher PDFs. **Note the `OPENCITE_` prefix** — see below |
+
+#### Upstream documents the publisher variables under the wrong names
+
+opencite's own README and the skill's `references/api-keys-and-config.md` both say to export
+`ELSEVIER_API_KEY`, `WILEY_TDM_TOKEN` and `SPRINGER_API_KEY`. Those names appear nowhere in the
+package. `config.py`'s `_TOML_MAP` reads `OPENCITE_ELSEVIER_KEY`, `OPENCITE_WILEY_TDM_TOKEN` and
+`OPENCITE_SPRINGER_KEY`. Setting the documented names does nothing, silently — you get
+open-access fallback and no error. Use the TOML file instead of environment variables for these;
+the `[publishers]` keys (`elsevier`, `wiley_tdm`, `springer`) are unambiguous and correct in both.
+
+The four `[api_keys]` variables are not affected: `SEMANTIC_SCHOLAR_API_KEY`, `PUBMED_API_KEY`,
+`OPENALEX_API_KEY` and `MISTRAL_API_KEY` are read under exactly those names.
+
+#### Where to put them
+
+The file does not exist until you create it:
+
+```bash
+opencite config init            # writes ~/.opencite/config.toml from a template
+chmod 600 ~/.opencite/config.toml   # it does NOT do this for you — created 0644
+```
+
+Then fill in the `[api_keys]` and `[publishers]` blocks. All of these are secrets, so they belong
+there or in `~/.claude/settings.local.json` — **never** the tracked `settings.json`, the same rule
+that keeps `ZOTERO_API_KEY` out of it. `ZOTERO_LOCAL=true` is in the tracked `env` block only
+because it is not a credential.
+
+`~/.opencite/config.toml` is the *lowest*-priority source: `~/.opencite/.env`, a `.env` in the
+working directory, and then real environment variables all override it. A stale export in your
+shell rc silently wins over the file you just edited.
+
+#### Three settings worth knowing about
+
+- `settings.contact_email` (`OPENCITE_EMAIL`) — not a credential. It puts you in OpenAlex's and
+  Crossref's "polite pool", which is the actual reason keyless OpenAlex works well. Set it first;
+  it costs nothing.
+- `settings.disabled_sources` (`OPENCITE_DISABLED_SOURCES`) — comma-separated sources to skip.
+  `"osf"` silences the HTTP 400 warning noted below; `"s2"` is the documented escape hatch if you
+  never get a Semantic Scholar key and the retry stalls annoy you.
+- `defaults.max_results` / `format` / `converter` — defaults so you stop passing `--max` and `-f`.
+
+Two warnings are normal on a keyless run and are not wiring faults: `Rate limited by
+api.semanticscholar.org` (add the S2 key to stop it) and `OSF search failed … HTTP 400`, an
+upstream query-encoding bug in opencite's OSF client. Results still come back from the remaining
+sources in both cases.
+
+#### CORE is broken upstream even with a valid key
+
+`--source core` returns zero results and logs `HTTP 301: Redirect response … Moved Permanently`.
+This is **not** a bad key. Verified 2026-09-03: the same key against
+`https://api.core.ac.uk/v3/search/works/` returns HTTP 200 and a full result set, while a
+deliberately wrong key returns 401.
+
+Two upstream defects combine. `clients/core.py:66` requests `/v3/search/works` without the
+trailing slash CORE now redirects to, and `clients/base.py:123` builds its `httpx.AsyncClient`
+without `follow_redirects=True` — httpx defaults that to `False`, so the 301 is never followed.
+Either fix alone resolves it.
+
+Until it is fixed upstream, add `core` to `disabled_sources` to stop the warning on every
+`--source all` search. Keep the key in the config; it will start working the moment opencite is
+patched.
+
+#### Verifying a key without pasting it anywhere
+
+`opencite config show` masks to first-and-last-four, so it confirms a key is *loaded*, not that it
+is *accepted*. To check acceptance, probe the source directly and read only the status code —
+distinguishing rejection from throttling matters:
+
+| Source | Valid | Invalid |
+|---|---|---|
+| Semantic Scholar | 200, or **429 when throttled** | **403** |
+| NCBI E-utilities | 200 | 400 |
+| CORE | 200 | 401 |
+
+S2's 429 is the one to know: it means the key was accepted and you hit your dedicated 1 RPS, not
+that it was refused. Wait a few seconds and re-probe rather than concluding the key is bad.
+
+### `mistralai` is pinned below 2.0
+
+`markit-mistral` 0.2.3 requires `mistralai>=1.0.0` with no upper bound but imports
+`DocumentURLChunk`, which mistralai 2.x removed. opencite imports markit-mistral lazily and only
+when `MISTRAL_API_KEY` is set, so an unconstrained resolve leaves an `ImportError` that stays
+invisible until the day a Mistral key is added. `mistralai<2` therefore sits in
+`python-tools.txt` as a constraint rather than a tool — the one entry there that is not itself a
+binary. Drop it once markit-mistral supports mistralai 2.x.
+
+### Retrieved PDFs carry a license sidecar
+
+Every download writes `<pdf>.license.json` beside the PDF, recording `{url, source, license,
+version, oa_status, publisher_tdm, doi, retrieved_at}`. opencite does not enforce a redistribution
+policy — it reports and leaves the call to you. If retrieved PDFs or their markdown ever land in a
+repo, that sidecar is the machine-readable "safe to commit?" signal: `publisher_tdm: true` marks
+bytes obtained through an Elsevier/Wiley/Springer TDM token, which those agreements almost
+universally forbid redistributing. Note that `oa_status: bronze` is free to read but *not* openly
+licensed, a distinction `is_oa` collapses.
+
+### The opencite allow-list cannot be read-only
+
+`settings.json` allow-lists `search`, `lookup`, `cite`, `canonical` and `ids`. Unlike the
+`zotero-cli` list above, **this one is not a read-only guarantee, and should not be described as
+one**: every one of those subcommands accepts `-o FILE`, and permission patterns are prefix globs
+with no way to express "not containing `-o`". `Bash(opencite search *)` therefore permits a file
+write.
+
+That is accepted deliberately. A query verb writes only its own bounded, self-generated text — the
+result set it just printed — to a path the caller named, and producing `results.json` for
+`batch-fetch` is the documented workflow. The line is drawn at commands that write *arbitrary
+remote bytes*:
+
+- `pdf`, `convert`, `batch-fetch` — download and materialise publisher content. Left on prompt for
+  the same reason `zotero-cli export` is excluded above.
+- `config` — `config init` writes `~/.opencite/config.toml`, which is the reason it stays on
+  prompt. Not for the `zotero-cli` reason, though: opencite's masking was **verified on
+  2026-09-03** against a live value and it does mask, showing only the first and last four
+  characters (`DUMM...7890`). `opencite config show` is safe to run and to paste; `zotero-cli
+  config` still is not.
 
 ## Adding a new standalone skill
 

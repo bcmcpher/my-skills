@@ -59,6 +59,12 @@ resolves_noninteractively() {
     bash -c "command -v $1 >/dev/null 2>&1"
 }
 
+# An intent line is a pip requirement, so it may carry extras or a version
+# constraint -- `opencite[pdf]`, `mistralai<2`. uv understands those, but
+# `uv pip freeze` reports the bare distribution name, and in a grep pattern a
+# bracket is a character class rather than a literal. Match on the bare name.
+bare_name() { printf '%s' "$1" | sed 's/[][<>=!~;,[:space:]].*//'; }
+
 py_freeze() { uv pip freeze --python "$PY_ENV/bin/python" 2>/dev/null; }
 
 node_freeze() {
@@ -79,7 +85,7 @@ if [[ "$MODE" == "freeze" ]]; then
   # that would quietly drop a tool that is still wanted.
   while read -r pkg; do
     [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-    printf '%s\n' "$PY_STATE" | grep -qi "^${pkg}==" \
+    printf '%s\n' "$PY_STATE" | grep -qi "^$(bare_name "$pkg")==" \
       || bad "$pkg is in python-tools.txt but not installed"
   done < "$TOOLS_DIR/python-tools.txt"
   while read -r pkg; do
@@ -140,9 +146,10 @@ if [[ "$MODE" == "check" ]]; then
 
   while read -r pkg; do
     [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-    want=$(grep -i "^${pkg}==" "$TOOLS_DIR/python-lock.txt" 2>/dev/null | head -1 || true)
+    name=$(bare_name "$pkg")
+    want=$(grep -i "^${name}==" "$TOOLS_DIR/python-lock.txt" 2>/dev/null | head -1 || true)
     if [[ -n "$want" ]]; then
-      have=$(uv pip freeze --python "$PY_ENV/bin/python" 2>/dev/null | grep -i "^${pkg}==" || true)
+      have=$(uv pip freeze --python "$PY_ENV/bin/python" 2>/dev/null | grep -i "^${name}==" || true)
       [[ "$have" == "$want" ]] && ok "$want" || bad "$pkg: want ${want:-?}, have ${have:-nothing}"
     else
       bad "$pkg not in python-lock.txt — run bin/rebuild-tools --freeze"
@@ -162,7 +169,7 @@ if [[ "$MODE" == "check" ]]; then
   done < "$TOOLS_DIR/node-tools.txt"
 
   echo "Resolution without a login shell (how hooks see these):"
-  for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp; do
+  for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite; do
     resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
   done
 
@@ -202,7 +209,7 @@ fi
 
 echo
 echo "Verifying"
-for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp; do
+for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite; do
   resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
 done
 

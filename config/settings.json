@@ -39,6 +39,11 @@
       "Bash(zotero-cli read *)",
       "Bash(zotero-cli path *)",
       "Bash(zotero-cli coverage *)",
+      "Bash(opencite search *)",
+      "Bash(opencite lookup *)",
+      "Bash(opencite cite *)",
+      "Bash(opencite canonical *)",
+      "Bash(opencite ids *)",
       "Read",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:docs.datalad.org)",
@@ -180,7 +185,8 @@
     "caveman@caveman": true,
     "skill-creator@claude-plugins-official": true,
     "document-skills@anthropic-agent-skills": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "opencite@research-skills": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
@@ -211,6 +217,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/skills"
+      }
+    },
+    "research-skills": {
+      "source": {
+        "source": "github",
+        "repo": "neuromechanist/research-skills"
       }
     }
   },
