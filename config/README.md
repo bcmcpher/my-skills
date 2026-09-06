@@ -90,6 +90,7 @@ per-language environments, deliberately kept off any project environment:
 |---|---|---|
 | `rtk` | `~/.local/bin` | PreToolUse Bash hook |
 | `code-review-graph` | `~/.claude-lsp-tools` (venv) | PostToolUse / SessionStart / SessionEnd, via `graph-update.sh` |
+| `igraph` (library, not a binary) | `~/.claude-lsp-tools` (venv) | `code-review-graph communities` — Leiden, instead of the directory-grouping fallback |
 | `pyright` | `~/.claude-lsp-tools` (venv) | `pyright-lsp` plugin, per-project |
 | `yt-dlp` | `~/.claude-lsp-tools` (venv) | the `youtube-transcript` skill |
 | `zotero-cli`, `zotero-mcp` | `~/.claude-lsp-tools` (venv) | the `zotero-cli` skill |
