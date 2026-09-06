@@ -14,7 +14,13 @@ package path, never `nvm`.
 `uv venv` deliberately does not install `pip`, so `~/.claude-lsp-tools/bin/pip` does not exist —
 use `uv pip install --python <venv>/bin/python`, which targets the venv without activating it.
 
-Currently: `code-review-graph` and `pyright` in the first, `@fission-ai/openspec` in the second.
+Currently: `code-review-graph`, `pyright`, `yt-dlp` and `zotero-mcp-server` in the first,
+`@fission-ai/openspec` in the second. `igraph` is there too — a library rather than a CLI,
+supplying `code-review-graph`'s `communities` extra, without which community detection
+falls back to grouping by directory and only restates the file tree.
+
+`config/tools/python-tools.txt` and `node-tools.txt` are the authority on that list;
+`bin/rebuild-tools --check` verifies the live environments against the locks.
 
 Harness tools are not project dependencies. Adding one to a project's `pyproject.toml` or
 `package.json` makes the lockfile lie and breaks the tool when that environment is rebuilt.

@@ -1,6 +1,16 @@
 code-review-graph
 pyright
 
+# igraph — the `communities` extra of code-review-graph. Without it, community
+# detection falls back to grouping by directory, which only restates the file
+# tree; with it, Leiden runs and the groupings are semantic. Measured on
+# mtg-graph: 7 directory groups (cohesion 0.115-0.295) became 16 communities
+# (0.101-0.545), cutting across directories.
+# Listed as its own package rather than as `code-review-graph[communities]`
+# because --check and --freeze match with `grep "^${pkg}=="`, where the brackets
+# would be read as a character class and never match.
+igraph
+
 # yt-dlp — used by the youtube-transcript skill to pull subtitle tracks.
 yt-dlp
 
