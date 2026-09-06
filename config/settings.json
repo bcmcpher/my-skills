@@ -186,7 +186,8 @@
     "skill-creator@claude-plugins-official": true,
     "document-skills@anthropic-agent-skills": true,
     "claude-md-management@claude-plugins-official": true,
-    "opencite@research-skills": true
+    "opencite@research-skills": true,
+    "pyright-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
