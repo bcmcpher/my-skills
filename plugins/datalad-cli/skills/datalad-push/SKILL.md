@@ -6,7 +6,7 @@ description: >
   push to GitHub, OSF, or other storage. Trigger on "push to remote", "publish dataset",
   "upload to sibling", "share changes", "push to GitHub", "send to storage", or
   /datalad-push. Do NOT trigger for plain git push in repos without DataLad context.
-argument-hint: '--to <sibling> [--data {nothing|anything|auto-if-wanted}] [-r]'
+argument-hint: '--to <sibling> [--data {anything|nothing|auto|auto-if-wanted}] [-r]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
@@ -43,10 +43,13 @@ before git history reaches the git host.
    ```
 
 4. **Determine data mode** — present the choice:
-   - **auto-if-wanted** (default): pushes only content the sibling has declared it wants
-     via its `annex-wanted` expression. This is the default but **only works when the
-     sibling has `annex-wanted` configured** — if not configured, no content will be pushed
-   - **nothing**: push git history only, skip all annexed content
+   - **auto-if-wanted** (default): if the sibling has a `wanted` setting, behave as `auto`;
+     if it does not, behave as `anything`. The failure mode to watch for is therefore the
+     *configured* case, not the unconfigured one — a sibling with a `wanted` expression that
+     matches nothing gives a push that reports success and transfers no content
+   - **auto**: `git annex copy --auto` — transfer only content that would satisfy the
+     sibling's `wanted` or `numcopies` settings (so: nothing, when neither is set)
+   - **nothing**: push git history only, skip `git annex copy` altogether
    - **anything**: push all locally present annexed content regardless of wanted rules
 
    Ask if annexed data handling is unclear from context.
@@ -59,7 +62,7 @@ before git history reaches the git host.
 
 6. **Construct and show command**:
    ```
-   datalad push --to <sibling> [--data {nothing|anything|auto-if-wanted}] [-r]
+   datalad push --to <sibling> [--data {anything|nothing|auto|auto-if-wanted}] [-r]
    ```
    Show the full command before executing.
 

@@ -258,6 +258,9 @@ if cmdword "${CW}(rtk[[:space:]]+)?rm([[:space:]]|\$)"; then
     [ -z "$t" ] && continue
     # Same three expansions rule 2 uses for redirection destinations. Without
     # them `rm -rf "$HOME"` reads as a literal path and matches nothing.
+    # shellcheck disable=SC2088  # these are case *patterns* matching a literal
+    # tilde in untrusted command text; expanding them is exactly what must not
+    # happen here, since the whole point is to resolve `~` ourselves.
     case "$t" in
       "~")         t="$HOME" ;;
       "~/"*)       t="${HOME}${t#\~}" ;;

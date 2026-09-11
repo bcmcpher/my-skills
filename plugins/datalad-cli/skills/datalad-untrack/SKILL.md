@@ -64,8 +64,8 @@ before choosing the operation.
 5. **Warn about remote availability** (Option A only) — if `git annex whereis` shows
    the only copy is `here` (local), warn:
    > "Warning: no remote copy of this content exists. Dropping will make the content
-   > unrecoverable unless you have a backup. Use `--nocheck` only if you accept
-   > permanent data loss. Proceed?"
+   > unrecoverable unless you have a backup. Use `--reckless availability` only if you
+   > accept permanent data loss. Proceed?"
    Wait for explicit confirmation before continuing.
 
 6. **Execute the chosen workflow**:

@@ -53,8 +53,9 @@ Identifies missing, corrupt, or unreachable content and guides recovery.
 
 5. **Suggest recovery based on findings**:
    - **Missing content**: run `datalad get <path>` to re-fetch from a known remote
-   - **Corrupt content**: drop the corrupt copy with `datalad drop --nocheck <path>`,
-     then re-fetch with `datalad get <path>`
+   - **Corrupt content**: drop the corrupt copy with `datalad drop --reckless availability <path>`,
+     then re-fetch with `datalad get <path>`. (`--nocheck` is the deprecated spelling of the
+     same thing and still works, but DataLad tells you to use `--reckless availability`.)
    - **Unrecoverable** (no remote has the content): inform the user the content is lost
      and cannot be recovered automatically — escalate to manual investigation
 

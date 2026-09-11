@@ -56,15 +56,39 @@ datalad siblings add -s github \
 
 ## Special remotes
 
+**Git siblings and special remotes are created by different tools.** `datalad siblings add
+--url` configures a *Git* remote. It does not create a git-annex special remote, and using it
+for object storage produces a sibling that accepts history but has nowhere to put annexed
+content — a later `push --to github` then fails on the `--publish-depends store` hop. Storage
+targets come from `git annex initremote`; `datalad siblings` picks them up afterwards.
+
+The exceptions are the `datalad create-sibling-*` family (RIA stores, GitHub, GitLab, GIN…)
+and extensions that ship their own sibling type, such as `datalad-osf`.
+
 | Remote type | How to add |
 |-------------|-----------|
 | **OSF** (Open Science Framework) | `datalad siblings add -s osf-storage --url osf://<project-id>` (requires `datalad-osf` extension) |
-| **S3** | Configure as a git-annex S3 special remote; enable with `datalad siblings enable -s <name>` after cloning |
-| **WebDAV** | `--url webdavs://nextcloud.example.com/remote.php/dav/files/user/dataset` |
+| **S3** | `git annex initremote store type=S3 encryption=none bucket=<bucket>` — a git-annex special remote, *not* a `siblings add --url` target |
+| **WebDAV** | `git annex initremote store type=webdav url=https://nextcloud.example.com/remote.php/dav/files/user/dataset encryption=none` |
 | **gin.g-node.org** | Standard SSH/HTTPS sibling; also supports annexed content natively |
 
 After cloning a dataset that had a special remote, run `datalad siblings enable -s <name>`
 before trying to `datalad get` content from it.
+
+### Counting copies before you trust a remote
+
+To ask how many repositories actually hold a file's content, read the count out of the JSON
+rather than counting lines:
+
+```bash
+git annex whereis --json <path> | jq '.whereis | length'
+```
+
+`git annex whereis <path> | grep -c ...` counts *files*, not copies, so it returns 1 for a
+single file whether the content has five copies or none beyond the local annex.
+
+This is a pre-flight look, not the safety check. `datalad drop`'s own refusal is the real
+check — it is what stands between you and deleting the last copy.
 
 ---
 
@@ -116,14 +140,22 @@ These use git-annex preferred-content expressions. Common values:
 
 | Mode | Behavior |
 |------|----------|
-| `auto-if-wanted` | Default; pushes annexed content only if the remote's `--annex-wanted` expression matches |
-| `nothing` | Push git history only; skip all annexed content |
+| `auto-if-wanted` | **Default.** Uses `auto` if the remote has a `wanted` setting; otherwise behaves as `anything` |
+| `auto` | `git annex copy --auto` — transfers only content satisfying the remote's `wanted` or `numcopies` settings (so nothing, when neither is set) |
+| `nothing` | Push git history only; skip the `git annex copy` call altogether |
 | `anything` | Push all locally present annexed content regardless of wanted expression |
 
 ```bash
 datalad push --to github --data nothing       # git history only
 datalad push --to osf-storage --data anything # all annexed content
 ```
+
+The trap is `auto-if-wanted` on a remote that *does* have a `wanted` expression: the push
+reports success while `git annex copy --auto` decides nothing needs transferring, and the
+sibling clones cleanly but delivers no data. Exit status is not the check — count the copies
+on the far side (see the copy-count recipe under "Special remotes" above). A remote with no
+`wanted` setting at all does not have this problem, because `auto-if-wanted` falls through to
+`anything`.
 
 ---
 

@@ -28,14 +28,14 @@
     },
     {
       "name": "datalad-cli",
-      "description": "Routes data processing and file changes through DataLad for reproducible data management",
-      "version": "0.1.0",
+      "description": "Route data processing through DataLad for provenance (20 datalad-* skills), and assess research objects against the STAMPED reproducibility principles.",
+      "version": "0.3.0",
       "source": "./plugins/datalad-cli"
     },
     {
       "name": "git-workflow",
       "description": "Git workflow best practices and PR lifecycle commands for Claude Code sessions",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "./plugins/git-workflow"
     },
     {
@@ -43,12 +43,6 @@
       "description": "Modular neuroimaging analysis workflows",
       "version": "0.1.0",
       "source": "./plugins/modular-analysis"
-    },
-    {
-      "name": "modular-analysis-workspace",
-      "description": "Workspace configuration for modular neuroimaging analysis",
-      "version": "0.1.0",
-      "source": "./plugins/modular-analysis-workspace"
     },
     {
       "name": "nipoppy-cli",

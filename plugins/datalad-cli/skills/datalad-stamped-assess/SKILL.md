@@ -37,8 +37,9 @@ Grading is a **spectrum, not pass/fail**. Grade each principle as ✓ satisfied 
    - **S** — `.datalad/` presence; `.gitmodules` (inputs linked as subdatasets vs copied);
      registered URLs (`git annex whereis` / `datalad status --annex`); a top-level `README`.
    - **T** — `git log --oneline` depth; git-annex backend; `datalad run`/`download-url`
-     provenance in commit messages (`git log --grep '=== Do not change lines below ==='` or
-     `datalad log` if available).
+     provenance in commit messages (`git log --oneline --grep '\[DATALAD RUNCMD\]'`), and
+     `git annex whereis --json <path> | jq '.whereis | length'` for how many repositories
+     hold a given file. There is no `datalad log` command — see `/datalad-log`.
    - **A** — runnable instructions: `README`, `Makefile`, `Snakefile`, `*.sh` in `code/`;
      presence of replayable `datalad run` commits.
    - **M** — `inputs/` / `code/` / `outputs/` separation; subdatasets and their boundaries.

@@ -33,9 +33,18 @@ Once a plugin graduates to its own repo you can add it as a standalone marketpla
 
 | Plugin | Description |
 |--------|-------------|
-| [example-hello](./plugins/example-hello/) | Working example: `/hello` skill + greeter subagent |
+| [bids](./plugins/bids/) | BIDS (Brain Imaging Data Structure) conventions and dataset validation for neuroimaging data |
 | [boutiques](./plugins/boutiques/) | `/boutiques <cmd> [subcmd]` — generate a Boutiques 0.5 JSON descriptor from `--help` output |
-| [testing](./plugins/testing/) | `/tdd` for test-first development; `/retrofit-tests` for adding coverage to existing code |
+| [datalad-cli](./plugins/datalad-cli/) | 20 `datalad-*` skills routing data processing through DataLad for provenance, plus a STAMPED reproducibility assessment |
+| [git-workflow](./plugins/git-workflow/) | Git workflow practices and PR lifecycle commands (`/commit`, `/commit-push-pr`, `/review-pr`, `/clean-gone`) |
+| [modular-analysis](./plugins/modular-analysis/) | `/analysis-plan` and `/analysis-refactor` — structure repeated analyses around a five-layer architecture |
+| [nipoppy-cli](./plugins/nipoppy-cli/) | Skills for the nipoppy neuroimaging pipeline management framework |
+| [programming-tools](./plugins/programming-tools/) | `/tdd`, `/retrofit-tests`, `/code-check`, plus six review subagents (code review, simplification, silent failures, type design, comments, PR tests) |
+| [project-init](./plugins/project-init/) | Scaffold and configure new projects across coding-tool, data-analysis, and info-management types |
+| [stat-analysis](./plugins/stat-analysis/) | Merge input data, plan the right statistical test with QC checks, and scaffold a jupytext report |
+
+Every plugin is listed in [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json);
+`bin/validate` fails if that file and `plugins/` disagree.
 
 ---
 
@@ -44,19 +53,25 @@ Once a plugin graduates to its own repo you can add it as a standalone marketpla
 Start new tools by copying a template:
 
 ```bash
-cp -r templates/skill  plugins/my-new-skill
-cp -r templates/agent  plugins/my-new-agent
-cp -r templates/plugin plugins/my-new-plugin
+bin/new-plugin skill  my-new-skill      # or: agent | hook | mcp
 ```
 
-Then replace all `PLUGIN_NAME`, `SKILL_NAME`, `AGENT_NAME` placeholders with real names.
-Each template includes a `SETUP.md` with detailed setup instructions — it's the first thing to read after copying and the last thing to replace with your own `README.md`.
+`bin/new-plugin` copies the chosen template, renames the placeholder directories, and replaces
+the `PLUGIN_NAME` / `SKILL_NAME` / `AGENT_NAME` tokens for you. Copying by hand works too
+(`cp -r templates/skill plugins/my-new-skill`), but then the renaming is yours to do.
 
 | Template | Use when |
 |----------|----------|
 | [templates/skill/](./templates/skill/) | Adding a slash command or auto-invoked instruction |
 | [templates/agent/](./templates/agent/) | Adding a specialized subagent with isolated context |
-| [templates/plugin/](./templates/plugin/) | Full plugin: skills + agents + hooks + MCP server |
+| [templates/hooks/](./templates/hooks/) | Adding PreToolUse / PostToolUse / Stop hooks to a plugin |
+| [templates/mcp/](./templates/mcp/) | Adding MCP server stubs (Python, TypeScript, Docker) to a plugin |
+
+The `skill` and `agent` templates each ship a `SETUP.md` — the first thing to read after copying,
+and the last thing to replace with your own `README.md`. `bin/graduate <name>` checks that you did.
+
+For a full plugin combining skills, agents, hooks and MCP, use [`reference/plugin/`](./reference/plugin/)
+as the structural reference rather than a template.
 
 ---
 
@@ -68,21 +83,29 @@ Each template includes a `SETUP.md` with detailed setup instructions — it's th
 |---|---|
 | A slash command or auto-triggered instruction set | `templates/skill` |
 | A specialized subagent with its own context and policy | `templates/agent` |
-| Both, plus hooks or MCP servers | `templates/plugin` |
+| To add hooks to a plugin you already have | `templates/hooks` |
+| To add an MCP server to a plugin you already have | `templates/mcp` |
 
-Start with the smallest template that covers your need. You can always promote a skill to a full plugin later.
+Start with the smallest template that covers your need — a skill plugin can gain agents, hooks,
+or an MCP server later without being rebuilt.
 
-### 2. Copy and rename
-
-```bash
-cp -r templates/skill  plugins/my-new-skill   # or agent / plugin
-```
-
-Then rename the placeholder directories inside:
+### 2. Scaffold
 
 ```bash
-mv plugins/my-new-skill/skills/SKILL_NAME  plugins/my-new-skill/skills/my-new-skill
+bin/new-plugin skill my-new-skill      # type: skill | agent | hook | mcp
 ```
+
+This copies the template, renames the `SKILL_NAME` / `AGENT_NAME` directories, and substitutes the
+`PLUGIN_NAME` / `SKILL_NAME` / `AGENT_NAME` tokens throughout. Doing it by hand is the same work:
+
+```bash
+cp -r templates/skill plugins/my-new-skill
+mv plugins/my-new-skill/skills/SKILL_NAME plugins/my-new-skill/skills/my-new-skill
+```
+
+`bin/new-plugin mcp <name>` scaffolds three parallel server stubs — Python (FastMCP/uv),
+TypeScript (MCP SDK/tsx), and Docker — all wired into `.mcp.json`. Delete the ones you will not
+use, and remove their entries from `.mcp.json`, before testing.
 
 ### 3. Edit the manifest (`plugin.json`)
 
@@ -171,31 +194,37 @@ Optional but useful:
 ```
 my-skills/
 ├── README.md
-├── .gitignore
+├── CLAUDE.md                # Guidance for Claude Code working in this repo
+├── .claude-plugin/
+│   └── marketplace.json     # The `local` marketplace; one entry per plugin
+├── bin/                     # Repo tooling
+│   ├── new-plugin           # Scaffold a plugin from a template
+│   ├── validate             # Manifest + frontmatter + marketplace checks (runs in CI)
+│   ├── graduate             # Is this plugin fully converted and publishable?
+│   ├── sync-config          # config/ ↔ ~/.claude/
+│   ├── rebuild-tools        # Rebuild/verify the harness tool environments
+│   └── test-hooks           # Exercise the PreToolUse hooks against tests/
 ├── config/                  # Global ~/.claude/ config tracked here
 │   ├── settings.json        # Enabled plugins, permissions, global hooks wiring
 │   ├── hooks/               # Global hook scripts (~/.claude/hooks/)
-│   └── skills/              # Standalone globally-installed skills (~/.claude/skills/)
+│   ├── skills/              # Standalone globally-installed skills (~/.claude/skills/)
+│   ├── tools/               # Lock files for the harness tool environments
+│   └── xdg/                 # Tool configs outside ~/.claude/ (openspec, caveman)
+├── plans/                   # Design docs for work not yet built
+├── reference/               # Quick reference for skill authors
+│   ├── plugin/              # Annotated plugin anatomy, incl. .lsp.json
+│   ├── settings.md          # Settings hierarchy, permissions, env vars
+│   ├── memory.md            # CLAUDE.md patterns, .claude/rules/, @path imports
+│   └── statusline.md        # statusLine config and command contract
 ├── templates/
-│   ├── skill/               # Pure skill template
+│   ├── skill/               # Slash command / auto-invoked instruction only
 │   │   ├── SETUP.md         # Setup guide (replace with README.md when done)
 │   │   └── skills/SKILL_NAME/
-│   │       ├── SKILL.md
-│   │       ├── scripts/     # Helper scripts bundled with the skill
-│   │       ├── references/  # Reference docs loaded on demand
-│   │       └── assets/      # Static files used in output
-│   ├── agent/               # Custom subagent template
+│   ├── agent/               # Custom subagent only
 │   │   ├── SETUP.md
 │   │   └── agents/AGENT_NAME/
-│   │       ├── SKILL.md
-│   │       ├── scripts/
-│   │       ├── references/
-│   │       └── assets/
-│   └── plugin/              # Full plugin template (skills + agents + hooks + MCP)
-│       ├── SETUP.md
-│       ├── hooks/
-│       │   └── hooks.json.example   # Activate by copying to hooks.json
-│       └── .mcp.json
-└── plugins/
-    └── example-hello/       # Working example plugin
+│   ├── hooks/               # PreToolUse / PostToolUse / Stop hook stubs
+│   └── mcp/                 # MCP server stubs (Python, TypeScript, Docker)
+├── tests/                   # Case table for bin/test-hooks
+└── plugins/                 # One directory per installable plugin
 ```

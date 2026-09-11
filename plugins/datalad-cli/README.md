@@ -26,6 +26,7 @@ provenance tracking. Follows YODA principles for reproducible local analysis pro
 | `datalad-export` | `/datalad-export` | Explicit: exporting to archive or Figshare |
 | `datalad-log` | `/datalad-log` | Auto: browsing run history and provenance |
 | `datalad-credentials` | `/datalad-credentials` | Auto: setting up authentication credentials |
+| `datalad-fsck` | `/datalad-fsck` | Auto: checking annex integrity for missing or corrupt content |
 
 ## Install
 
@@ -71,6 +72,26 @@ mapped to the skills above — run `/datalad-stamped-assess [path] --plan`. See
 `references/stamped-principles.md` for the full checklist and `references/yoda-layout.md` for
 the YODA layout detail.
 
+## Relationship to the K-Dense `datalad` skill
+
+`K-Dense-AI/scientific-agent-skills` ships a [`datalad`
+skill](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/datalad) covering
+the same tool. The two are deliberately different shapes, and neither supersedes the other:
+
+| | This plugin | The K-Dense skill |
+|---|---|---|
+| Shape | 20 skills, one per command, each auto-invocable on its own trigger | One agent-facing decision skill plus three reference files |
+| Optimized for | Driving DataLad from a session, command by command | Deciding *whether and how* to reach for DataLad at all |
+| Ships | Hooks, a STAMPED assessment skill, per-command references | A failure-mode table, data-access / provenance / publishing references |
+
+Its author wrote it independently, and credited this plugin as MIT-licensed orientation
+material in [PR #227](https://github.com/K-Dense-AI/scientific-agent-skills/pull/227). The
+STAMPED property→command mapping went the other way: it originates in
+`references/stamped-principles.md` here and was contributed upstream.
+
+Because the two overlap on facts, a correction to one is usually a correction to both — worth
+checking the other before assuming a divergence is intentional.
+
 ## Auto-checkpoint hook
 
 The plugin installs a `Stop` hook that runs after every Claude turn. If the current
@@ -92,11 +113,16 @@ The hook exits silently (no error, no commit) when:
 - `DATALAD_AUTOSAVE=0` is set
 - There are no modified or untracked files
 
-**Checkpoint commits in run history**: checkpoint commits appear in `datalad log` and
-`git log` alongside `datalad run` provenance records. They are identifiable by the
-`[datalad] checkpoint` prefix in their message. To list only run records:
+**Checkpoint commits in run history**: checkpoint commits appear in `git log` alongside
+`datalad run` provenance records. (There is no `datalad log` command — use `git log`, and
+`datalad rerun --report <sha>` to inspect a single run record without re-executing it.)
+
+The `[datalad] checkpoint …` line above is what the hook prints to the terminal. The *commit*
+it writes is subject-prefixed `Auto-checkpoint`, so the two are separated like this:
+
 ```bash
-git log --oneline --grep="\[datalad run\]"
+git log --oneline --grep='\[DATALAD RUNCMD\]'   # run records only
+git log --oneline --grep='^Auto-checkpoint'      # hook checkpoints only
 ```
 
 ## Structure

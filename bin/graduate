@@ -55,10 +55,15 @@ fi
 # ── 3. No placeholder tokens in key authored files ───────────────────────────
 # Only scan manifest, SKILL.md files, hooks, and MCP config — not reference
 # docs, which can legitimately contain words like DESCRIPTION or skill-name.
+#
+# Inline code spans are stripped before matching. A token inside backticks is
+# the thing being *documented*, not a leftover: project-init's skills tabulate
+# R's `DESCRIPTION` file, which is not a template placeholder. Fenced blocks are
+# unaffected, since their content lines carry no backticks of their own.
 
 while IFS= read -r file; do
   for token in "${PLACEHOLDERS[@]}"; do
-    if grep -qF "$token" "$file" 2>/dev/null; then
+    if sed 's/`[^`]*`//g' "$file" 2>/dev/null | grep -qF "$token"; then
       add_error "placeholder '$token' still present in: ${file#"$PLUGIN_DIR/"}"
       break  # one error per file is enough
     fi

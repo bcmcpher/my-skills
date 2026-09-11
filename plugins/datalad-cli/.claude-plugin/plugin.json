@@ -1,10 +1,19 @@
 {
   "name": "datalad-cli",
   "description": "Route data processing and file changes through DataLad for provenance tracking (datalad create, run, save), and assess research objects against the STAMPED reproducibility principles. Follows YODA principles for reproducible local analysis projects.",
-  "version": "0.2.0",
-  "author": { "name": "bcmcpher" },
+  "version": "0.3.0",
+  "author": {
+    "name": "bcmcpher"
+  },
   "license": "MIT",
-  "keywords": ["datalad", "provenance", "reproducibility", "yoda", "stamped", "data-management"],
+  "keywords": [
+    "datalad",
+    "provenance",
+    "reproducibility",
+    "yoda",
+    "stamped",
+    "data-management"
+  ],
   "skills": [
     "./skills/datalad-init",
     "./skills/datalad-stamped-assess",

@@ -11,6 +11,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLUGINS_DIR="$REPO_ROOT/plugins"
+MARKETPLACE="$REPO_ROOT/.claude-plugin/marketplace.json"
 
 PLACEHOLDERS=("PLUGIN_NAME" "SKILL_NAME" "AGENT_NAME" "DESCRIPTION" "skill-name" "agent-name")
 
@@ -235,6 +236,57 @@ if [[ ${#all_skill_names[@]} -gt 0 ]]; then
     fi
   done
 fi
+
+# ── Marketplace consistency ───────────────────────────────────────────────────
+# Only meaningful on a full run: a single-plugin run cannot tell a missing
+# marketplace entry from one it simply was not asked about.
+
+marketplace_errors=0
+if [[ $# -eq 0 && -f "$MARKETPLACE" ]]; then
+  if ! jq empty "$MARKETPLACE" 2>/dev/null; then
+    echo ""
+    echo "MARKETPLACE — .claude-plugin/marketplace.json is not valid JSON"
+    marketplace_errors=1
+  else
+    mp_issues=()
+
+    # Every marketplace entry must resolve to a real plugin at the declared version.
+    while IFS=$'\t' read -r mp_name mp_version mp_source; do
+      [[ -z "$mp_name" ]] && continue
+      src_dir="$REPO_ROOT/${mp_source#./}"
+      if [[ ! -d "$src_dir" ]]; then
+        mp_issues+=("  ✗ $mp_name: source directory does not exist: $mp_source")
+        continue
+      fi
+      src_manifest="$src_dir/.claude-plugin/plugin.json"
+      if [[ ! -f "$src_manifest" ]]; then
+        mp_issues+=("  ✗ $mp_name: $mp_source has no .claude-plugin/plugin.json")
+        continue
+      fi
+      pj_version=$(jq -r '.version // empty' "$src_manifest" 2>/dev/null || true)
+      if [[ "$pj_version" != "$mp_version" ]]; then
+        mp_issues+=("  ✗ $mp_name: version mismatch — marketplace $mp_version, plugin.json $pj_version")
+      fi
+    done < <(jq -r '.plugins[] | [.name, .version, .source] | @tsv' "$MARKETPLACE" 2>/dev/null)
+
+    # Every real plugin must have a marketplace entry, or it is uninstallable.
+    while IFS= read -r plugin_dir; do
+      [[ -f "$plugin_dir/.claude-plugin/plugin.json" ]] || continue
+      pname="$(basename "$plugin_dir")"
+      if ! jq -e --arg n "$pname" '.plugins[] | select(.name == $n)' "$MARKETPLACE" >/dev/null 2>&1; then
+        mp_issues+=("  ✗ $pname: plugin exists on disk but has no marketplace.json entry")
+      fi
+    done < <(find "$PLUGINS_DIR" -mindepth 1 -maxdepth 1 -type d | sort)
+
+    if [[ ${#mp_issues[@]} -gt 0 ]]; then
+      echo ""
+      echo "MARKETPLACE — .claude-plugin/marketplace.json is out of step with plugins/:"
+      printf '%s\n' "${mp_issues[@]}"
+      marketplace_errors=1
+    fi
+  fi
+fi
+[[ $marketplace_errors -eq 1 ]] && fail=$((fail + 1))
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
