@@ -62,14 +62,16 @@ for object storage produces a sibling that accepts history but has nowhere to pu
 content — a later `push --to github` then fails on the `--publish-depends store` hop. Storage
 targets come from `git annex initremote`; `datalad siblings` picks them up afterwards.
 
-The exceptions are the `datalad create-sibling-*` family (RIA stores, GitHub, GitLab, GIN…)
-and extensions that ship their own sibling type, such as `datalad-osf`.
+The exceptions are the `datalad create-sibling-*` family, which set up both halves for you
+where they apply — `create-sibling-ria`, `-github`, `-gitlab`, `-gin` in core, plus
+`create-sibling-webdav` from `datalad-next` — and extensions shipping their own sibling type,
+such as `datalad-osf`. Prefer those over hand-rolling `initremote` when one covers your target.
 
 | Remote type | How to add |
 |-------------|-----------|
 | **OSF** (Open Science Framework) | `datalad siblings add -s osf-storage --url osf://<project-id>` (requires `datalad-osf` extension) |
 | **S3** | `git annex initremote store type=S3 encryption=none bucket=<bucket>` — a git-annex special remote, *not* a `siblings add --url` target |
-| **WebDAV** | `git annex initremote store type=webdav url=https://nextcloud.example.com/remote.php/dav/files/user/dataset encryption=none` |
+| **WebDAV** (Nextcloud, ownCloud, box.com…) | `datalad create-sibling-webdav <url>` — requires the `datalad-next` extension, and creates the Git sibling *and* its storage sibling in one call. Without that extension: `git annex initremote store type=webdav url=<url> encryption=none` |
 | **gin.g-node.org** | Standard SSH/HTTPS sibling; also supports annexed content natively |
 
 After cloning a dataset that had a special remote, run `datalad siblings enable -s <name>`
