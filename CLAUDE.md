@@ -37,11 +37,19 @@ Harness tools — hook binaries, LSP servers, and the CLIs that global skills sh
 environment. `bin/rebuild-tools` recreates both from the manifests in `config/tools/` and verifies
 each binary resolves under `env -i`, which is how hooks see them.
 
-When a capability ships both an MCP server and a CLI, take the CLI and put a skill around it. An
-MCP server's tool schemas are sent on every request whether used or not; a skill costs its
-frontmatter until it fires. `zotero-mcp` measures this on itself: 13,448 tokens per request for
-the default MCP profile versus 98 for the equivalent CLI skill. `config/README.md` has the full
-table and the exception (`code-review-graph`, queried constantly, so not idle weight).
+When a capability ships both an MCP server and a CLI, take the CLI and put a skill around it.
+Per-request cost no longer settles this on its own. Since Claude Code 2.1.232, tool search is on
+by default: an MCP server's tools are announced by name, and a tool's schema enters context only
+when the model loads it through `ToolSearch`. On 2.1.270, code-review-graph's 30 deferred tools
+cost no more per request than CodeGraph's one (15,370 vs 15,508 tokens on the first request).
+Full schemas go out on every request again whenever tool search is off
+(`ENABLE_TOOL_SEARCH=false`, or a custom `ANTHROPIC_BASE_URL`). That is when zotero-mcp's
+published 13,448-token figure applies. A skill costs about 98 tokens of frontmatter either way.
+
+The preference now rests on cost that doesn't depend on a setting, and on usage: in
+`evaluations/2026-09-14-code-graph-tools/`, deferred MCP tools went unused unless the prompt
+pointed at them. `config/README.md` has the measurements, the conditions, and the
+`code-review-graph` exception.
 
 ## Architecture
 
