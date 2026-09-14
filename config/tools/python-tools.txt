@@ -41,3 +41,13 @@ opencite[pdf]
 # markit-mistral lazily and only when MISTRAL_API_KEY is set, so the failure is
 # invisible until the day a key is added — hence the pin rather than a note.
 mistralai<2
+
+# python-pptx, lxml, xlsxwriter — for the pptx and pptx-posters skills
+# (claude-scientific-writer marketplace), which build and validate decks in Python.
+# They were installed here by hand and were not tracked, so `bin/rebuild-tools`
+# (`uv venv --clear`) silently dropped them. lxml and xlsxwriter are python-pptx
+# dependencies; like igraph above, they are named on their own lines so --check
+# verifies them directly rather than only through the parent.
+python-pptx
+lxml
+xlsxwriter
