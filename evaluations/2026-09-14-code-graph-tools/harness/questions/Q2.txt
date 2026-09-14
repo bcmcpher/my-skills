@@ -1,0 +1,4 @@
+
+If the rounding behaviour of `world_to_voxel_indices` (src/crane/utils/coords.py) changes, which functions and methods in `src/` are affected? List the direct callers, their callers, and their callers' callers (three levels up), including callers that import it through a re-export such as `from crane.utils import ...`. Give file:line for each.
+
+Do not modify any files.

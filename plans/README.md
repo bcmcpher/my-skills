@@ -10,6 +10,7 @@ table is the index.
 | Plan | Date | Status | What would unblock it |
 |---|---|---|---|
 | [zotero-citation-export-pipeline](./zotero-citation-export-pipeline.md) | 2026-09-03, extended 2026-09-04 | Draft — not approved, not started | Answering the 9 ranked questions in "Still to check". The two that gate the design: whether `zotero-cli read` shares the silent truncation found in `get fulltext` (if so, the plan's extraction benchmark was measured through a capped surface), and whether BBT citekeys are pinned (unpinned keys mean a re-run builds a second export tree instead of updating the first). |
+| [code-graph-alternatives-eval](./code-graph-alternatives-eval.md) | 2026-09-14 | Deferred: keeping code-review-graph. Results in [`evaluations/2026-09-14-code-graph-tools/`](../evaluations/2026-09-14-code-graph-tools/). | A clear performance gain from a large-repo test (≥500 files, tool search on). On crane every setup hit the same accuracy ceiling. |
 
 ## Conventions
 

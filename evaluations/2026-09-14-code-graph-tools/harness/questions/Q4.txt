@@ -1,0 +1,5 @@
+This repository is crane (Python).
+
+`src/crane/persistence/bundle_io.py` ends up depending on `src/crane/connectome/exports.py` even though it never imports it directly. Trace the shortest chain of module-level imports (imports that run when the module is loaded, not ones inside functions or under `if TYPE_CHECKING:`) that leads from `crane.persistence.bundle_io` to `crane.connectome.exports`. For each hop, give the importing module, the file:line of the import statement, and the module it imports. Say whether any other chain of the same length exists.
+
+Do not modify any files.

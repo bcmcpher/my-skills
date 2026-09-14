@@ -20,8 +20,10 @@ yt-dlp
 # zotero-mcp-server — 54yyyu/zotero-mcp. NOT the PyPI package named
 # "zotero-mcp", which is the unrelated kujenga/zotero-mcp project.
 # Provides the `zotero-cli` binary and `zotero-mcp install-skill`.
-# The MCP server itself is deliberately NOT enabled: its default profile costs
-# ~13.4k tokens of tool schemas on every request, versus ~98 for the CLI skill.
+# The MCP server itself is deliberately NOT enabled. Its default profile's schemas
+# cost ~13.4k tokens per request whenever tool search is off (with tool search on,
+# only tool names are sent), versus ~98 for the CLI skill in any configuration.
+# See "Why capabilities arrive as CLI skills" in config/README.md.
 # No [semantic] extra — it pulls torch via sentence-transformers.
 zotero-mcp-server
 
@@ -41,3 +43,13 @@ opencite[pdf]
 # markit-mistral lazily and only when MISTRAL_API_KEY is set, so the failure is
 # invisible until the day a key is added — hence the pin rather than a note.
 mistralai<2
+
+# python-pptx, lxml, xlsxwriter — for the pptx and pptx-posters skills
+# (claude-scientific-writer marketplace), which build and validate decks in Python.
+# They were installed here by hand and were not tracked, so `bin/rebuild-tools`
+# (`uv venv --clear`) silently dropped them. lxml and xlsxwriter are python-pptx
+# dependencies; like igraph above, they are named on their own lines so --check
+# verifies them directly rather than only through the parent.
+python-pptx
+lxml
+xlsxwriter

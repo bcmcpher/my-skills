@@ -1,0 +1,2 @@
+{"mcpServers": {"codegraph": {"type": "stdio", "command": "/tmp/codegraph-eval/bin/codegraph", "args": ["serve", "--mcp"],
+  "env": {"HOME": "/tmp/codegraph-eval/home", "CODEGRAPH_TELEMETRY": "0", "DO_NOT_TRACK": "1", "CODEGRAPH_NO_DAEMON": "1", "PATH": "/tmp/codegraph-eval/bin:/usr/bin:/bin"}}}}

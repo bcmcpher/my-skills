@@ -1,0 +1,4 @@
+
+Which functions or methods call `Network.get_matrix` (src/crane/connectome/network.py) on an object they received as a parameter, rather than on `self`? For each, give the file:line of the call and the parameter name.
+
+Do not modify any files.

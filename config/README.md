@@ -221,33 +221,60 @@ let-through case matters at least as much as the block case:
 
 ## Why capabilities arrive as CLI skills, not MCP servers
 
-An MCP server sends every enabled tool's name, description and full JSON parameter schema to the
-model on **every request**, before you have typed anything. A skill sends only its frontmatter
-description until the model decides it is relevant. For a capability used occasionally, that
-difference dominates.
+What an MCP server costs per request depends on whether Claude Code's tool search is on.
 
-`zotero-mcp` publishes its own measurement, and it is the clearest available statement of the
-trade-off:
+**Tool search on (the default since Claude Code 2.1.232).** The server's tools are announced to
+the model by name only. A tool's description and JSON parameter schema enter context when the
+model loads that tool with `ToolSearch`. Measured on 2.1.270 during the
+[code-graph evaluation](../evaluations/2026-09-14-code-graph-tools/README.md), a session's first
+request cost 15,370 tokens with code-review-graph's 30 tools and 15,508 with CodeGraph's one. The
+number of tools made no measurable difference.
+
+**Tool search off.** Every enabled tool's name, description and full schema is sent on every
+request, before anything has been typed. Tool search is off when `ENABLE_TOOL_SEARCH=false`, when
+`ANTHROPIC_BASE_URL` points at a custom endpoint, and for pre-4.5 models on Google Cloud's Agent
+Platform. The same two sessions then cost 44,330 and 30,394 tokens on their first request, which
+puts code-review-graph's schemas at roughly 14k tokens per request.
+
+`zotero-mcp` publishes the full-schema cost of its own profiles, so its figures show what a
+server costs with tool search off:
 
 | Route | Tokens in context | Paid |
 |---|---:|---|
-| MCP, default profile (38 tools) | 13,448 | every request |
-| MCP, `ZOTERO_MCP_TOOLSETS=none` (32 tools) | 11,761 | every request |
-| MCP, `ZOTERO_MCP_TOOLSETS=all` (50 tools) | 17,414 | every request |
-| CLI skill, frontmatter only | 98 | always |
+| MCP, default profile (38 tools) | 13,448 | every request with tool search off; names only with it on |
+| MCP, `ZOTERO_MCP_TOOLSETS=none` (32 tools) | 11,761 | every request with tool search off; names only with it on |
+| MCP, `ZOTERO_MCP_TOOLSETS=all` (50 tools) | 17,414 | every request with tool search off; names only with it on |
+| CLI skill, frontmatter only | 98 | every request, in any configuration |
 | CLI skill, body loaded | 1,368 | once the skill fires |
 
-`ZOTERO_MCP_TOOLSETS` only toggles *optional* groups — the ~32 core tools cannot be trimmed, so
-the floor is 11,761 tokens on every turn.
+`ZOTERO_MCP_TOOLSETS` only toggles *optional* groups. The ~32 core tools cannot be trimmed, so with
+tool search off the floor is 11,761 tokens per request.
 
 **The rule for this config:** if a capability ships both an MCP server and a CLI, take the CLI and
-write (or generate) a skill around it. Reach for an MCP server only when it offers something a CLI
-genuinely cannot — a live connection, a stateful session, or a resource the model must be able to
-subscribe to. `code-review-graph` is the current exception, and it earns it: it is queried
-constantly during ordinary work, so its schemas are not idle weight.
+write (or generate) a skill around it. With tool search on, per-request cost no longer decides
+this by itself. The preference rests on three things:
 
-That is the fixed cost only. It says nothing about task success or round trips — a cheaper surface
-that gets the answer wrong is not cheaper.
+- **Cost that doesn't depend on a setting.** A skill costs its frontmatter in every
+  configuration. An MCP server's cost jumps to full schemas in each of the tool-search-off cases
+  above, and nothing warns you when that happens.
+- **Deferred tools go unused.** In the code-graph evaluation, deferred MCP tools were never called
+  unless the prompt pointed at them: 0 calls in both default-mode runs. Even with every schema
+  loaded and the tool's installer guidance appended, code-review-graph was called in 0 of 4 runs.
+  Whether a skill gets invoked more reliably was not measured.
+- **A CLI works outside Claude Code too:** from a shell, a script, or a hook.
+
+Reach for an MCP server only when it offers something a CLI genuinely cannot: a live connection, a
+stateful session, or a resource the model must be able to subscribe to.
+
+**`code-review-graph` remains the exception.** With tool search on, its 30 tools cost nothing per
+request until loaded. `~/CLAUDE.md` tells the model to reach for them before Grep, and the
+evaluation showed that an instruction of that kind is what gets any graph tool used. Where tool
+search is off, `CRG_TOOLS` can trim the server to the five tools that file names, which measured
+8.6k characters of schemas against 38.6k for all 30.
+
+All of this is fixed cost. It says nothing about task success or round trips: a cheaper surface
+that gets the answer wrong is not cheaper. In the evaluation, neither graph tool beat plain Grep
+and Read on accuracy or cost for a 167-file repo.
 
 ## Setting up Zotero on a new machine
 
