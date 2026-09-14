@@ -1,0 +1,4 @@
+
+How does `Connectome.to_link_network` (src/crane/connectome/workspace.py) turn a connectome's streamline assignment into a `LinkNetwork`? Trace the call chain two levels deep from `to_link_network`: name each function or method it reaches, with file:line, and explain in a few sentences what each stage contributes.
+
+Do not modify any files.

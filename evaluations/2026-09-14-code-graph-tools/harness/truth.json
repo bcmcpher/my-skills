@@ -1,0 +1,219 @@
+{
+ "Q1": {
+  "items": [
+   "_axial_angle",
+   "_edges_kept_by",
+   "_label_pair_keys",
+   "_populate_edge_matrices",
+   "_populate_node_features",
+   "_require_edge_orientations",
+   "_resolve_node_coords",
+   "_resolve_node_labels",
+   "_resolve_node_names",
+   "_to_link_matrix",
+   "_voxel_orientation_map",
+   "build_link_features",
+   "compute_angular_links",
+   "compute_dice_links",
+   "compute_intersection_summary_links",
+   "compute_link_intersection_angles",
+   "compute_mi_feature_links",
+   "compute_profile_similarity_links",
+   "edge_feature_matrix",
+   "feature_matrix",
+   "from_features",
+   "from_matrices",
+   "get_edge_voxels",
+   "get_streamline_coords",
+   "metadata",
+   "profile_feature_matrix",
+   "require_assignment",
+   "restrict_intersections_to_edges",
+   "restrict_orientations_to_edges",
+   "world_to_voxel"
+  ],
+  "reachable": {
+   "crg": [
+    "_edges_kept_by",
+    "_label_pair_keys",
+    "_require_edge_orientations",
+    "_to_link_matrix",
+    "build_link_features",
+    "compute_angular_links",
+    "compute_dice_links",
+    "compute_intersection_summary_links",
+    "compute_link_intersection_angles",
+    "compute_mi_feature_links",
+    "compute_profile_similarity_links",
+    "edge_feature_matrix",
+    "feature_matrix",
+    "from_features",
+    "from_matrices",
+    "get_edge_voxels",
+    "get_streamline_coords",
+    "profile_feature_matrix",
+    "require_assignment"
+   ],
+   "cg": [
+    "_label_pair_keys",
+    "_populate_node_features",
+    "_to_link_matrix",
+    "build_link_features",
+    "compute_dice_links",
+    "compute_link_intersection_angles",
+    "edge_feature_matrix",
+    "feature_matrix",
+    "from_matrices",
+    "metadata",
+    "restrict_intersections_to_edges",
+    "restrict_orientations_to_edges"
+   ]
+  }
+ },
+ "Q2": {
+  "items": [
+   "__init__",
+   "_assign_endpoints",
+   "_call",
+   "_compute_single_edge_orientation",
+   "_sample_edge",
+   "_world_to_ijk",
+   "compute_edge_orientation_summary",
+   "compute_many",
+   "compute_node_sampling",
+   "compute_sampling",
+   "compute_volume_features",
+   "get_edge_voxels",
+   "to_link_network",
+   "world_to_voxel"
+  ],
+  "reachable": {
+   "crg": [],
+   "cg": [
+    "__init__",
+    "_assign_endpoints",
+    "_compute_single_edge_orientation",
+    "world_to_voxel"
+   ]
+  }
+ },
+ "Q3": {
+  "items": [
+   "_edge_rows",
+   "_resolve_edge_pairs_and_weights",
+   "_resolve_edge_style_values",
+   "_resolve_feature_matrix",
+   "edge_table",
+   "matrix_bundle",
+   "save_network",
+   "to_pyg"
+  ],
+  "reachable": {
+   "crg": [
+    "_edge_rows",
+    "edge_table",
+    "matrix_bundle",
+    "save_network",
+    "to_pyg"
+   ],
+   "cg": [
+    "_resolve_edge_pairs_and_weights",
+    "_resolve_edge_style_values",
+    "_resolve_feature_matrix",
+    "save_network"
+   ]
+  }
+ },
+ "Q4": {
+  "items": [
+   "crane/persistence/bundle_io.py",
+   "crane/connectome/workspace.py",
+   "crane/connectome/network.py",
+   "crane/connectome/exports.py"
+  ],
+  "chain": [
+   "crane.persistence.bundle_io",
+   "crane.connectome.workspace",
+   "crane.connectome.network",
+   "crane.connectome.exports"
+  ],
+  "hops": 3,
+  "reachable": {
+   "crg": [
+    "crane/connectome/network.py",
+    "crane/connectome/workspace.py",
+    "crane/persistence/bundle_io.py"
+   ],
+   "cg": [
+    "crane/connectome/workspace.py",
+    "crane/persistence/bundle_io.py"
+   ]
+  }
+ },
+ "Q4_old": {
+  "items": [
+   "crane/connectome/__init__.py",
+   "crane/connectome/edge_mask.py",
+   "crane/connectome/network.py",
+   "crane/connectome/network_group.py",
+   "crane/connectome/sampling_store.py",
+   "crane/connectome/workspace.py",
+   "crane/edges/cleaning.py",
+   "crane/links/link_network.py",
+   "crane/parcellation/parcellation.py",
+   "crane/persistence/bundle_io.py",
+   "crane/persistence/connectome_io.py",
+   "crane/persistence/edge_mask_io.py",
+   "crane/persistence/network_io.py",
+   "crane/persistence/parcellation_io.py"
+  ],
+  "cycles": [
+   [
+    "connectome",
+    "edges"
+   ],
+   [
+    "connectome",
+    "links"
+   ],
+   [
+    "connectome",
+    "persistence"
+   ],
+   [
+    "parcellation",
+    "persistence"
+   ]
+  ],
+  "reachable": {
+   "crg": [
+    "crane/connectome/__init__.py",
+    "crane/connectome/edge_mask.py",
+    "crane/connectome/network.py",
+    "crane/connectome/network_group.py",
+    "crane/connectome/sampling_store.py",
+    "crane/connectome/workspace.py",
+    "crane/edges/cleaning.py",
+    "crane/links/link_network.py",
+    "crane/parcellation/parcellation.py",
+    "crane/persistence/bundle_io.py",
+    "crane/persistence/connectome_io.py",
+    "crane/persistence/edge_mask_io.py",
+    "crane/persistence/network_io.py",
+    "crane/persistence/parcellation_io.py"
+   ],
+   "cg": [
+    "crane/connectome/__init__.py",
+    "crane/connectome/edge_mask.py",
+    "crane/connectome/network.py",
+    "crane/connectome/network_group.py",
+    "crane/connectome/workspace.py",
+    "crane/edges/cleaning.py",
+    "crane/links/link_network.py",
+    "crane/parcellation/parcellation.py",
+    "crane/persistence/network_io.py",
+    "crane/persistence/parcellation_io.py"
+   ]
+  }
+ }
+}

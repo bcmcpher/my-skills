@@ -45,7 +45,7 @@ table and the exception (`code-review-graph`, queried constantly, so not idle we
 
 ## Architecture
 
-This is a monorepo of Claude Code plugins and global config. Each plugin lives in `plugins/<name>/` and is independently installable. Templates in `templates/` serve as copy-paste starters. `config/` tracks the user-level `~/.claude/` files that are portable across machines. `plans/` holds design docs for work that is scoped but not yet built — see `plans/README.md` for what belongs there.
+This is a monorepo of Claude Code plugins and global config. Each plugin lives in `plugins/<name>/` and is independently installable. Templates in `templates/` serve as copy-paste starters. `config/` tracks the user-level `~/.claude/` files that are portable across machines. `plans/` holds design docs for work that is scoped but not yet built — see `plans/README.md` for what belongs there. `evaluations/` holds measured tool and configuration comparisons, one dated directory each, with the decision and the harness to rerun it.
 
 ### Plugin anatomy
 
