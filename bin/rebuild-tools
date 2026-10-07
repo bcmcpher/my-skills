@@ -2,7 +2,7 @@
 # rebuild-tools — rebuild (or verify) the harness tool environments.
 #
 # Usage:
-#   bin/rebuild-tools            Rebuild both envs from the lock files
+#   bin/rebuild-tools            Rebuild both envs (and the deno tools) from the lock files
 #   bin/rebuild-tools --latest   Re-resolve from the intent files, ignoring locks
 #   bin/rebuild-tools --check    Verify only; change nothing, exit 1 on a problem
 #   bin/rebuild-tools --freeze   Record the current envs into the lock files
@@ -72,6 +72,24 @@ node_freeze() {
     | jq -r '.dependencies // {} | to_entries[] | "\(.key)@\(.value.version)"' | sort
 }
 
+# Deno tools are JSR packages that npm cannot see, installed by the `deno` that
+# node-tools.txt puts in $NODE_ENV. A deno-tools.txt line is
+# `<command> <spec> [permission flags...]`, e.g. `bids-validator jsr:@bids/validator -ERWN`;
+# the lock line is the same with the spec pinned (`jsr:@bids/validator@3.0.2`).
+# `deno install` writes a shell shim whose exec line quotes the resolved spec,
+# so the shim itself records the installed version.
+deno_installed_spec() {
+  local shim="$NODE_ENV/bin/$1"
+  [[ -f "$shim" ]] || return 0
+  grep -o "'\(jsr\|npm\):[^']*'" "$shim" | head -1 | tr -d "'" || true
+}
+
+deno_lines() { grep -vE '^\s*(#|$)' "$1" 2>/dev/null || true; }
+
+# The commands every rebuild and check must find without a login shell.
+BINS=(code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite deno)
+while read -r name _; do BINS+=("$name"); done < <(deno_lines "$TOOLS_DIR/deno-tools.txt")
+
 # ------------------------------------------------------------------ freeze
 if [[ "$MODE" == "freeze" ]]; then
   need uv; need npm; need jq
@@ -93,6 +111,18 @@ if [[ "$MODE" == "freeze" ]]; then
     printf '%s\n' "$NODE_STATE" | grep -qF "${pkg}@" \
       || bad "$pkg is in node-tools.txt but not installed"
   done < "$TOOLS_DIR/node-tools.txt"
+
+  DENO_STATE=""
+  while read -r name spec flags; do
+    have=$(deno_installed_spec "$name")
+    # The pinned spec must extend the intent spec, so a shim left over from a
+    # different package under the same command name is not frozen as this one.
+    if [[ "$have" == "${spec}@"* ]]; then
+      DENO_STATE+="$name $have${flags:+ $flags}"$'\n'
+    else
+      bad "$name ($spec) is in deno-tools.txt but not installed${have:+ (shim runs $have)}"
+    fi
+  done < <(deno_lines "$TOOLS_DIR/deno-tools.txt")
 
   if [[ $fail -ne 0 ]]; then
     echo "Refusing to write a lock from an incomplete environment." >&2
@@ -122,6 +152,7 @@ if [[ "$MODE" == "freeze" ]]; then
 
   printf '%s\n' "$PY_STATE"   | write_lock "$TOOLS_DIR/python-lock.txt" python-tools.txt
   printf '%s\n' "$NODE_STATE" | write_lock "$TOOLS_DIR/node-lock.txt"   node-tools.txt
+  printf '%s'   "$DENO_STATE" | write_lock "$TOOLS_DIR/deno-lock.txt"   deno-tools.txt
 
   echo "Review before committing:  git diff config/tools/"
   exit 0
@@ -168,8 +199,20 @@ if [[ "$MODE" == "check" ]]; then
     fi
   done < "$TOOLS_DIR/node-tools.txt"
 
+  while read -r name spec _; do
+    want=$(awk -v n="$name" '$1 == n { print $2; exit }' "$TOOLS_DIR/deno-lock.txt" 2>/dev/null || true)
+    have=$(deno_installed_spec "$name")
+    if [[ -n "$want" && "$have" == "$want" ]]; then
+      ok "$name $want"
+    elif [[ -z "$want" ]]; then
+      bad "$name not in deno-lock.txt — run bin/rebuild-tools --freeze"
+    else
+      bad "$name: want $want, have ${have:-nothing}"
+    fi
+  done < <(deno_lines "$TOOLS_DIR/deno-tools.txt")
+
   echo "Resolution without a login shell (how hooks see these):"
-  for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite; do
+  for b in "${BINS[@]}"; do
     resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
   done
 
@@ -207,9 +250,26 @@ else
 fi
 [[ ${#pkgs[@]} -gt 0 ]] && npm --prefix "$NODE_ENV" install -g "${pkgs[@]}"
 
+# Deno tools after Node, because the deno that installs them comes from node-tools.txt.
+# --root puts the shim in $NODE_ENV/bin; -f replaces a shim pinned to another version.
+# The package itself is cached under deno's own cache dir (DENO_DIR, ~/.cache/deno by
+# default), not here, so the first run after a cache wipe re-downloads it.
+echo "Deno → $NODE_ENV/bin"
+if [[ "$MODE" == "lock" && -s "$TOOLS_DIR/deno-lock.txt" ]]; then
+  deno_src="$TOOLS_DIR/deno-lock.txt"
+else
+  deno_src="$TOOLS_DIR/deno-tools.txt"
+fi
+while read -r name spec flags; do
+  # $flags is deliberately unquoted: it holds zero or more separate flags.
+  # shellcheck disable=SC2086
+  "$NODE_ENV/bin/deno" install -g -f --root "$NODE_ENV" -n "$name" $flags "$spec" \
+    || bad "deno install of $name ($spec) failed"
+done < <(deno_lines "$deno_src")
+
 echo
 echo "Verifying"
-for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite; do
+for b in "${BINS[@]}"; do
   resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
 done
 

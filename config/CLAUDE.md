@@ -15,11 +15,13 @@ package path, never `nvm`.
 use `uv pip install --python <venv>/bin/python`, which targets the venv without activating it.
 
 Currently: `code-review-graph`, `pyright`, `yt-dlp`, `zotero-cli`/`zotero-mcp` and `opencite` in
-the first, `@fission-ai/openspec` in the second. `igraph` is there too — a library rather than a
+the first, `@fission-ai/openspec` and `deno` in the second, and `bids-validator` (the schema
+validator, JSR-only) installed by that `deno` into the second's `bin/`. `igraph` is there too — a library rather than a
 CLI, supplying `code-review-graph`'s `communities` extra, without which community detection falls
 back to grouping by directory and only restates the file tree.
 
-`config/tools/python-tools.txt` and `node-tools.txt` are the authority on that list;
+`config/tools/python-tools.txt`, `node-tools.txt` and `deno-tools.txt` are the authority on
+that list;
 `bin/rebuild-tools --check` verifies the live environments against the locks.
 
 The `opencite` skill's examples all say `uvx opencite`. Use the installed `opencite` instead: it

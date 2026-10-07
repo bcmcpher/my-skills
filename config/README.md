@@ -96,6 +96,8 @@ per-language environments, deliberately kept off any project environment:
 | `zotero-cli`, `zotero-mcp` | `~/.claude-lsp-tools` (venv) | the `zotero-cli` skill |
 | `opencite` | `~/.claude-lsp-tools` (venv) | the `opencite` skill (`opencite@research-skills`) |
 | `openspec` | `~/.claude-node-tools` (npm prefix) | `openspec init` per repo |
+| `deno` | `~/.claude-node-tools` (npm prefix) | runtime for the JSR tools below |
+| `bids-validator` | `~/.claude-node-tools/bin` (shim from `deno install`) | validating BIDS datasets (`jsr:@bids/validator`; npm has only the legacy 1.x) |
 | `jq` | system | both hooks and the status line |
 
 Recreate them on a new machine with `bin/rebuild-tools`, which reads the manifests in
@@ -114,6 +116,8 @@ bin/rebuild-tools --freeze   # record the current envs into the lock files
 | `config/tools/python-lock.txt` | the resolved closure, for a reproducible rebuild | `--freeze` |
 | `config/tools/node-tools.txt` | intent | you |
 | `config/tools/node-lock.txt` | pinned versions | `--freeze` |
+| `config/tools/deno-tools.txt` | intent: `<command> <jsr spec> [flags]` | you |
+| `config/tools/deno-lock.txt` | the same, with the version pinned | `--freeze` |
 
 `--check` compares the live environments against the locks, so it is the only drift detector in
 this setup — an unplanned version bump shows up there. That is why `--freeze` is a deliberate
@@ -121,6 +125,11 @@ command and **not** part of `bin/sync-config pull`: a lock regenerated on every 
 with the environment by construction, `--check` could never fail, and a version you did not
 choose would be committed as though you had. `--freeze` refuses to write a lock from an
 environment that is missing something the intent files ask for.
+
+Deno tools are installed after the npm step, by the `deno` that `node-tools.txt` provides, as
+shims in `~/.claude-node-tools/bin`. A shim's exec line names the pinned spec, which is what
+`--check` and `--freeze` read. The package itself lives in deno's cache (`~/.cache/deno` unless
+`DENO_DIR` says otherwise), so clearing that cache costs one re-download on the next run.
 
 The usual sequence for upgrading a tool is `--latest`, then `--check`, then `--freeze` once the
 resulting diff looks right.
