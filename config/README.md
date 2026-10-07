@@ -116,8 +116,9 @@ bin/rebuild-tools --freeze   # record the current envs into the lock files
 | `config/tools/python-lock.txt` | the resolved closure, for a reproducible rebuild | `--freeze` |
 | `config/tools/node-tools.txt` | intent | you |
 | `config/tools/node-lock.txt` | pinned versions | `--freeze` |
-| `config/tools/deno-tools.txt` | intent: `<command> <jsr spec> [flags]` | you |
+| `config/tools/deno-tools.txt` | intent: `<command> <jsr spec> <long-form permission flags>` | you |
 | `config/tools/deno-lock.txt` | the same, with the version pinned | `--freeze` |
+| `config/tools/deno/<command>.lock` | deno's lockfile for that tool: its whole dependency closure | `--freeze` |
 
 `--check` compares the live environments against the locks, so it is the only drift detector in
 this setup — an unplanned version bump shows up there. That is why `--freeze` is a deliberate
@@ -127,9 +128,23 @@ choose would be committed as though you had. `--freeze` refuses to write a lock 
 environment that is missing something the intent files ask for.
 
 Deno tools are installed after the npm step, by the `deno` that `node-tools.txt` provides, as
-shims in `~/.claude-node-tools/bin`. A shim's exec line names the pinned spec, which is what
-`--check` and `--freeze` read. The package itself lives in deno's cache (`~/.cache/deno` unless
-`DENO_DIR` says otherwise), so clearing that cache costs one re-download on the next run.
+shims in `~/.claude-node-tools/bin`. Three details of `deno install -g` shape how they are handled:
+
+- **The version lives in the tool's lockfile, not the shim.** The shim quotes the spec as given,
+  so after a `--latest` install it carries no version. `--freeze` and `--check` read the resolved
+  version from `~/.claude-node-tools/bin/.<command>/deno.lock`.
+- **The whole closure is pinned.** `--freeze` copies that lockfile to `config/tools/deno/`, and a
+  lock-mode rebuild installs with `--frozen-lockfile` against it, so a dependency that drifted
+  fails the install. The lock is then copied next to the shim, which runs with `--frozen`.
+- **The shim is rewritten to call deno by absolute path.** As written by deno it runs a bare
+  `deno`, which fails when called by full path from a minimal `PATH` and could silently pick up
+  a different deno. `--check` runs each deno tool by absolute path under `PATH=/usr/bin:/bin`.
+
+Everything frozen for a deno tool is read from the installed shim and lockfile, never copied from
+the intent file. `--freeze` refuses when the installed package or flags disagree with
+`deno-tools.txt`, and `--check` compares intent, lock and install on package, version, flags and
+closure. The packages themselves are cached by deno (`~/.cache/deno` unless `DENO_DIR` says
+otherwise); a cleared cache costs one re-download, still pinned by the frozen lock.
 
 The usual sequence for upgrading a tool is `--latest`, then `--check`, then `--freeze` once the
 resulting diff looks right.

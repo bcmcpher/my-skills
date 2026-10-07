@@ -24,7 +24,7 @@ bin/sync-config push           # config/ → ~/.claude/  (apply to a new machine
 
 # Rebuild or verify the harness tool environments (the CLIs hooks depend on)
 bin/rebuild-tools --check      # verify only; exits 1 on a problem
-bin/rebuild-tools              # rebuild both envs from config/tools/*-lock.txt
+bin/rebuild-tools              # rebuild both envs and the deno tools from config/tools/*-lock.txt
 bin/rebuild-tools --freeze     # record the current envs back into the lock files
 
 # Exercise the PreToolUse hooks against the case table in tests/
@@ -34,8 +34,10 @@ bin/test-hooks --repo          # test the tracked copies in config/hooks/
 
 Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
 `~/.claude-lsp-tools` (a `uv venv`) and `~/.claude-node-tools` (an npm prefix), never in a project
-environment. `bin/rebuild-tools` recreates both from the manifests in `config/tools/` and verifies
-each binary resolves under `env -i`, which is how hooks see them.
+environment. JSR-only tools such as `bids-validator` are installed into the second's `bin/` by the
+`deno` it holds, from `config/tools/deno-tools.txt`. `bin/rebuild-tools` recreates all of them from
+the manifests in `config/tools/` and verifies each binary resolves under `env -i`, which is how
+hooks see them.
 
 When a capability ships both an MCP server and a CLI, take the CLI and put a skill around it.
 Per-request cost no longer settles this on its own. Since Claude Code 2.1.232, tool search is on

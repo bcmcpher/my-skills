@@ -25,13 +25,18 @@
 # Node uses a plain npm prefix directory, NOT nvm. nvm is a shell function
 # sourced from .bashrc, so its bin directory does not exist in non-interactive
 # shells — which is exactly where hooks run.
+#
+# Deno tools are JSR packages that npm cannot see. The `deno` from node-tools.txt
+# installs them as shims in $NODE_ENV/bin; see the deno helpers below.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLS_DIR="$REPO_ROOT/config/tools"
+DENO_LOCKS="$TOOLS_DIR/deno"
 PY_ENV="$HOME/.claude-lsp-tools"
 NODE_ENV="$HOME/.claude-node-tools"
+DENO="$NODE_ENV/bin/deno"
 
 MODE="lock"
 case "${1:-}" in
@@ -51,6 +56,14 @@ need() {
   command -v "$1" >/dev/null 2>&1 || { echo "required tool not found: $1" >&2; exit 1; }
 }
 
+# Every intent and lock file shares one format: one entry per line, blank lines
+# and `#` comments (indented or not) ignored.
+intent_lines() { grep -vE '^\s*(#|$)' "$1" 2>/dev/null || true; }
+
+# The line of a lock that starts with $1, matched literally. A substring match
+# would let `@types/deno@x` stand in for `deno`.
+lock_line() { awk -v p="$1" 'index($0, p) == 1 { print; exit }' "${2:--}"; }
+
 # A tool that works in your shell but not in a hook is the failure mode this
 # whole layout exists to prevent, so verify with a scrubbed environment rather
 # than the current one.
@@ -67,28 +80,90 @@ bare_name() { printf '%s' "$1" | sed 's/[][<>=!~;,[:space:]].*//'; }
 
 py_freeze() { uv pip freeze --python "$PY_ENV/bin/python" 2>/dev/null; }
 
+# C collation, so the lock's order does not depend on whoever ran --freeze.
 node_freeze() {
   npm --prefix "$NODE_ENV" ls -g --depth=0 --json 2>/dev/null \
-    | jq -r '.dependencies // {} | to_entries[] | "\(.key)@\(.value.version)"' | sort
+    | jq -r '.dependencies // {} | to_entries[] | "\(.key)@\(.value.version)"' | LC_ALL=C sort
 }
 
-# Deno tools are JSR packages that npm cannot see, installed by the `deno` that
-# node-tools.txt puts in $NODE_ENV. A deno-tools.txt line is
-# `<command> <spec> [permission flags...]`, e.g. `bids-validator jsr:@bids/validator -ERWN`;
-# the lock line is the same with the spec pinned (`jsr:@bids/validator@3.0.2`).
-# `deno install` writes a shell shim whose exec line quotes the resolved spec,
-# so the shim itself records the installed version.
-deno_installed_spec() {
-  local shim="$NODE_ENV/bin/$1"
+# ------------------------------------------------------------------ deno tools
+# deno-tools.txt:  <command> <spec> <permission flags...>
+#                  bids-validator jsr:@bids/validator --allow-read --allow-write ...
+# deno-lock.txt:   the same line with the spec pinned (jsr:@bids/validator@3.0.2)
+# deno/<cmd>.lock: deno's own lockfile for that tool, i.e. its whole dependency closure
+#
+# Flags are written long-form because the shim deno writes uses the long form,
+# and the installed flags are compared against the lock.
+#
+# `deno install -g` writes $NODE_ENV/bin/<cmd>, a shell shim, and a config dir
+# $NODE_ENV/bin/.<cmd>/. Two facts shape the helpers:
+#  - The shim quotes the spec exactly as given, so an unversioned install
+#    records no version there. The resolved version is read from the tool's
+#    deno.lock instead, which always has it.
+#  - The shim calls `deno` by bare name. It is rewritten to call $DENO by
+#    absolute path, so it runs under any PATH and cannot pick up some other deno.
+
+deno_shim() { printf '%s' "$NODE_ENV/bin/$1"; }
+deno_installed_lock() { printf '%s' "$NODE_ENV/bin/.$1/deno.lock"; }
+
+# Strip a trailing @version. `jsr:@scope/name@1.2.3` → `jsr:@scope/name`; the
+# scope's leading @ survives because only a final `@<no slash>` is removed.
+deno_unpinned() { printf '%s' "$1" | sed 's|@[^@/]*$||'; }
+
+# Flag lists compare as sets.
+sorted_flags() { printf '%s\n' "$@" | LC_ALL=C sort | xargs; }
+
+deno_installed_version() {
+  local lock spec="$2"
+  lock=$(deno_installed_lock "$1")
+  [[ -f "$lock" ]] || return 0
+  jq -r --arg p "${spec}@" \
+    '.specifiers // {} | to_entries[] | select(.key | startswith($p)) | .value' "$lock" \
+    | head -1
+}
+
+# The permission flags the shim actually passes, minus --frozen, which deno adds
+# itself when the install used a lockfile.
+deno_installed_flags() {
+  local shim
+  shim=$(deno_shim "$1")
+  [[ -f "$shim" ]] || return 0
+  # shellcheck disable=SC2046  # word-splitting the flag list is the point
+  sorted_flags $(grep -m1 '^exec ' "$shim" | grep -oE -- '--allow-[a-z-]+(=[^ ]*)?' || true)
+}
+
+deno_shim_spec() {
+  local shim
+  shim=$(deno_shim "$1")
   [[ -f "$shim" ]] || return 0
   grep -o "'\(jsr\|npm\):[^']*'" "$shim" | head -1 | tr -d "'" || true
 }
 
-deno_lines() { grep -vE '^\s*(#|$)' "$1" 2>/dev/null || true; }
+deno_shim_absolute() { grep -qF "exec \"$DENO\" run" "$(deno_shim "$1")" 2>/dev/null; }
+
+# Runs the tool by absolute path with nothing useful on PATH: how a hook that
+# follows the explicit-path rule would call it.
+deno_tool_runs() {
+  env -i PATH=/usr/bin:/bin HOME="$HOME" "$(deno_shim "$1")" --version >/dev/null 2>&1
+}
+
+# Install one tool, then point its shim at $DENO and give it its lockfile.
+# With a tracked lock the install is --frozen: a dependency whose integrity hash
+# differs from the lock fails instead of being silently re-resolved. deno does not
+# copy that lock next to the shim, and the shim runs with --frozen, so it is copied.
+deno_install() {
+  local name="$1" spec="$2" tracked="$3"; shift 3
+  local args=(install -g -f --root "$NODE_ENV" -n "$name")
+  [[ -n "$tracked" ]] && args+=(--lock="$tracked" --frozen-lockfile)
+  # stdin from /dev/null so deno cannot eat the caller's `while read` input.
+  "$DENO" "${args[@]}" "$@" "$spec" </dev/null || { bad "deno install of $name ($spec) failed"; return; }
+  [[ -n "$tracked" ]] && cp "$tracked" "$(deno_installed_lock "$name")"
+  sed -i "s|^exec deno run|exec \"$DENO\" run|" "$(deno_shim "$name")"
+}
 
 # The commands every rebuild and check must find without a login shell.
 BINS=(code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite deno)
-while read -r name _; do BINS+=("$name"); done < <(deno_lines "$TOOLS_DIR/deno-tools.txt")
+while read -r name _; do BINS+=("$name"); done < <(intent_lines "$TOOLS_DIR/deno-tools.txt")
 
 # ------------------------------------------------------------------ freeze
 if [[ "$MODE" == "freeze" ]]; then
@@ -102,27 +177,38 @@ if [[ "$MODE" == "freeze" ]]; then
   # environment that is already missing something the intent files ask for --
   # that would quietly drop a tool that is still wanted.
   while read -r pkg; do
-    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
     printf '%s\n' "$PY_STATE" | grep -qi "^$(bare_name "$pkg")==" \
       || bad "$pkg is in python-tools.txt but not installed"
-  done < "$TOOLS_DIR/python-tools.txt"
+  done < <(intent_lines "$TOOLS_DIR/python-tools.txt")
   while read -r pkg; do
-    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-    printf '%s\n' "$NODE_STATE" | grep -qF "${pkg}@" \
+    [[ -n "$(printf '%s\n' "$NODE_STATE" | lock_line "${pkg}@")" ]] \
       || bad "$pkg is in node-tools.txt but not installed"
-  done < "$TOOLS_DIR/node-tools.txt"
+  done < <(intent_lines "$TOOLS_DIR/node-tools.txt")
 
+  # Everything recorded for a deno tool is read from what is installed, never
+  # copied from the intent file, so the lock cannot describe an install that
+  # never happened. Where the install disagrees with the intent, refuse.
   DENO_STATE=""
+  DENO_FROZEN=()
   while read -r name spec flags; do
-    have=$(deno_installed_spec "$name")
-    # The pinned spec must extend the intent spec, so a shim left over from a
-    # different package under the same command name is not frozen as this one.
-    if [[ "$have" == "${spec}@"* ]]; then
-      DENO_STATE+="$name $have${flags:+ $flags}"$'\n'
+    shim_spec=$(deno_shim_spec "$name")
+    version=$(deno_installed_version "$name" "$spec")
+    have_flags=$(deno_installed_flags "$name")
+    # shellcheck disable=SC2086
+    want_flags=$(sorted_flags $flags)
+    if [[ -z "$shim_spec" ]]; then
+      bad "$name ($spec) is in deno-tools.txt but not installed"
+    elif [[ "$(deno_unpinned "$shim_spec")" != "$spec" ]]; then
+      bad "$name: deno-tools.txt names $spec, but the installed shim runs $shim_spec"
+    elif [[ -z "$version" ]]; then
+      bad "$name: no resolved version for $spec in $(deno_installed_lock "$name")"
+    elif [[ "$have_flags" != "$want_flags" ]]; then
+      bad "$name: installed with '$have_flags', deno-tools.txt asks for '$want_flags' — rebuild first"
     else
-      bad "$name ($spec) is in deno-tools.txt but not installed${have:+ (shim runs $have)}"
+      DENO_STATE+="$name ${spec}@${version} $have_flags"$'\n'
+      DENO_FROZEN+=("$name")
     fi
-  done < <(deno_lines "$TOOLS_DIR/deno-tools.txt")
+  done < <(intent_lines "$TOOLS_DIR/deno-tools.txt")
 
   if [[ $fail -ne 0 ]]; then
     echo "Refusing to write a lock from an incomplete environment." >&2
@@ -154,6 +240,16 @@ if [[ "$MODE" == "freeze" ]]; then
   printf '%s\n' "$NODE_STATE" | write_lock "$TOOLS_DIR/node-lock.txt"   node-tools.txt
   printf '%s'   "$DENO_STATE" | write_lock "$TOOLS_DIR/deno-lock.txt"   deno-tools.txt
 
+  mkdir -p "$DENO_LOCKS"
+  for name in "${DENO_FROZEN[@]}"; do
+    if cmp -s "$(deno_installed_lock "$name")" "$DENO_LOCKS/$name.lock"; then
+      note "deno/$name.lock unchanged"
+    else
+      cp "$(deno_installed_lock "$name")" "$DENO_LOCKS/$name.lock"
+      ok "deno/$name.lock updated"
+    fi
+  done
+
   echo "Review before committing:  git diff config/tools/"
   exit 0
 fi
@@ -173,23 +269,21 @@ if [[ "$MODE" == "check" ]]; then
     bad "$PY_ENV missing"
   fi
 
-  [[ -d "$NODE_ENV" ]] && ok "$NODE_ENV present" || bad "$NODE_ENV missing"
+  if [[ -d "$NODE_ENV" ]]; then ok "$NODE_ENV present"; else bad "$NODE_ENV missing"; fi
 
   while read -r pkg; do
-    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
     name=$(bare_name "$pkg")
     want=$(grep -i "^${name}==" "$TOOLS_DIR/python-lock.txt" 2>/dev/null | head -1 || true)
     if [[ -n "$want" ]]; then
       have=$(uv pip freeze --python "$PY_ENV/bin/python" 2>/dev/null | grep -i "^${name}==" || true)
-      [[ "$have" == "$want" ]] && ok "$want" || bad "$pkg: want ${want:-?}, have ${have:-nothing}"
+      if [[ "$have" == "$want" ]]; then ok "$want"; else bad "$pkg: want ${want:-?}, have ${have:-nothing}"; fi
     else
       bad "$pkg not in python-lock.txt — run bin/rebuild-tools --freeze"
     fi
-  done < "$TOOLS_DIR/python-tools.txt"
+  done < <(intent_lines "$TOOLS_DIR/python-tools.txt")
 
   while read -r pkg; do
-    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-    want=$(grep -F "${pkg}@" "$TOOLS_DIR/node-lock.txt" 2>/dev/null | head -1 || true)
+    want=$(lock_line "${pkg}@" "$TOOLS_DIR/node-lock.txt" 2>/dev/null || true)
     have=$(npm --prefix "$NODE_ENV" ls -g --depth=0 --json 2>/dev/null \
              | jq -r --arg p "$pkg" '.dependencies[$p].version // empty' || true)
     if [[ -n "$have" && "${pkg}@${have}" == "$want" ]]; then
@@ -197,24 +291,53 @@ if [[ "$MODE" == "check" ]]; then
     else
       bad "$pkg: want ${want:-?}, have ${have:-nothing}"
     fi
-  done < "$TOOLS_DIR/node-tools.txt"
+  done < <(intent_lines "$TOOLS_DIR/node-tools.txt")
 
-  while read -r name spec _; do
-    want=$(awk -v n="$name" '$1 == n { print $2; exit }' "$TOOLS_DIR/deno-lock.txt" 2>/dev/null || true)
-    have=$(deno_installed_spec "$name")
-    if [[ -n "$want" && "$have" == "$want" ]]; then
-      ok "$name $want"
-    elif [[ -z "$want" ]]; then
+  # Intent against lock, then lock against what is installed: package, version,
+  # permission flags, dependency closure, and how the shim finds deno.
+  while read -r name spec flags; do
+    read -r _ lock_spec lock_flags <<<"$(lock_line "$name " "$TOOLS_DIR/deno-lock.txt" 2>/dev/null || true)"
+    if [[ -z "${lock_spec:-}" ]]; then
       bad "$name not in deno-lock.txt — run bin/rebuild-tools --freeze"
-    else
-      bad "$name: want $want, have ${have:-nothing}"
+      continue
     fi
-  done < <(deno_lines "$TOOLS_DIR/deno-tools.txt")
+    # shellcheck disable=SC2086
+    want_flags=$(sorted_flags $flags)
+    # shellcheck disable=SC2086
+    lock_flags=$(sorted_flags $lock_flags)
+    lock_version="${lock_spec##*@}"
+    problems=()
+    [[ "$(deno_unpinned "$lock_spec")" == "$spec" ]] \
+      || problems+=("deno-tools.txt names $spec but the lock pins $lock_spec; run --freeze")
+    [[ "$want_flags" == "$lock_flags" ]] \
+      || problems+=("deno-tools.txt flags '$want_flags' differ from the lock's '$lock_flags'")
+    have_version=$(deno_installed_version "$name" "$spec")
+    [[ "$have_version" == "$lock_version" ]] \
+      || problems+=("want $lock_spec, have ${have_version:-nothing}")
+    [[ "$(deno_installed_flags "$name")" == "$lock_flags" ]] \
+      || problems+=("installed flags '$(deno_installed_flags "$name")', lock has '$lock_flags'")
+    cmp -s "$(deno_installed_lock "$name")" "$DENO_LOCKS/$name.lock" \
+      || problems+=("dependency closure differs from deno/$name.lock")
+    deno_shim_absolute "$name" \
+      || problems+=("shim does not call $DENO by absolute path")
+    if [[ ${#problems[@]} -eq 0 ]]; then
+      ok "$name $lock_spec"
+    else
+      for p in "${problems[@]}"; do bad "$name: $p"; done
+    fi
+  done < <(intent_lines "$TOOLS_DIR/deno-tools.txt")
 
   echo "Resolution without a login shell (how hooks see these):"
   for b in "${BINS[@]}"; do
-    resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
+    if resolves_noninteractively "$b"; then ok "$b"; else bad "$b does not resolve non-interactively"; fi
   done
+  while read -r name _; do
+    if deno_tool_runs "$name"; then
+      ok "$name runs by absolute path with PATH=/usr/bin:/bin"
+    else
+      bad "$name fails by absolute path with PATH=/usr/bin:/bin"
+    fi
+  done < <(intent_lines "$TOOLS_DIR/deno-tools.txt")
 
   if [[ $fail -eq 0 ]]; then
     echo "All good."
@@ -237,41 +360,49 @@ if [[ "$MODE" == "lock" && -s "$TOOLS_DIR/python-lock.txt" ]]; then
 else
   # Intent file only; uv resolves current versions. Follow with
   # `bin/rebuild-tools --freeze` to record the new closure in the lock.
-  grep -vE '^\s*(#|$)' "$TOOLS_DIR/python-tools.txt" | xargs -r \
+  intent_lines "$TOOLS_DIR/python-tools.txt" | xargs -r \
     uv pip install --python "$PY_ENV/bin/python"
 fi
 
 echo "Node → $NODE_ENV"
 mkdir -p "$NODE_ENV"
 if [[ "$MODE" == "lock" && -s "$TOOLS_DIR/node-lock.txt" ]]; then
-  mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$TOOLS_DIR/node-lock.txt")
+  mapfile -t pkgs < <(intent_lines "$TOOLS_DIR/node-lock.txt")
 else
-  mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$TOOLS_DIR/node-tools.txt")
+  mapfile -t pkgs < <(intent_lines "$TOOLS_DIR/node-tools.txt")
 fi
 [[ ${#pkgs[@]} -gt 0 ]] && npm --prefix "$NODE_ENV" install -g "${pkgs[@]}"
 
 # Deno tools after Node, because the deno that installs them comes from node-tools.txt.
-# --root puts the shim in $NODE_ENV/bin; -f replaces a shim pinned to another version.
-# The package itself is cached under deno's own cache dir (DENO_DIR, ~/.cache/deno by
-# default), not here, so the first run after a cache wipe re-downloads it.
+# The packages themselves are cached under deno's own cache dir (DENO_DIR,
+# ~/.cache/deno by default), not here, so the first run after a cache wipe
+# re-downloads them; the frozen lock still pins exactly what comes back.
 echo "Deno → $NODE_ENV/bin"
 if [[ "$MODE" == "lock" && -s "$TOOLS_DIR/deno-lock.txt" ]]; then
-  deno_src="$TOOLS_DIR/deno-lock.txt"
+  while read -r name spec flags; do
+    tracked="$DENO_LOCKS/$name.lock"
+    if [[ ! -f "$tracked" ]]; then
+      note "no deno/$name.lock; installing $spec unfrozen — run --freeze afterwards"
+      tracked=""
+    fi
+    # shellcheck disable=SC2086  # $flags holds several separate flags
+    deno_install "$name" "$spec" "$tracked" $flags
+  done < <(intent_lines "$TOOLS_DIR/deno-lock.txt")
 else
-  deno_src="$TOOLS_DIR/deno-tools.txt"
+  while read -r name spec flags; do
+    # shellcheck disable=SC2086
+    deno_install "$name" "$spec" "" $flags
+  done < <(intent_lines "$TOOLS_DIR/deno-tools.txt")
 fi
-while read -r name spec flags; do
-  # $flags is deliberately unquoted: it holds zero or more separate flags.
-  # shellcheck disable=SC2086
-  "$NODE_ENV/bin/deno" install -g -f --root "$NODE_ENV" -n "$name" $flags "$spec" \
-    || bad "deno install of $name ($spec) failed"
-done < <(deno_lines "$deno_src")
 
 echo
 echo "Verifying"
 for b in "${BINS[@]}"; do
-  resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
+  if resolves_noninteractively "$b"; then ok "$b"; else bad "$b does not resolve non-interactively"; fi
 done
+while read -r name _; do
+  if deno_tool_runs "$name"; then ok "$name runs by absolute path"; else bad "$name fails by absolute path"; fi
+done < <(intent_lines "$TOOLS_DIR/deno-tools.txt")
 
 cat <<'EOS'
 
