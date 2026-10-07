@@ -131,28 +131,32 @@ Deno tools are installed after the npm step and run by the `deno` that `node-too
 provides. `rebuild-tools` does not use `deno install`; it lays each tool out itself:
 
 - **A tool directory** at `~/.claude-node-tools/lib/deno-tools/<command>/`, holding an empty
-  `deno.json` and the tool's `deno.lock` beside it. `deno cache` fills deno's module cache from
-  that lock; in lock mode it runs `--frozen` against `config/tools/deno/<command>.lock`, so a
-  dependency whose hash drifted fails the install.
-- **A wrapper** at `~/.claude-node-tools/bin/<command>`, which runs
-  `<absolute path to deno> run --frozen --config <tool dir>/deno.json <flags> <pinned spec>`.
+  `deno.json`, the tool's `deno.lock` beside it, and `cache/`, the tool's own `DENO_DIR`.
+  `deno cache` fills that cache from the lock; in lock mode it runs `--frozen` against
+  `config/tools/deno/<command>.lock`, so a dependency whose hash drifted fails the install, and
+  deno's error is shown. The tool's code therefore lives in the harness env, not in deno's shared
+  `~/.cache/deno`, which a `deno clean` elsewhere or a different `XDG_CACHE_HOME` would empty.
+- **A wrapper** at `~/.claude-node-tools/bin/<command>`, which sets that `DENO_DIR` and runs
+  `<absolute path to deno> run --frozen --cached-only --config <tool dir>/deno.json <flags> <pinned spec>`.
   The absolute path makes it work when called by full path from a minimal `PATH`, and stops it
-  from picking up some other deno. Its header records the pinned spec and the flags.
-- **Every install is pinned.** An unpinned intent line (`--latest`, or no lock yet) is first
-  resolved to the latest published version, so the lock `--freeze` records always has the key
-  a lock-mode rebuild installs.
+  from picking up some other deno; `--cached-only` means it never downloads at run time, so it
+  works offline. Its header records the pinned spec and the flags.
+- **Every install is pinned.** The tool list is always `deno-tools.txt`, so a plain rebuild
+  installs a newly added tool. A tool whose package `deno-lock.txt` pins installs that version;
+  any other (`--latest`, or not frozen yet) is first resolved to the latest published version,
+  so the lock `--freeze` records always has the key a lock-mode rebuild installs. Specs may carry
+  a subpath (`jsr:@scope/pkg/cli`); the version goes after the package.
 - **Installs are staged.** Each tool is assembled in a scratch directory and moved into place
-  only once `deno cache` succeeds, so a failed install leaves the working tool as it was.
+  only once `deno cache` succeeds, so a failed install leaves the working tool as it was. A run
+  killed mid-swap is repaired by the next one.
 
 Everything frozen for a deno tool is read from that wrapper and lockfile, never copied from the
 intent file. `--freeze` refuses when the installed package or flags disagree with
 `deno-tools.txt`, and it deletes `config/tools/deno/*.lock` files for tools no longer listed.
 `--check` compares intent, lock and install on package, version, flags (as a set), the wrapper's
 full text and the closure. It flags leftover tools, which a rebuild removes, and runs each deno
-tool by absolute path under `PATH=/usr/bin:/bin`, passing `DENO_DIR` and `XDG_CACHE_HOME` through
-so it uses the same module cache hooks do. That cache is deno's (`~/.cache/deno` unless
-`DENO_DIR` says otherwise); a cleared cache costs one re-download, still pinned by the frozen
-lock.
+tool by absolute path under `PATH=/usr/bin:/bin`. Flags containing a single quote are not
+supported.
 
 The usual sequence for upgrading a tool is `--latest`, then `--check`, then `--freeze` once the
 resulting diff looks right.
