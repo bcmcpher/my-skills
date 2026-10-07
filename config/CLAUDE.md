@@ -44,3 +44,27 @@ env -i PATH="$HOME/.claude-lsp-tools/bin:/usr/bin:/bin" bash -c '<cmd> --version
 
 Do not `sudo`, and do not install into `/usr/local` — npm's default prefix, which is not
 user-writable here by design.
+
+# New features run on a branch
+
+Build every new feature on its own branch, never directly on `main`, whatever drives it: an
+OpenSpec change, a science-superpowers plan, or an ordinary plan. The branch exists so the
+feature has a reviewable diff: before it merges, run `/code-review` against it and resolve the
+findings. Ask before merging to `main` and before pushing.
+
+- OpenSpec changes: `change/<change-id>`.
+- Science-superpowers and other plans: `plan/<plan-slug>`. Plan ticks and "As built" notes are
+  committed on the same branch as the code.
+
+Create the branch before the feature's first commit.
+
+## OpenSpec specifics
+
+In a superproject with submodules, branch every repo the change touches under the same name.
+Code commits go to the submodule branch; spec deltas, docs and `tasks.md` ticks go to the
+parent branch, whose commits pin the submodule at its branch HEAD. Merge the submodule first,
+then the parent, so the parent never pins a commit that is not on the submodule's `main`.
+
+Archive the OpenSpec change on its branch, before the merge, so the archive, the promoted
+specs and the code reach `main` together in one merge. Then `openspec/specs/` never disagrees
+with the code on `main`. In a superproject, archive on the parent branch.
