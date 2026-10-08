@@ -49,6 +49,9 @@ env -i PATH="$HOME/.claude-lsp-tools/bin:/usr/bin:/bin" HOME="$HOME" \
 | `rm -rf ./some-scratch-dir` | **prompts** (used to be a hard deny) |
 | `rm -rf ~` | **blocked** by bash-guard, names the target |
 | `rm -rf /tmp/foo` | **prompts, not blocked** — the false-positive case that matters most |
+| `/memory` | `~/.claude/CLAUDE.md` listed, with `RTK.md`, `git.md`, `specs.md`, `engineering.md`, `writing.md` imported |
+| Ask "why does X do Y?" in a repo | answers; **no** file edits |
+| Ask it to run a multi-minute job | starts a **named tmux session**, reports `tmux attach -t …` and a log path |
 | Paste a YouTube link, ask for a summary | `youtube-transcript` fires; prompts once for `yt-dlp` |
 | Ask about a paper in your library | `zotero-cli` runs **unprompted** (read subcommands are allow-listed) |
 | `claude mcp list` | **no** zotero server — it is a CLI skill on purpose, see `README.md` |
