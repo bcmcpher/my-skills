@@ -151,7 +151,7 @@ cd <repo> && code-review-graph build      # opt in to code-review-graph
 rm -rf <repo>/.code-review-graph          # opt out
 
 cd <repo> && codegraph init --yes         # opt in to CodeGraph
-echo .codegraph/ >> .git/info/exclude     # CodeGraph does not ignore its own index
+echo .codegraph/ >> "$(git rev-parse --git-path info/exclude)"   # CodeGraph does not ignore its own index
 codegraph uninit --force                  # opt out
 ```
 

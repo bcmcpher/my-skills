@@ -81,12 +81,12 @@ loaded the live global config and the project CLAUDE.md. Only the `ste` arm also
 Run it in tmux, because it takes several minutes and makes 2N billed calls:
 
 ```bash
-cd evaluations/2026-10-08-ste-docs
+cd evaluations/2026-10-08-ste-docs && mkdir -p logs
 tmux new-session -d -s ste-ab 'env -u CLAUDECODE ./run.sh 3 boutiques 2>&1 | tee logs/ab.log'
 ```
 
 `run.sh` refuses to run once `writing.md` is imported by `~/.claude/CLAUDE.md`. After that,
-compare against a run with the import commented out.
+remove the `@writing.md` line from `~/.claude/CLAUDE.md` for the run.
 
 ## Later
 

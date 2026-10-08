@@ -115,9 +115,10 @@ def check(sentence, kind):
     hedges = [h for h in HEDGES if re.search(r"\b" + h + r"\b", low)]
     if hedges:
         flags.append("hedge:" + ",".join(hedges))
-    if procedural and re.search(
+    first_word = WORD.search(sentence)
+    if procedural and first_word and re.search(
             r"(?:,|;|\band)\s+(?:then\s+)?(?:" + "|".join(sorted(IMPERATIVES)) + r")\b",
-            sentence[len(words[0]) if words else 0:], re.I):
+            sentence[first_word.end():], re.I):
         flags.append("multi-instruction")
     return flags
 
@@ -166,7 +167,8 @@ def main():
         return
     for r in results:
         rules = ", ".join(f"{k} {v}" for k, v in r["by_rule"].items()) or "none"
-        print(f"{r['score']:>5}%  {r['sentences']:>4} sentences  {r['file']}")
+        score = f"{r['score']:>5}%" if r["score"] is not None else "  n/a "
+        print(f"{score}  {r['sentences']:>4} sentences  {r['file']}")
         print(f"        flags: {rules}; paragraphs >{PARAGRAPH_MAX} sentences: {r['long_paragraphs']}")
         worst = sorted((x for x in r["rows"] if x["flags"]), key=lambda x: -len(x["flags"]))
         for x in worst[:args.show]:

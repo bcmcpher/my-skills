@@ -11,7 +11,7 @@ n="${1:-3}"
 plugin="${2:-boutiques}"
 out="$here/runs/$(date +%Y%m%d-%H%M%S)"
 
-if grep -q '@writing.md' "$HOME/.claude/CLAUDE.md" 2>/dev/null; then
+if grep -q '^@writing\.md' "$HOME/.claude/CLAUDE.md" 2>/dev/null; then
   echo "writing.md is already imported by ~/.claude/CLAUDE.md; the base arm would carry it." >&2
   exit 1
 fi

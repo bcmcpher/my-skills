@@ -37,7 +37,7 @@ After a review, mark the point with a local ref that is never pushed:
 ## Close-out order
 
 When a change is done: `/code-review` → fix findings → archive the spec with its tool, if any →
-commit → merge with `--no-ff` → push → delete the branch. Pause for the user between changes,
+commit → merge with `--no-ff` → push (only when asked; see below) → delete the branch. Pause for the user between changes,
 not between task groups inside one change.
 <!-- source: crane, datalad-hpc, data-science-harness -->
 
