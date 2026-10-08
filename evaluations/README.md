@@ -10,3 +10,4 @@ produced a result, even when the result is to change nothing.
 | Evaluation | Date | Decision | Revisit when |
 |---|---|---|---|
 | [code-graph-tools](./2026-09-14-code-graph-tools/) | 2026-09-14 | Keep code-review-graph; CodeGraph deferred. No accuracy or cost gain over grep on a 167-file repo. | A large-repo test (≥500 files, tool search on) shows a clear gain |
+| [ste-docs](./2026-10-08-ste-docs/) | 2026-10-08 | Keep `writing.md`: STE score 79% → 97% (n=3 each, no overlap); READMEs about 25% shorter, same facts | A second doc type (a guide, not a README) or a reader-usefulness check disagrees |
