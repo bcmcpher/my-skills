@@ -1,7 +1,7 @@
 # Global CLAUDE.md defaults: git order, spec tools, engineering rules, STE-80 docs
 
-Status: drafted 2026-10-08 — topic files, graph note and CodeGraph wiring are in `config/`, not
-yet live. Waiting on user review. STE A/B done: keep `writing.md` (79% → 97%).
+Status: live in `~/.claude/` since 2026-10-08; branch reviewed (fixes in `85f6ee2`), not merged.
+STE A/B done: keep `writing.md` (79% → 97%). Next work: `config-reconcile-and-writing-agents.md`.
 
 ## Context
 

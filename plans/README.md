@@ -11,7 +11,8 @@ table is the index.
 |---|---|---|---|
 | [zotero-citation-export-pipeline](./zotero-citation-export-pipeline.md) | 2026-09-03, extended 2026-09-04 | Draft — not approved, not started | Answering the 9 ranked questions in "Still to check". The two that gate the design: whether `zotero-cli read` shares the silent truncation found in `get fulltext` (if so, the plan's extraction benchmark was measured through a capped surface), and whether BBT citekeys are pinned (unpinned keys mean a re-run builds a second export tree instead of updating the first). |
 | [code-graph-alternatives-eval](./code-graph-alternatives-eval.md) | 2026-09-14 | Deferred: keeping code-review-graph. Results in [`evaluations/2026-09-14-code-graph-tools/`](../evaluations/2026-09-14-code-graph-tools/). | A clear performance gain from a large-repo test (≥500 files, tool search on). On crane every setup hit the same accuracy ceiling. |
-| [global-claude-md-defaults](./global-claude-md-defaults.md) | 2026-10-08 | Drafted in `config/`, not pushed live | User review of `config/{git,specs,engineering,writing}.md`, then a hand-copy into `~/.claude/` |
+| [global-claude-md-defaults](./global-claude-md-defaults.md) | 2026-10-08 | Live in `~/.claude/`; branch reviewed, not merged | Manual VERIFY rows, then `--no-ff` merge; delete this plan at merge |
+| [config-reconcile-and-writing-agents](./config-reconcile-and-writing-agents.md) | 2026-10-08 | Scoped, not started — next session starts here | Decide the skill's home (plugin vs `config/skills/`) after checking `claude-md-improver`; STE vocabulary location |
 
 ## Conventions
 
