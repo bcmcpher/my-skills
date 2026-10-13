@@ -4,9 +4,16 @@ Defaults. A project's CLAUDE.md or `.claude/rules/` overrides any rule here.
 
 ## Branches and commits
 
-- Work on a branch named after the change, or follow the repo's own `type/slug` convention.
-  Experimental or risky edits stay off the default branch until the user says otherwise.
-<!-- source: crane, datalad-hpc, fwdti-plots, prevent-ad-scripts -->
+- Build every new feature on its own branch, never directly on the default branch, whatever
+  drives it: an OpenSpec change, a plan, or an ordinary request. Experimental or risky edits
+  also stay off the default branch until the user says otherwise. Create the branch before the
+  first commit.
+- Branch names: if the repo or its spec tool has a naming convention (crane's `feat/<change>`,
+  spec-kit's `NNN-feature`), that wins. Otherwise use `change/<change-id>` for an OpenSpec
+  change, `plan/<plan-slug>` for a plan, and a short kebab-case name after the change for
+  anything else.
+- On a plan's branch, commit the plan's ticks and "As built" notes with the code.
+<!-- source: crane, datalad-hpc, fwdti-plots, prevent-ad-scripts; branch section of the other machine's CLAUDE.md, folded in 2026-10-13 -->
 - Commit when a task group or logical step is complete, not only at the end. Put an unrelated
   fix in its own commit.
 <!-- source: data-science-harness, my-skills -->
@@ -36,9 +43,11 @@ After a review, mark the point with a local ref that is never pushed:
 
 ## Close-out order
 
-When a change is done: `/code-review` → fix findings → archive the spec with its tool, if any →
-commit → merge with `--no-ff` → push (only when asked; see below) → delete the branch. Pause for the user between changes.
-In a repo with a spec tool, also pause inside a change (see `specs.md`).
+When a change is done: `/code-review` → fix findings → archive the spec with its tool, if any,
+on the change's branch → commit → merge with `--no-ff` (ask first) → push (only when asked; see
+below) → delete the branch. The archive, the promoted specs and the code then reach the default
+branch in one merge. Pause for the user between changes. In a repo with a spec tool, also pause
+inside a change (see `specs.md`).
 <!-- source: crane, datalad-hpc, data-science-harness -->
 
 ## Outward-facing actions

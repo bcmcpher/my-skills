@@ -10,7 +10,13 @@ that has none.
   sign-off. Raise decisions; do not invent answers to them.
 <!-- source: data-science-harness, crane -->
 - Refer to a change by its name, not by a step or list number.
-- One branch per change, named after the change (see `git.md` for the close-out order).
+- One branch per change (see `git.md` for its name and the close-out order).
+- In a superproject with submodules, branch every repo the change touches under the same name.
+  Code commits go to the submodule branch; spec deltas, docs and `tasks.md` ticks go to the
+  parent branch, which pins the submodule at its branch HEAD. Merge the submodule first, then
+  the parent, so the parent never pins a commit that is not on the submodule's default branch.
+  Merge the submodule with `--no-ff`, not a squash or rebase, so the pinned commit stays
+  reachable. Archive on the parent branch.
 - Archive with the tool's command — `openspec archive <name> --yes` — never with `git mv`.
   The OpenSpec CLI is `~/.claude-node-tools/bin/openspec`.
 <!-- source: crane, datalad-hpc -->
