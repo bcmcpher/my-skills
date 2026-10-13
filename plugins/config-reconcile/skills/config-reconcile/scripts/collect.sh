@@ -64,7 +64,7 @@ while read -r imp; do
 done < <(grep -E '^@[^[:space:]]+$' "$global" 2>/dev/null | sed 's/^@//')
 root="${top:-$proj}"
 find "$root" -maxdepth 4 \
-  \( -name node_modules -o -name .venv -o -name venv -o -name .git -o -name .tox -o -name build -o -name dist \) -prune -o \
+  \( -name node_modules -o -name .venv -o -name venv -o -name .git -o -name .tox -o -name build -o -name dist -o -path "$root/.claude/worktrees" \) -prune -o \
   -type f \( -name CLAUDE.md -o -name CLAUDE.local.md -o -name AGENTS.md -o -path '*/.claude/rules/*.md' \) -print 2>/dev/null \
   | sort | while read -r f; do
       tracked=untracked
