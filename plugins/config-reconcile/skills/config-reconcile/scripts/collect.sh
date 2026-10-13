@@ -35,9 +35,26 @@ else
   elif [[ "$owner" != "$me" ]]; then
     ownership="upstream (origin owned by $owner; memory only)"
   elif [[ -n "$upstream" ]]; then
-    ownership="fork (has an upstream remote; its CLAUDE.md is probably upstream's; confirm with the user)"
+    ownership="fork (has an upstream remote; memory only: edits to its instruction files would ride along in contributions)"
   else
     ownership="owned"
+  fi
+  # Other people who have committed to the instruction files. Anyone but the user makes the
+  # files shared: edits to them reach other contributors, so treat the repo as memory only.
+  me_name="$(git -C "$top" config user.name 2>/dev/null || true)"
+  me_mail="$(git -C "$top" config user.email 2>/dev/null || true)"
+  others="$(git -C "$top" log --format='%an <%ae>' -- CLAUDE.md CLAUDE.local.md AGENTS.md \
+      '*/CLAUDE.md' '*/AGENTS.md' '.claude/rules/*' 2>/dev/null \
+    | sort -u | while read -r a; do
+        [[ -n "$me_name" && "$a" == "$me_name <"* ]] && continue
+        [[ -n "$me_mail" && "$a" == *"<$me_mail>" ]] && continue
+        [[ "$a" == *"<$me@users.noreply.github.com>" || "$a" == *"+$me@users.noreply.github.com>" ]] && continue
+        [[ "$a" == *"[bot]"* ]] && continue
+        printf '%s; ' "$a"
+      done)"
+  if [[ -n "$others" ]]; then
+    echo "instruction-file authors (not the user): ${others%; }"
+    [[ "$ownership" == owned ]] && ownership="shared (owned, but others edit its instruction files; memory only)"
   fi
   echo "ownership: $ownership"
 fi

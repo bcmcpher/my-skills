@@ -50,13 +50,25 @@ claude plugin install config-reconcile@local        # then restart Claude Code
 
 ## Scripts
 
-- `scripts/collect.sh [path]` lists the inputs. It reports repo ownership (owned, fork, upstream,
-  local), files identical to a global file, and dangling or unindexed memory links.
+- `scripts/collect.sh [path]` lists the inputs. It reports repo ownership (owned, upstream, fork,
+  shared, local), other authors of the instruction files, files identical to a global file, and
+  dangling or unindexed memory links.
 - `scripts/check-droplog.sh <log> [--repo <repo> <base>] [--memory <backup> <live>]` confirms
   that the drop log quotes every removed diff line and every deleted memory file. It exits 1 if
   anything is missing.
 
 ## Ownership
 
-The skill edits instruction files only in repos the user owns. For an upstream repo it edits
-auto-memory only. Forks and repos with no remote are confirmed with the user first.
+The skill edits instruction files only in repos the user owns alone. `collect.sh` sets the
+ownership from the remotes and from who has committed to the instruction files:
+
+| Ownership | Meaning | Instruction files |
+|---|---|---|
+| owned | `origin` is the user's, no `upstream`, no other authors | Edited on a branch |
+| upstream | `origin` belongs to someone else | Memory only |
+| fork | the repo has an `upstream` remote | Memory only |
+| shared | other people have committed to the instruction files | Memory only |
+| local, not-git | no remote, or no git | Ask the user |
+
+Forks and shared repos are memory-only because their instruction files are a community config.
+An edit there rides along in a contribution and reaches other contributors.

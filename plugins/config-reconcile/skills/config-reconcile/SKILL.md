@@ -16,9 +16,12 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
 
 1. **Collect.** Run `bash ${CLAUDE_PLUGIN_ROOT}/skills/config-reconcile/scripts/collect.sh <project>`.
    Read every file it lists: the reference set, the project instruction files, and every memory
-   file. Note the `ownership` line. For `fork`, `local` or `not-git`, ask the user whether the
-   repo's instruction files are theirs to edit. `upstream` is memory-only: do not propose edits to
-   its instruction files.
+   file. Note the `ownership` line. Only `owned` repos get instruction-file edits. `upstream`,
+   `fork` and `shared` (others have committed to the instruction files) are memory-only: their
+   instruction files are a community config, and edits to them ride along in contributions and
+   reach other contributors. Read those files as context, but do not propose edits to them, even
+   where they duplicate a global rule. Edit one only if the user names that file and says to.
+   For `local` or `not-git`, ask the user whether the instruction files are theirs to edit.
 2. **Classify.** Split each source into rules (a memory file is one rule; a CLAUDE.md bullet or
    paragraph is one rule). Compare each against the reference set and assign one class:
 
@@ -83,7 +86,8 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
 ## Constraints
 
 - Report before edit, always. One project per run.
-- Never edit instruction files in an upstream repo, or anything under `~/.*` outside `~/.claude/`.
+- Never edit instruction files in an upstream, fork or shared repo unless the user names the file
+  and says to. Never edit anything under `~/.*` outside `~/.claude/`.
 - Never push, and never merge without the user's word.
 - Never delete a memory without the backup in place and an entry in the drop log.
 - Do not reword project-only rules. This pass removes overlap; it does not restyle.
