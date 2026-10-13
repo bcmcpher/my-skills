@@ -22,7 +22,12 @@ if [[ -z "$top" ]]; then
 else
   echo "git: $top"
   echo "branch: $(git -C "$top" branch --show-current)"
-  echo "default-branch: $(git -C "$top" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || echo unknown)"
+  # origin/HEAD is unset in local repos and some clones; fall back to a local main or master.
+  def="$(git -C "$top" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)"
+  for b in main master; do
+    [[ -z "$def" ]] && git -C "$top" show-ref --verify --quiet "refs/heads/$b" && def="$b"
+  done
+  echo "default-branch: ${def:-unknown (ask the user)}"
   echo "dirty: $( [[ -n "$(git -C "$top" status --porcelain)" ]] && echo yes || echo no)"
   origin="$(git -C "$top" remote get-url origin 2>/dev/null || true)"
   upstream="$(git -C "$top" remote get-url upstream 2>/dev/null || true)"
@@ -81,9 +86,9 @@ while read -r imp; do
   case "$imp" in /*) refs+=("$imp") ;; "~/"*) refs+=("$HOME/${imp#\~/}") ;; *) refs+=("$(dirname "$global")/$imp") ;; esac
 done < <(grep -E '^@[^[:space:]]+$' "$global" 2>/dev/null | sed 's/^@//')
 root="${top:-$proj}"
-find "$root" -maxdepth 4 \
+{ find "$root" -maxdepth 4 \
   \( -name node_modules -o -name .venv -o -name venv -o -name .git -o -name .tox -o -name build -o -name dist -o -path "$root/.claude/worktrees" \) -prune -o \
-  -type f \( -name CLAUDE.md -o -name CLAUDE.local.md -o -name AGENTS.md -o -path '*/.claude/rules/*.md' \) -print 2>/dev/null \
+  -type f \( -name CLAUDE.md -o -name CLAUDE.local.md -o -name AGENTS.md -o -path '*/.claude/rules/*.md' \) -print 2>/dev/null || true; } \
   | sort | while read -r f; do
       tracked=untracked
       [[ -n "$top" ]] && git -C "$top" ls-files --error-unmatch "$f" >/dev/null 2>&1 && tracked=tracked
@@ -94,7 +99,7 @@ find "$root" -maxdepth 4 \
 
 # Claude Code also loads CLAUDE.md from every ancestor directory of the working directory.
 d="$(dirname "$root")"
-while [[ "$d" != "/" && "$d" != "$HOME" && "$d" == "$HOME"/* ]]; do
+while [[ "$d" == "$HOME" || "$d" == "$HOME"/* ]]; do
   for n in CLAUDE.md CLAUDE.local.md; do
     [[ -f "$d/$n" ]] && echo "$d/$n (ancestor, outside the repo, $(wc -l <"$d/$n") lines)"
   done
@@ -132,7 +137,7 @@ done
 # Memories about this repo written from a session in a parent directory never load here.
 name="$(basename "$root")"
 d="$(dirname "$root")"
-while [[ "$d" == "$HOME"/* ]]; do
+while [[ "$d" == "$HOME" || "$d" == "$HOME"/* ]]; do
   mem="$claude_home/projects/$(sed 's/[^a-zA-Z0-9]/-/g' <<<"$d")/memory"
   if [[ -d "$mem" ]]; then
     { grep -lF -- "$name" "$mem"/*.md 2>/dev/null || true; } | while read -r f; do

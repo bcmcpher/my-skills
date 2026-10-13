@@ -30,7 +30,7 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    | Class | Meaning | Action |
    |---|---|---|
    | Duplicate | A global rule already says this | Delete. Memory: delete the file and its `MEMORY.md` line |
-   | Narrower | Global covers the general case; the project adds a specific | Keep as written |
+   | Narrower | Global covers the general case; the project adds a specific | Keep as written; trim the overlap only if the user asks |
    | Override | Project deliberately does it differently | Keep; add "Overrides global <file> § <section> because …" |
    | Conflict | Contradicts a global rule with no stated reason | Ask the user: override or delete |
    | Project-only | Global says nothing about it | Keep |
@@ -38,7 +38,7 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    The goal is to settle conflicts, not to tidy. Delete only what the global rule fully covers;
    if a rule adds any project-specific content, keep it unchanged. Judge by meaning, not wording. Facts about the project (commands, layout, data paths) are
    project-only even when they mention git or tools. When unsure between Duplicate and Narrower,
-   choose Narrower and quote the part you would keep. Also list housekeeping you saw: dangling or
+   choose Narrower. Also list housekeeping you saw: dangling or
    unindexed memory links, memories that look stale, and a `MEMORY.md` used as a status document
    rather than an index (propose moving the content into topic files). Report these items; do
    not fix them silently.
@@ -51,10 +51,12 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    not list items you would keep unchanged. Then stop and wait. Do not edit anything before the user approves;
    the user may reclassify rows.
 4. **Back up memory.** Before any memory edit, copy the whole memory dir to
-   `~/.claude/backups/config-reconcile-<date>/<slug>/`. Memory is not in git; the backup is
-   the only undo.
+   `~/.claude/backups/config-reconcile-<date>/<slug>/` with `cp -a <memory-dir> <backup>`. If
+   that backup already exists (a second pass the same day), use `<slug>-pass2`, `-pass3` …:
+   never copy over an existing backup. Memory is not in git; the backup is the only undo.
 5. **Apply.** For instruction files in an owned repo: if the tree is dirty, stop and ask. Otherwise
-   create branch `config-reconcile` from the default branch, make the edits, and commit once in the
+   create branch `config-reconcile` from the default branch (`config-reconcile-<date>` if that
+   name is taken; ask if `collect.sh` reports the default branch as unknown), make the edits, and commit once in the
    repo's `git log` style. Edit memory files in place and keep `MEMORY.md` in step.
 6. **Write the drop log.** Owned repo: `<repo>/.claude/reconcile-<date>.md`, committed in the same
    commit. Upstream or memory-only: `<out>/<slug>-dropped.md`. Format:
@@ -63,7 +65,7 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    # config-reconcile drop log — <project> — <date>
    Reference set: <global files>. Memory backup: <backup path>.
 
-   ## <n>. <short rule name> — <Duplicate|Narrower>
+   ## <n>. <short rule name> — <Duplicate|Narrower, trimmed>
    Source: <file:line | memory/<file>.md>
    Covered by: <global file> § <section> — "<quoted global text>"
    Removed (verbatim):
@@ -71,11 +73,12 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    <exact removed text, as whole original lines even when only part of a line changed;
     for a memory, the whole file including frontmatter>
    ~~~
-   Kept (Narrower only): <the delta>
+   Kept (trimmed Narrower only): <what remains>
    ```
 
-   Strip trailing whitespace from quoted lines; pre-commit hooks reject it, and the checker
-   ignores edge whitespace. After the entries, add `## Overrides` and `## Conflicts resolved`, one line each.
+   The checker counts removed text only inside a fence. Use a longer fence (`~~~~`) when the
+   text itself contains one. Strip trailing whitespace from quoted lines; pre-commit hooks
+   reject it, and the checker ignores edge whitespace. After the entries, add `## Overrides` and `## Conflicts resolved`, one line each.
 7. **Check the log.** Run `bash ${CLAUDE_PLUGIN_ROOT}/skills/config-reconcile/scripts/check-droplog.sh
    <log> [--repo <repo> <default-branch>] [--memory <backup>/ <live-memory-dir>]`. Fix the log
    until it prints `drop log complete`.
@@ -85,7 +88,7 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    "narrower": [{"rule", "global", "kept"}], "conflicts": [{"rule", "global", "resolution"}]}`.
    Validate with `python3 -I -m json.tool`.
 9. **Hand over.** Tell the user the branch, the drop log path, the backup path and
-   `git diff <default-branch>...config-reconcile`. Stop. Merge (`--no-ff`) only when the user says so.
+   `git diff <default-branch>...<branch>`. Stop. Merge (`--no-ff`) only when the user says so.
 
 ## Constraints
 
