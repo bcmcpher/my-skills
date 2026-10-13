@@ -67,7 +67,8 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    Kept (Narrower only): <the delta>
    ```
 
-   After the entries, add `## Overrides` and `## Conflicts resolved`, one line each.
+   Strip trailing whitespace from quoted lines; pre-commit hooks reject it, and the checker
+   ignores edge whitespace. After the entries, add `## Overrides` and `## Conflicts resolved`, one line each.
 7. **Check the log.** Run `bash ${CLAUDE_PLUGIN_ROOT}/skills/config-reconcile/scripts/check-droplog.sh
    <log> [--repo <repo> <default-branch>] [--memory <backup>/ <live-memory-dir>]`. Fix the log
    until it prints `drop log complete`.
