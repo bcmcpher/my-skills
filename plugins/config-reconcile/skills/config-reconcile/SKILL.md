@@ -25,18 +25,23 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    | Class | Meaning | Action |
    |---|---|---|
    | Duplicate | A global rule already says this | Delete. Memory: delete the file and its `MEMORY.md` line |
-   | Narrower | Global covers the general case; the project adds a specific | Rewrite to the delta only |
+   | Narrower | Global covers the general case; the project adds a specific | Keep as written |
    | Override | Project deliberately does it differently | Keep; add "Overrides global <file> § <section> because …" |
    | Conflict | Contradicts a global rule with no stated reason | Ask the user: override or delete |
    | Project-only | Global says nothing about it | Keep |
 
-   Judge by meaning, not wording. Facts about the project (commands, layout, data paths) are
+   The goal is to settle conflicts, not to tidy. Delete only what the global rule fully covers;
+   if a rule adds any project-specific content, keep it unchanged. Judge by meaning, not wording. Facts about the project (commands, layout, data paths) are
    project-only even when they mention git or tools. When unsure between Duplicate and Narrower,
    choose Narrower and quote the part you would keep. Also list housekeeping you saw: dangling or
    unindexed memory links, and memories that look stale. Report these items; do not fix them silently.
-3. **Report.** Print one table: `#`, rule (short), class, proposed action, source `file:line` (or
-   memory filename), covering global rule (`file § section`). Put Conflicts first with the two
-   texts quoted side by side. Then stop and wait. Do not edit anything before the user approves;
+3. **Report in plain language.** Open with one sentence on where Claude's instructions come from
+   (global files, project files, memories). Then list only the items that need a decision:
+   conflicts first, then full duplicates, then housekeeping. For each item, say in a sentence or
+   two what the project text says, what the global text says, and what Claude would do
+   differently after the change. End each with a direct question. Do not use class names, IDs
+   or unexplained file paths as the main content; mention the source file once, in passing. Do
+   not list items you would keep unchanged. Then stop and wait. Do not edit anything before the user approves;
    the user may reclassify rows.
 4. **Back up memory.** Before any memory edit, copy the whole memory dir to
    `~/.claude/backups/config-reconcile-<date>/<slug>/`. Memory is not in git; the backup is

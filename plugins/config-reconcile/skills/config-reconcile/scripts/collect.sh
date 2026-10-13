@@ -74,6 +74,15 @@ find "$root" -maxdepth 4 \
       echo "$f ($tracked, $(wc -l <"$f") lines$same)"
     done
 
+# Claude Code also loads CLAUDE.md from every ancestor directory of the working directory.
+d="$(dirname "$root")"
+while [[ "$d" != "/" && "$d" != "$HOME" && "$d" == "$HOME"/* ]]; do
+  for n in CLAUDE.md CLAUDE.local.md; do
+    [[ -f "$d/$n" ]] && echo "$d/$n (ancestor, outside the repo, $(wc -l <"$d/$n") lines)"
+  done
+  d="$(dirname "$d")"
+done
+
 echo
 echo "## Auto-memory"
 # Claude Code names the project dir after the absolute path with every non-alphanumeric char → '-'.
