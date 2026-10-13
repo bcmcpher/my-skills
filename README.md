@@ -35,6 +35,7 @@ Once a plugin graduates to its own repo you can add it as a standalone marketpla
 |--------|-------------|
 | [bids](./plugins/bids/) | BIDS (Brain Imaging Data Structure) conventions and dataset validation for neuroimaging data |
 | [boutiques](./plugins/boutiques/) | `/boutiques <cmd> [subcmd]` — generate a Boutiques 0.5 JSON descriptor from `--help` output |
+| [config-reconcile](./plugins/config-reconcile/) | `/config-reconcile [path]` — dedupe a project's CLAUDE.md, rules and auto-memory against the global defaults, with a verbatim drop log |
 | [datalad-cli](./plugins/datalad-cli/) | 20 `datalad-*` skills routing data processing through DataLad for provenance, plus a STAMPED reproducibility assessment |
 | [git-workflow](./plugins/git-workflow/) | Git workflow practices and PR lifecycle commands (`/commit`, `/commit-push-pr`, `/review-pr`, `/clean-gone`) |
 | [modular-analysis](./plugins/modular-analysis/) | `/analysis-plan` and `/analysis-refactor` — structure repeated analyses around a five-layer architecture |

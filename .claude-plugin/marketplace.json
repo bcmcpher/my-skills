@@ -61,6 +61,12 @@
       "description": "Language-agnostic statistical analysis workflows for R, Python, and Julia",
       "version": "0.1.0",
       "source": "./plugins/stat-analysis"
+    },
+    {
+      "name": "config-reconcile",
+      "description": "Reconcile a project's CLAUDE.md, rules and auto-memory against the global ~/.claude/CLAUDE.md defaults, with a verbatim drop log for every removed rule",
+      "version": "0.1.0",
+      "source": "./plugins/config-reconcile"
     }
   ]
 }
