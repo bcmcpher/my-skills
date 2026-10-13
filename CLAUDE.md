@@ -32,9 +32,7 @@ bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
 bin/test-hooks --repo          # test the tracked copies in config/hooks/
 ```
 
-Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
-`~/.claude-lsp-tools` (a `uv venv`) and `~/.claude-node-tools` (an npm prefix), never in a project
-environment. `bin/rebuild-tools` recreates both from the manifests in `config/tools/` and verifies
+`bin/rebuild-tools` recreates both harness tool environments (see the global CLAUDE.md) from the manifests in `config/tools/` and verifies
 each binary resolves under `env -i`, which is how hooks see them.
 
 When a capability ships both an MCP server and a CLI, take the CLI and put a skill around it.
@@ -102,13 +100,7 @@ Claude Code uses standard LSP servers for real-time code intelligence: diagnosti
 
 **The binary must be installed separately** — `.lsp.json` only tells Claude Code how to connect. LSP tools are not codebase dependencies.
 
-Recommended pattern: keep Python LSP binaries in a dedicated venv on `$PATH`, independent of any project venv:
-
-```bash
-uv venv ~/.claude-lsp-tools
-uv pip install --python ~/.claude-lsp-tools/bin/python pyright
-# export PATH="$HOME/.claude-lsp-tools/bin:$PATH"  ← in shell rc
-```
+LSP binaries live in `~/.claude-lsp-tools`, like every other harness tool — see "Harness tool environments" in the global CLAUDE.md.
 
 Per-project type awareness (e.g., which `.venv` pyright checks) is controlled by language-specific project config files (`pyrightconfig.json`, `tsconfig.json`), not `.lsp.json`. The three layers are independent:
 
@@ -172,19 +164,10 @@ Skill-specific references still belong inside the skill directory. Only promote 
 
 `bin/new-plugin mcp <name>` scaffolds three parallel server stubs — Python (FastMCP/uv), TypeScript (MCP SDK/tsx), and Docker — each wired into `.mcp.json`. Delete the ones you won't use and remove their entries from `.mcp.json` before testing.
 
-## Git conventions
+## Guard hooks
 
-Before moving any file, check whether it is tracked:
-
-```bash
-git ls-files --error-unmatch <path>
-```
-
-- If tracked → use `git mv <src> <dst>`, not bare `mv`. This preserves rename history and keeps `git blame` accurate.
-- If not tracked (new or ignored file) → bare `mv` is fine.
-
-This is a convention, not an enforced rule. The `git-guard.sh` hook that used to enforce it was
-removed: its second rule matched `.git/` anywhere in the command text, which blocked the ordinary
+The global `git mv` rule is a convention, not an enforced rule. The `git-guard.sh` hook that used
+to enforce it was removed: its second rule matched `.git/` anywhere in the command text, which blocked the ordinary
 idiom `find . -not -path "./.git/*"` while letting `grep --exclude-dir=.git` through. Reading
 `.git/` is covered by the `Read(**/.git/*)` deny rule instead.
 
