@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
       backup="$2"; live="$3"; shift 3
       for f in "$backup"/*.md; do
         b="$(basename "$f")"
-        [[ "$b" == MEMORY.md || -f "$live/$b" ]] && continue
+        [[ -f "$live/$b" ]] && continue
         in_log "$b" || report "memory file not named: $b"
         while IFS= read -r line; do
           text="$(sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' <<<"$line")"
