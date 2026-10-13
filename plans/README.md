@@ -11,8 +11,7 @@ table is the index.
 |---|---|---|---|
 | [zotero-citation-export-pipeline](./zotero-citation-export-pipeline.md) | 2026-09-03, extended 2026-09-04 | Draft — not approved, not started | Answering the 9 ranked questions in "Still to check". The two that gate the design: whether `zotero-cli read` shares the silent truncation found in `get fulltext` (if so, the plan's extraction benchmark was measured through a capped surface), and whether BBT citekeys are pinned (unpinned keys mean a re-run builds a second export tree instead of updating the first). |
 | [code-graph-alternatives-eval](./code-graph-alternatives-eval.md) | 2026-09-14 | Deferred: keeping code-review-graph. Results in [`evaluations/2026-09-14-code-graph-tools/`](../evaluations/2026-09-14-code-graph-tools/). | A clear performance gain from a large-repo test (≥500 files, tool search on). On crane every setup hit the same accuracy ceiling. |
-| [config-reconcile-execution](./config-reconcile-execution.md) | 2026-10-12 | Approved, in progress: Step 0 done | — |
-| [config-reconcile-and-writing-agents](./config-reconcile-and-writing-agents.md) | 2026-10-08 | Change 1 in progress (2026-10-12): `plugins/config-reconcile/`, then a per-project pass | Change 2: STE vocabulary location |
+| [config-reconcile-and-writing-agents](./config-reconcile-and-writing-agents.md) | 2026-10-08 | Change 1 done 2026-10-13; Change 2 (writing agents) not started | Change 2: STE vocabulary location |
 
 ## Conventions
 

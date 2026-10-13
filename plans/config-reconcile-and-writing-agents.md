@@ -1,70 +1,12 @@
 # Config reconcile skill, then writing-style agents
 
-Status: Change 1 in progress since 2026-10-12. Global defaults merged to `main` (`902ea65`).
-Decisions: the skill lives in `plugins/config-reconcile/` (`claude-md-improver` and
-`revise-claude-md` audit template quality only; neither compares a project to the global files or
-touches auto-memory). Scope: CLAUDE.md and rules in repos the user owns, plus all auto-memory
-outside `/tmp`. Upstream repos get memory edits only. Every dropped rule goes verbatim into a drop
-log in that repo (`.claude/reconcile-<date>.md`) so the user can check it before merge. Second
-change: the two writing agents.
+Status: Change 1 done 2026-10-13. Change 2 not started.
 
-The global defaults are live in `~/.claude/`. Backup of the previous files:
-`~/.claude/backups/pre-global-defaults-20261008-175020/`. One VERIFY row is not checked yet: ask a
-question and confirm no edits.
-
-## Change 1 — `config-reconcile` skill, then a global pass
-
-Goal: one repeatable pass per project that removes rules the global files now cover, and makes
-intentional differences explicit.
-
-**Inputs per project:** `CLAUDE.md`, `CLAUDE.local.md`, `.claude/rules/*.md`, `AGENTS.md`, and the
-auto-memory dir `~/.claude/projects/<project>/memory/` (`MEMORY.md` plus topic files).
-**Reference set:** `~/.claude/CLAUDE.md` and its imports.
-
-**Classification for each rule:**
-
-| Class | Action |
-|---|---|
-| Duplicate | Delete. For a memory, delete the file and its `MEMORY.md` line |
-| Narrower | Keep only the project-specific delta (e.g. crane's `feat/<change>` naming) |
-| Override | Keep, and state it: "Overrides global X because …" |
-| Conflict | Ask the user; resolve as override or delete |
-| Project-only | Keep |
-
-**Behaviour:**
-1. Report first: a table of rule → class → proposed action → source file:line. No edits.
-2. Apply only after approval. CLAUDE.md and `.claude/rules/` edits go on a branch in that repo.
-   Memory edits are local files with no commit.
-3. Write a machine-readable summary (per project: counts per class, overrides list) to feed the
-   global pass.
-
-**Open decisions:**
-- Home: a plugin in `plugins/config-reconcile/` or a global skill in `config/skills/`. Both
-  `claude-md-management:claude-md-improver` and `revise-claude-md` exist. Check what they already
-  do before writing anything.
-- Where the per-project summaries collect (proposal: `evaluations/<date>-config-reconcile/`).
-- Rule matching: model judgement against the global text, or the `<!-- source: … -->` comments in
-  the global files as a hint for which projects to check.
-
-**First targets** (from the 2026-10-08 sweep; verify before acting):
-
-| Project | Likely redundant |
-|---|---|
-| my-skills | memories `confirm-before-outward-facing-actions`, `never-touch-home-dotfiles`, `sandbox-home-for-foreign-test-suites`, `plans-live-in-the-working-directory`; CLAUDE.md "Git conventions" `git mv` paragraph |
-| crane | `feedback_openspec_change_branch`, `_archive_command`, `_pause_between_specs`, `_change_scope_discipline`, `_no_compat_shims`, `_synthetic_fixture_not_gate`; OpenSpec part of `.claude/rules/conventions.md` |
-| cv-cca | `feedback_tooling` (uv); `feedback_plan_location` **conflicts** with the global plans rule |
-| nb-llm-classify | `feedback_uv` |
-| neuroanalytics-datasets | `ask-before-pushing` |
-| opencite | `review-outward-facing-content-before-posting` (keep the inherited-numbers rule) |
-| data-science-harness | `act-on-direct-instructions` |
-| pylife | uv and "harness tools are not project deps" lines in CLAUDE.md |
-
-Also seen: crane's `MEMORY.md` lists a missing `feedback_keep_comments.md`. The
-`caveman-plugin-rtk-eval` memory says caveman is off by default, but it is on.
-
-**Global pass (after several projects):** from the summaries, demote a global rule that most
-projects override. Promote a project rule that recurs as "narrower" in several projects. Settle
-the plans-location rule there.
+Change 1 built `plugins/config-reconcile/`, walked every project with it, and ran a global pass
+that folded recurring project overrides into `config/engineering.md` (Plans, Environments) and
+`config/git.md` (Outward-facing actions). Per-project drop logs and summaries are in
+`~/.claude/reconcile/2026-10-12/` and `2026-10-13/`; memory backups in
+`~/.claude/backups/config-reconcile-2026-10-1{2,3}/`.
 
 ## Change 2 — two writing-style agents
 
@@ -92,6 +34,14 @@ passes); which model; how they relate to caveman (not at all — they write file
   Durable rules belong in tracked CLAUDE.md files instead.
 
 ## Loose ends
+
+- `config/VERIFY.md`: the "ask a question, confirm no edits" row was still unchecked when this
+  plan was last updated.
+- pylife: once its `config-reconcile` branch is merged on the other machine, drop CLAUDE.md
+  § Planning — the global Plans rule now covers it (deferred from the global pass).
+- User-side: merge cli2mcp `config-reconcile` (3 tests fail on Click 8.5, before and after);
+  decide on k-dense's remote `datalad-stamped-checklist` branch and fwdti-plots'
+  uncommitted `tools/publish_source.sh`.
 
 - `bin/rebuild-tools --freeze` will re-add `bun@1.4.2` to `node-lock.txt` while bun stays
   installed for bids-validator. Drop the line again when it appears.
