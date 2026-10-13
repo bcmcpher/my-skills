@@ -56,7 +56,8 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    Covered by: <global file> § <section> — "<quoted global text>"
    Removed (verbatim):
    ~~~
-   <exact removed text; for a memory, the whole file including frontmatter>
+   <exact removed text, as whole original lines even when only part of a line changed;
+    for a memory, the whole file including frontmatter>
    ~~~
    Kept (Narrower only): <the delta>
    ```
