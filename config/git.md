@@ -47,7 +47,9 @@ In a repo with a spec tool, also pause inside a change (see `specs.md`).
   Approval of a plan is not approval to publish. A project may grant a standing authorization in
   its own CLAUDE.md or memory.
 - Before anything public, show its full text verbatim in a fenced block, especially any
-  @-mention of a person.
+  @-mention of a person. Use a 4-backtick fence when the text itself contains ``` fences.
+- On a repo the user does not own, comments, reviews and issues are drafts: show the text and
+  let the user post it.
 <!-- source: neuroanalytics-datasets, opencite, my-skills, k-dense -->
 
 ## Handoff

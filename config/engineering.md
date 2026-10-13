@@ -64,7 +64,9 @@ current after each edit.
 - If the user or project names a conda environment, use it.
 - Call the project interpreter by explicit path (`.venv/bin/python`, or the conda env's
   `bin/python`). Bare `python` can resolve to the harness venv `~/.claude-lsp-tools`.
-<!-- source: cv-cca, nb-llm-classify, pylife, crane, fwdti-plots, datalad, neuroanalytics-datasets -->
+  When a command also needs the env's other binaries on PATH (git-annex, apptainer), use
+  `conda run -n <env> <cmd>` instead.
+<!-- source: cv-cca, nb-llm-classify, pylife, crane, fwdti-plots, datalad, neuroanalytics-datasets, datalad-hpc -->
 
 ## Home directory and other repos
 
@@ -76,6 +78,11 @@ current after each edit.
 
 ## Plans
 
-Give a plan a descriptive kebab-case filename, and write a copy into the project (its `plans/`
-directory, or the root if there is none).
-<!-- source: my-skills, cv-cca (cv-cca disagrees on the copy) -->
+Write the plan first to the path plan mode gives. Then write a copy into the project, with a
+descriptive kebab-case filename: its `plans/` directory, or the root if there is none.
+
+If the project has a planning framework or spec tool (OpenSpec changes, spec-kit `specs/`, a
+plugin's plans directory), its own files are the plans. Do not add a second copy.
+
+Memories and notes cite the project copy, not `~/.claude/plans/`. Files there are not kept.
+<!-- source: my-skills, cv-cca, pylife, wikiskill, emacs-d -->
