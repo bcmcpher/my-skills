@@ -169,7 +169,7 @@ if [[ "$MODE" == "check" ]]; then
   done < "$TOOLS_DIR/node-tools.txt"
 
   echo "Resolution without a login shell (how hooks see these):"
-  for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite; do
+  for b in code-review-graph pyright openspec codegraph yt-dlp zotero-cli zotero-mcp opencite; do
     resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
   done
 
@@ -209,7 +209,7 @@ fi
 
 echo
 echo "Verifying"
-for b in code-review-graph pyright openspec yt-dlp zotero-cli zotero-mcp opencite; do
+for b in code-review-graph pyright openspec codegraph yt-dlp zotero-cli zotero-mcp opencite; do
   resolves_noninteractively "$b" && ok "$b" || bad "$b does not resolve non-interactively"
 done
 

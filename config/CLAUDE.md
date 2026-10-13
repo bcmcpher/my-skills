@@ -1,4 +1,13 @@
+# Global defaults
+
+The rules below and in the imported files are defaults for every project. A project's own
+CLAUDE.md, `.claude/rules/` or memory overrides them where the two disagree.
+
 @RTK.md
+@git.md
+@specs.md
+@engineering.md
+@writing.md
 
 # Harness tool environments
 
@@ -15,7 +24,7 @@ package path, never `nvm`.
 use `uv pip install --python <venv>/bin/python`, which targets the venv without activating it.
 
 Currently: `code-review-graph`, `pyright`, `yt-dlp`, `zotero-cli`/`zotero-mcp` and `opencite` in
-the first, `@fission-ai/openspec` in the second. `igraph` is there too — a library rather than a
+the first, `@fission-ai/openspec` and `@colbymchenry/codegraph` in the second. `igraph` is there too — a library rather than a
 CLI, supplying `code-review-graph`'s `communities` extra, without which community detection falls
 back to grouping by directory and only restates the file tree.
 

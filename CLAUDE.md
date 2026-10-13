@@ -48,8 +48,8 @@ published 13,448-token figure applies. A skill costs about 98 tokens of frontmat
 
 The preference now rests on cost that doesn't depend on a setting, and on usage: in
 `evaluations/2026-09-14-code-graph-tools/`, deferred MCP tools went unused unless the prompt
-pointed at them. `config/README.md` has the measurements, the conditions, and the
-`code-review-graph` exception.
+pointed at them. `config/README.md` has the measurements and the conditions. The code-graph
+tools follow the rule: both are used through their CLIs.
 
 ## Architecture
 
@@ -197,7 +197,7 @@ Ordinary `rm` is in `ask`, not `deny` — it prompts and can be approved. Rule 5
 beneath that prompt, and it deliberately matches the whole target rather than a prefix, so
 `rm -rf /tmp/scratch` and `rm -rf ~/Projects/x/node_modules` pass. See `config/README.md` for why.
 
-`graph-update.sh` gates the three global `code-review-graph` hooks on the presence of a
-`.code-review-graph/` directory, so a repo participates only after an explicit
-`code-review-graph build`. See `config/README.md` for why the gate is opt-in rather than a
-blocklist.
+`graph-update.sh` gates the three global graph hooks on each tool's index directory
+(`.code-review-graph/`, `.codegraph/`), so a repo participates only after an explicit
+`code-review-graph build` or `codegraph init`. See `config/README.md` for why the gate is opt-in
+rather than a blocklist.

@@ -44,6 +44,25 @@
       "Bash(opencite cite *)",
       "Bash(opencite canonical *)",
       "Bash(opencite ids *)",
+      "Bash(codegraph explore *)",
+      "Bash(codegraph query *)",
+      "Bash(codegraph node *)",
+      "Bash(codegraph callers *)",
+      "Bash(codegraph callees *)",
+      "Bash(codegraph impact *)",
+      "Bash(codegraph affected *)",
+      "Bash(codegraph status)",
+      "Bash(code-review-graph status)",
+      "Bash(codegraph status *)",
+      "Bash(codegraph files)",
+      "Bash(codegraph files *)",
+      "Bash(code-review-graph query *)",
+      "Bash(code-review-graph impact)",
+      "Bash(code-review-graph impact *)",
+      "Bash(code-review-graph search *)",
+      "Bash(code-review-graph status *)",
+      "Bash(code-review-graph flows *)",
+      "Bash(code-review-graph architecture *)",
       "Read",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:docs.datalad.org)",
@@ -111,7 +130,9 @@
   },
   "model": "opus[1m]",
   "env": {
-    "ZOTERO_LOCAL": "true"
+    "ZOTERO_LOCAL": "true",
+    "CODEGRAPH_TELEMETRY": "0",
+    "DO_NOT_TRACK": "1"
   },
   "hooks": {
     "PreToolUse": [

@@ -11,7 +11,11 @@ After changing anything here, work through [`VERIFY.md`](VERIFY.md) in a fresh s
 | File | Source | Purpose |
 |---|---|---|
 | `settings.json` | `~/.claude/settings.json` | Permissions, hook wiring, enabled plugins, known marketplaces |
-| `CLAUDE.md` | `~/.claude/CLAUDE.md` | Global instructions — imports `RTK.md`, documents the tool environments |
+| `CLAUDE.md` | `~/.claude/CLAUDE.md` | Global instructions — documents the tool environments and imports the files below |
+| `git.md` | `~/.claude/git.md` | Branch, commit, review and close-out order; outward-facing actions; imported by `CLAUDE.md` |
+| `specs.md` | `~/.claude/specs.md` | Defaults for repos using OpenSpec or spec-kit; imported by `CLAUDE.md` |
+| `engineering.md` | `~/.claude/engineering.md` | Scope, verification, tmux for long-running jobs, code graphs, environments, plans; imported by `CLAUDE.md` |
+| `writing.md` | `~/.claude/writing.md` | STE-based fallback style for documentation; glossary rules; imported by `CLAUDE.md` |
 | `RTK.md` | `~/.claude/RTK.md` | rtk command reference, imported by `CLAUDE.md` |
 | `statusline-command.sh` | `~/.claude/statusline-command.sh` | Status line; referenced by the `statusLine` block in `settings.json` |
 | `hooks/protect-files.sh` | `~/.claude/hooks/protect-files.sh` | PreToolUse guard — blocks edits to protected files |
@@ -136,16 +140,35 @@ explicit `~/.claude-*-tools/bin/<cmd>` path rather than a bare name, because hoo
 non-interactive shells where a `.bashrc` PATH edit has not been applied. For the same reason
 these tools must not be installed under `nvm`, whose shell function is absent non-interactively.
 
-## Per-repo opt-in for code-review-graph
+## Per-repo opt-in for code graphs
 
-The three `code-review-graph` hooks are wired globally so the wiring lives in one place and
-travels with this config — but they run through `hooks/graph-update.sh`, which returns early
-unless the current repository already contains a `.code-review-graph/` directory.
+The three graph hooks are wired globally so the wiring lives in one place and travels with this
+config — but they run through `hooks/graph-update.sh`, which acts only for a tool whose index
+directory already exists in the current repository. A repo can opt in to either tool, or both.
 
 ```bash
-cd <repo> && code-review-graph build      # opt in
+cd <repo> && code-review-graph build      # opt in to code-review-graph
 rm -rf <repo>/.code-review-graph          # opt out
+
+cd <repo> && codegraph init --yes         # opt in to CodeGraph
+echo .codegraph/ >> "$(git rev-parse --git-path info/exclude)"   # CodeGraph does not ignore its own index
+codegraph uninit --force                  # opt out
 ```
+
+`engineering.md` tells the model to use whichever graph is present, through its CLI, and to skip
+graph tools when neither index exists. The read-only CLI verbs of both tools are allow-listed.
+
+### CodeGraph specifics
+
+- Installed from `config/tools/node-tools.txt` into `~/.claude-node-tools`. Do not run
+  `codegraph install`. It writes an MCP entry into `~/.claude.json`, a marker block into
+  `CLAUDE.md`, and auto-allow rules for `mcp__codegraph__*`. The CLI plus `engineering.md` covers
+  the same ground without those writes.
+- Telemetry is on by default. `settings.json` sets `CODEGRAPH_TELEMETRY=0` and `DO_NOT_TRACK=1`
+  for every process Claude Code starts. In a plain shell, run `codegraph telemetry off` once.
+- The gate runs `codegraph sync` after edits, with `CODEGRAPH_NO_DAEMON=1`, so no background
+  watcher starts.
+- It has no bash parser. In shell-heavy repos, code-review-graph still covers more.
 
 Without the gate, global wiring fails **open**: every repository ever edited gets a graph built
 in it, including clones of other people's projects and repos that track no code at all. The gate
@@ -266,11 +289,13 @@ this by itself. The preference rests on three things:
 Reach for an MCP server only when it offers something a CLI genuinely cannot: a live connection, a
 stateful session, or a resource the model must be able to subscribe to.
 
-**`code-review-graph` remains the exception.** With tool search on, its 30 tools cost nothing per
-request until loaded. `~/CLAUDE.md` tells the model to reach for them before Grep, and the
-evaluation showed that an instruction of that kind is what gets any graph tool used. Where tool
-search is off, `CRG_TOOLS` can trim the server to the five tools that file names, which measured
-8.6k characters of schemas against 38.6k for all 30.
+**Code graphs follow the rule too.** Neither graph tool's MCP server is registered. Both are
+used through their CLIs, and `engineering.md` tells the model when to reach for them. The
+evaluation showed that an instruction of that kind is what gets any graph tool used. An earlier
+version of this section called `code-review-graph`'s MCP server the exception and pointed to a
+`~/CLAUDE.md` nudge. Neither the server registration nor that file existed by 2026-10-08. If the
+server is re-registered with tool search off, `CRG_TOOLS` can trim it to five tools (8.6k
+characters of schemas against 38.6k for all 30).
 
 All of this is fixed cost. It says nothing about task success or round trips: a cheaper surface
 that gets the answer wrong is not cheaper. In the evaluation, neither graph tool beat plain Grep
