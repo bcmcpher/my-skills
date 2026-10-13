@@ -22,6 +22,8 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    reach other contributors. Read those files as context, but do not propose edits to them, even
    where they duplicate a global rule. Edit one only if the user names that file and says to.
    For `local` or `not-git`, ask the user whether the instruction files are theirs to edit.
+   A `PARENT-DIR memory` line is a memory about this repo saved from a session in a parent
+   directory; sessions in the repo never load it. Read it and propose moving it here.
 2. **Classify.** Split each source into rules (a memory file is one rule; a CLAUDE.md bullet or
    paragraph is one rule). Compare each against the reference set and assign one class:
 
@@ -37,7 +39,9 @@ Reconcile one project at a time. The project is `$ARGUMENTS`, or the current dir
    if a rule adds any project-specific content, keep it unchanged. Judge by meaning, not wording. Facts about the project (commands, layout, data paths) are
    project-only even when they mention git or tools. When unsure between Duplicate and Narrower,
    choose Narrower and quote the part you would keep. Also list housekeeping you saw: dangling or
-   unindexed memory links, and memories that look stale. Report these items; do not fix them silently.
+   unindexed memory links, memories that look stale, and a `MEMORY.md` used as a status document
+   rather than an index (propose moving the content into topic files). Report these items; do
+   not fix them silently.
 3. **Report in plain language.** Open with one sentence on where Claude's instructions come from
    (global files, project files, memories). Then list only the items that need a decision:
    conflicts first, then full duplicates, then housekeeping. For each item, say in a sentence or

@@ -3,7 +3,8 @@
 #
 # Usage: collect.sh [project-path]     (default: current directory)
 #
-# Prints four sections: project, reference set, project instruction files, auto-memory.
+# Prints four sections: project, reference set, project instruction files, auto-memory
+# (including parent-directory memories that mention the repo).
 # Read-only. Exits 1 if the project path does not exist.
 
 set -euo pipefail
@@ -64,7 +65,7 @@ echo "## Reference set (global)"
 global="$claude_home/CLAUDE.md"
 echo "$global"
 # Resolve @imports: a line that is only "@path".
-grep -E '^@[^[:space:]]+$' "$global" 2>/dev/null | sed 's/^@//' | while read -r imp; do
+{ grep -E '^@[^[:space:]]+$' "$global" 2>/dev/null || true; } | sed 's/^@//' | while read -r imp; do
   case "$imp" in
     /*) p="$imp" ;;
     "~/"*) p="$HOME/${imp#\~/}" ;;
@@ -116,11 +117,27 @@ for p in "$proj" ${top:+"$top"}; do
     if [[ -f "$index" ]] && grep -qF "($b)" "$index"; then echo "$f"; else echo "$f (NOT INDEXED)"; fi
   done
   if [[ -f "$index" ]]; then
-    grep -oE '\([^)]+\.md\)' "$index" | tr -d '()' | sort -u | while read -r link; do
+    { grep -oE '\([^)]+\.md\)' "$index" || true; } | tr -d '()' | sort -u | while read -r link; do
       [[ -f "$mem/$link" ]] || echo "DANGLING LINK in MEMORY.md: $link"
     done
+    # MEMORY.md should be an index: headings, "- [title](file.md)" lines and a short intro.
+    prose="$(grep -cvE '^(#|- \[|[[:space:]]*$)' "$index" || true)"
+    [[ "$prose" -gt 10 ]] && echo "MEMORY.md has $prose non-index lines: likely used as a status document"
   else
     echo "MEMORY.md missing"
   fi
   break
+done
+
+# Memories about this repo written from a session in a parent directory never load here.
+name="$(basename "$root")"
+d="$(dirname "$root")"
+while [[ "$d" == "$HOME"/* ]]; do
+  mem="$claude_home/projects/$(sed 's/[^a-zA-Z0-9]/-/g' <<<"$d")/memory"
+  if [[ -d "$mem" ]]; then
+    { grep -lF -- "$name" "$mem"/*.md 2>/dev/null || true; } | while read -r f; do
+      echo "$f (PARENT-DIR memory mentioning $name)"
+    done
+  fi
+  d="$(dirname "$d")"
 done
