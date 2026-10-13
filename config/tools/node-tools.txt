@@ -1,2 +1,6 @@
 @fission-ai/openspec
 @colbymchenry/codegraph
+
+# deno — runtime for the JSR-only tools in deno-tools.txt, which bin/rebuild-tools
+# installs with this binary after the npm step.
+deno

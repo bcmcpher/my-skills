@@ -2,3 +2,4 @@
 # Intent: node-tools.txt
 @colbymchenry/codegraph@1.6.2
 @fission-ai/openspec@1.11.0
+deno@2.9.6

@@ -1,0 +1,10 @@
+# JSR tools run by the `deno` from node-tools.txt. One per line:
+#   <command> <spec without version, optional /subpath> <deno flags...>
+# Flags are any deno flags, compared as a set. bin/rebuild-tools installs each tool
+# pinned, with its own module cache, into ~/.claude-node-tools/lib/deno-tools/<command>/
+# and writes a wrapper at ~/.claude-node-tools/bin/<command>; --freeze pins the version
+# into deno-lock.txt and the dependency closure into deno/<command>.lock.
+
+# bids-validator — the schema-based BIDS validator. Published only on JSR; npm's
+# `bids-validator` is the legacy 1.x line. Flags are its documented -ERWN.
+bids-validator jsr:@bids/validator --allow-env --allow-read --allow-write --allow-net
