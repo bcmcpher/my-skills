@@ -1,23 +1,16 @@
 # Config reconcile skill, then writing-style agents
 
-Status: scoped 2026-10-08, not started. Resume here. First change: the cross-project audit and
-reconcile skill. Second change: the two writing agents.
+Status: Change 1 in progress since 2026-10-12. Global defaults merged to `main` (`902ea65`).
+Decisions: the skill lives in `plugins/config-reconcile/` (`claude-md-improver` and
+`revise-claude-md` audit template quality only; neither compares a project to the global files or
+touches auto-memory). Scope: CLAUDE.md and rules in repos the user owns, plus all auto-memory
+outside `/tmp`. Upstream repos get memory edits only. Every dropped rule goes verbatim into a drop
+log in that repo (`.claude/reconcile-<date>.md`) so the user can check it before merge. Second
+change: the two writing agents.
 
-## Where things stand
-
-- Branch `global-claude-md-defaults` (5 commits ahead of `main`, unmerged, not pushed) adds the
-  global defaults: `config/{git,specs,engineering,writing}.md` imported by `config/CLAUDE.md`,
-  CodeGraph wiring, and the STE evaluation. Design record:
-  [`global-claude-md-defaults.md`](./global-claude-md-defaults.md).
-- **Already live in `~/.claude/`** (hand-copied 2026-10-08; `settings.json` patched with only the
-  graph allow rules and telemetry env). Backup of the previous files:
-  `~/.claude/backups/pre-global-defaults-20261008-175020/`.
-- VERIFY automated block: all green. Manual rows still to check in an interactive session:
-  `/memory` lists the five imports; a question causes no edits; a multi-minute job starts in a
-  named tmux session.
-- Close-out still to do: `/code-review` passed with 9 fixes applied (`85f6ee2`). Remaining:
-  merge to `main` with `--no-ff`, delete `global-claude-md-defaults.md` from `plans/` per the
-  plans convention, push only when asked.
+The global defaults are live in `~/.claude/`. Backup of the previous files:
+`~/.claude/backups/pre-global-defaults-20261008-175020/`. One VERIFY row is not checked yet: ask a
+question and confirm no edits.
 
 ## Change 1 — `config-reconcile` skill, then a global pass
 
