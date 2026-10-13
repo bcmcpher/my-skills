@@ -14,6 +14,7 @@ that has none.
 - Archive with the tool's command — `openspec archive <name> --yes` — never with `git mv`.
   The OpenSpec CLI is `~/.claude-node-tools/bin/openspec`.
 <!-- source: crane, datalad-hpc -->
-- A problem found during a change becomes a new change. Do not widen the current one.
+- A problem found during a change does not widen it. Assume it needs a new change, but ask the
+  user before opening one: they may want only a note or an audit document.
 <!-- source: crane -->
 - When asked to refresh stale specs, make them describe what was implemented.
