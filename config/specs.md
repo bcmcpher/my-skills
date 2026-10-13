@@ -14,6 +14,10 @@ that has none.
 - Archive with the tool's command — `openspec archive <name> --yes` — never with `git mv`.
   The OpenSpec CLI is `~/.claude-node-tools/bin/openspec`.
 <!-- source: crane, datalad-hpc -->
+- Implement a change one numbered task section at a time (`## 1.`, `## 2.` … in `tasks.md`).
+  After each section, commit, give a short status, and stop, so the user can review or
+  `/compact`. If the user says to complete the whole change, work straight through and stop once
+  at the end. That instruction covers that change only.
 - A problem found during a change does not widen it. Assume it needs a new change, but ask the
   user before opening one: they may want only a note or an audit document.
 <!-- source: crane -->
