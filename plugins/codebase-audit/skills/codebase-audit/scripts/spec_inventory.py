@@ -64,6 +64,8 @@ def main() -> None:
     p.add_argument("--small", type=int, default=2, help="capabilities with at most this many requirements")
     p.add_argument("--similarity", type=float, default=0.6, help="word-sequence similarity for a near-duplicate")
     p.add_argument("--title-similarity", type=float, default=0.8, help="requirement-title similarity that flags a pair")
+    p.add_argument("--generic", type=lambda v: v.split(","), default=[],
+                   help="comma-separated project tokens too common to group capabilities by")
     args = p.parse_args()
 
     caps = capabilities(args.specs)
@@ -103,8 +105,7 @@ def main() -> None:
 
     # Capabilities whose names share a non-generic token: fragmentation candidates.
     tokens = defaultdict(list)
-    generic = {"features", "feature", "edge", "node", "spec", "export", "network", "parcellation", "rendering",
-               "qc", "api", "data", "and"}
+    generic = {"features", "feature", "spec", "export", "api", "data", "and"} | set(args.generic)
     for c in caps:
         for t in c.split("-"):
             if t not in generic and len(t) > 3:

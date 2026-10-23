@@ -38,6 +38,16 @@ def private_names(src: Path) -> set[str]:
     return names
 
 
+def module_has_marker(tree: ast.Module, marker: str) -> bool:
+    """True when a top-level ``pytestmark`` assignment carries ``pytest.mark.<marker>``."""
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets):
+            vals = node.value.elts if isinstance(node.value, (ast.List, ast.Tuple)) else [node.value]
+            if any(deco_name(v) == marker for v in vals):
+                return True
+    return False
+
+
 def has_spec(fn: ast.AST, cls: ast.ClassDef | None, module_marked: bool, marker: str) -> bool:
     for node in (fn, cls):
         if node is not None and any(deco_name(d) == marker for d in node.decorator_list):
@@ -62,10 +72,10 @@ def main() -> None:
     for path in files:
         tree = parse(path)
         lines = path.read_text(encoding="utf-8").splitlines()
-        module_marked = "pytestmark" in path.read_text(encoding="utf-8") and args.marker in path.read_text(encoding="utf-8")
+        module_marked = module_has_marker(tree, args.marker)
         imported_private: set[str] = set()
         import_rows = []
-        for node in tree.body + [n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]:
+        for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module and node.module.split(".")[0] == pkg:
                 private_mod = any(is_private(part) for part in node.module.split("."))
                 for alias in node.names:
@@ -74,7 +84,7 @@ def main() -> None:
                         import_rows.append((node.lineno, f"{node.module}.{alias.name}"))
                     elif private_mod:
                         import_rows.append((node.lineno, f"{node.module}.{alias.name} (private module)"))
-        stats = {"tests": 0, "unmarked": 0, "deliberate": 0, "imports": len(set(import_rows))}
+        stats = {"tests": 0, "unmarked": 0, "deliberate": 0, "imports": len(import_rows)}
 
         def walk(body, cls):
             for node in body:

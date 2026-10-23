@@ -19,7 +19,7 @@ from _common import emit, iter_py, parse, parser, rel, table
 KINDS = ["unsupported mode", "wrong type", "shape", "missing state", "choice", "missing key", "range", "other"]
 
 MSG = {
-    "unsupported mode": r"\b(not (yet )?(supported|implemented|available)|unsupported|only (for|with|on|in) |dense|sparse (network|parcellation)|requires? a (region|dense|sparse))",
+    "unsupported mode": r"\b(not (yet )?(supported|implemented|available)|unsupported|only (for|with|on|in) )",
     "wrong type": r"(must be an? [a-z_ ]*(instance|str|string|int|integer|float|bool|array|ndarray|mapping|dict|list|sequence|callable|path)\b|expected an? .* (instance|type)|got (an? )?(type|instance)|not a (str|string|path|mapping|callable))",
     "shape": r"\b(shape|ndim|dimension|dimensional|same length|length of|lengths? (do not|must)|must have \d|mismatch(ed)? (length|size)|columns? .* rows?)\b",
     "missing state": r"(call [`'\"]?[a-z_.]+\(?\)?[`'\"]? (first|before)|not (been )?(computed|loaded|built|run|set|fitted)|has no [a-z_ ]+; |run [`'\"]?[a-z_.]+|no .* (has|have) been|before calling|is empty)",
@@ -76,11 +76,11 @@ def guards(tree: ast.Module) -> dict[int, str]:
     return out
 
 
-def classify(test: str, msg: str, etype: str) -> str:
+def classify(test: str, msg: str, etype: str, mode_terms: str | None = None) -> str:
     text = msg.lower()
-    for kind in ("unsupported mode",):
-        if re.search(MSG[kind], text) or etype == "NotImplementedError":
-            return kind
+    if (re.search(MSG["unsupported mode"], text) or etype == "NotImplementedError"
+            or (mode_terms and re.search(mode_terms, text))):
+        return "unsupported mode"
     if re.search(r"\bisinstance\(", test) or re.search(MSG["wrong type"], text):
         return "wrong type"
     if re.search(r"\.(shape|ndim)\b|\blen\(", test) or re.search(MSG["shape"], text):
@@ -99,6 +99,8 @@ def classify(test: str, msg: str, etype: str) -> str:
 def main() -> None:
     p = parser(__doc__.splitlines()[0])
     p.add_argument("root", type=Path)
+    p.add_argument("--mode-terms", help="project regex for messages that name an unsupported mode, "
+                   "added to the generic one (e.g. 'dense|sparse network')")
     args = p.parse_args()
 
     sites: dict[str, list[dict]] = defaultdict(list)
@@ -114,7 +116,7 @@ def main() -> None:
                 continue
             total += 1
             msg = message_of(node)
-            kind = classify(g.get(id(node), ""), msg, etype)
+            kind = classify(g.get(id(node), ""), msg, etype, args.mode_terms)
             sites[kind].append({"site": f"{rel(path)}:{node.lineno}", "type": etype, "message": msg[:120],
                                 "guard": g.get(id(node), "")[:100]})
 

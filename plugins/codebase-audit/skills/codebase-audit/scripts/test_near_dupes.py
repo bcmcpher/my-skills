@@ -17,6 +17,7 @@ the first kind. Already-parametrized tests are included and marked.
 from __future__ import annotations
 
 import ast
+import hashlib
 from collections import defaultdict
 from pathlib import Path
 
@@ -60,16 +61,17 @@ def main() -> None:
             size = node_count(body)
             site = {"site": f"{rel(path)}:{fn.lineno}", "name": (cls.name + "." if cls else "") + fn.name,
                     "param": any(deco_name(d) == "parametrize" for d in fn.decorator_list)}
-            acc = normalized_hash(body, constants=True, accessors=True, scope=fn)
+            if cls is None and size < args.min_nodes:
+                continue
+            dump = normalized_dump(body, constants=True, accessors=True, scope=fn)  # once: hash and class pairs
             if cls is not None:
                 key = (rel(path), cls.lineno)
-                dump = normalized_dump(body, constants=True, accessors=True, scope=fn)
                 class_dumps.setdefault(key, []).append((fn.name, dump.replace("(", " ").replace(")", " ").replace(",", " ").split()))
                 class_names[key] = cls.name
             if size < args.min_nodes:
                 continue
             arg_groups[normalized_hash(body, constants=True, scope=fn)].append(site)
-            acc_groups[acc].append(site)
+            acc_groups[hashlib.sha1(dump.encode()).hexdigest()].append(site)
 
     arg_clusters = [v for v in arg_groups.values() if len(v) >= args.min_size]
     in_arg = {s["site"] for v in arg_clusters for s in v}

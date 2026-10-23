@@ -155,6 +155,9 @@ def main() -> None:
     for c in cands:
         wa, sa = asserts(c["weaker"]), asserts(c["stronger"])
         c["assert_subset"] = wa is not None and sa is not None and wa <= sa
+        if c["equal"] and not c["assert_subset"] and wa is not None and sa is not None and sa <= wa:
+            # Equal coverage was emitted in one direction only; the assertions decide which is weaker.
+            c["weaker"], c["stronger"], c["assert_subset"] = c["stronger"], c["weaker"], True
     cands.sort(key=lambda c: (not c["assert_subset"], c["weaker"].split("::")[0], -c["covered"]))
     by_weaker = defaultdict(list)
     for c in cands:

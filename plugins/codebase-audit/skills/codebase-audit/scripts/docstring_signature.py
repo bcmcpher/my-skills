@@ -21,7 +21,7 @@ import ast
 import re
 from pathlib import Path
 
-from _common import emit, iter_defs, iter_py, parse, parser, table
+from _common import emit, is_private, iter_defs, iter_py, parse, parser, table
 
 SECTION = re.compile(r"^(?P<indent>\s*)(?P<title>[A-Z][A-Za-z ]+)\n(?P=indent)-{3,}\s*$", re.M)
 PARAM = re.compile(
@@ -114,11 +114,12 @@ def parse_params(doc: str) -> dict[str, dict]:
                     current = None
                     continue
                 names = [n.strip().lstrip("*") for n in pm.group("names").split(",")]
+                entry = {"type": pm.group("type") or "", "desc": ""}
+                if len(names) > 1:
+                    entry["shared"] = True
                 for n in names:
-                    out[n] = {"type": pm.group("type") or "", "desc": ""}
+                    out[n] = entry  # one dict, so a shared description reaches every name
                 current = names[-1]
-                for n in names[:-1]:
-                    out[n] = out[current] = out[n] | {"shared": True}
             elif current:
                 out[current]["desc"] += line.strip() + " "
     return out
@@ -179,8 +180,10 @@ def main() -> None:
             documented = parse_params(doc)
             if not documented:
                 continue
-            checked["public" if d.public else "private"] += 1
-            if not d.public and not args.include_private:
+            # A constructor is public API when its class is; Def.public calls every dunder private.
+            public = d.public or (d.name == "__init__" and not any(map(is_private, d.qualname.split("."))))
+            checked["public" if public else "private"] += 1
+            if not public and not args.include_private:
                 continue
             sig, has_kwargs = signature(fn)
             loc = d.loc()

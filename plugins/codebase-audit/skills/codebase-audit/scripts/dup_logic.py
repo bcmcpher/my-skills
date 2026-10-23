@@ -67,13 +67,15 @@ def block_sites(paths: list[Path], window: int, min_nodes: int, constants: bool 
                 key = normalized_hash(block, scope=scope, constants=constants)
                 fn = getattr(scope, "name", "<module>")
                 groups[key].append({"site": f"{rel(path)}:{block[0].lineno}", "function": fn, "nodes": n,
+                                    "scope": (rel(path), scope.lineno),
                                     "first": ast.unparse(block[0]).splitlines()[0][:90]})
     out = {}
     for k, v in groups.items():
         # One site per function: overlapping windows of a self-similar run are one site.
-        per_fn: dict[tuple[str, str], dict] = {}
+        # Keyed on the function's position, so same-named methods of sibling classes stay apart.
+        per_fn: dict[tuple[str, int], dict] = {}
         for site in v:
-            per_fn.setdefault((site["site"].split(":")[0], site["function"]), site)
+            per_fn.setdefault(site.pop("scope"), site)
         if len(per_fn) > 1:  # a cluster must span more than one function
             out[k] = list(per_fn.values())
     return out
@@ -82,19 +84,19 @@ def block_sites(paths: list[Path], window: int, min_nodes: int, constants: bool 
 def _collapse_overlaps(clusters: dict[str, list[dict]], window: int) -> list[list[dict]]:
     """Adjacent windows of one long repeated run produce one cluster per offset; keep
     the first window of each run."""
-    seen: set[tuple[str, ...]] = set()
+    def sig(sites: list[dict]) -> list[tuple[str, int]]:
+        return sorted((f, int(line)) for f, line in (s["site"].rsplit(":", 1) for s in sites))
+
+    kept: list[list[tuple[str, int]]] = []
     out = []
-    for sites in sorted(clusters.values(), key=lambda v: [s["site"] for s in v]):
-        sig = []
-        for s in sites:
-            f, line = s["site"].rsplit(":", 1)
-            sig.append((f, int(line)))
-        key = tuple(sorted(f"{f}:{line}" for f, line in sig))
+    # Numeric line order, so the earliest window of a run is seen first and kept.
+    for sites in sorted(clusters.values(), key=sig):
+        s = sig(sites)
         near = any(
-            all(any(f2 == f and 0 < line - l2 <= window * 8 for f2, l2 in prev) for f, line in sig)
-            for prev in [tuple((p.rsplit(":", 1)[0], int(p.rsplit(":", 1)[1])) for p in k) for k in seen]
+            all(any(f2 == f and 0 < line - l2 <= window * 8 for f2, l2 in prev) for f, line in s)
+            for prev in kept
         )
-        seen.add(key)
+        kept.append(s)
         if not near:
             out.append(sites)
     return out

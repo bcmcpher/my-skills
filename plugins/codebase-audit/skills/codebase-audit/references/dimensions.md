@@ -20,7 +20,11 @@ interpreter. `<s>` is the scripts directory. Paths assume `src/<pkg>`, `tests/` 
 ### A-api — public API with no non-test caller
 
 - **Question:** Which public definitions are called only by tests, or by nothing?
-- **Script:** `<py> <s>/public_callers.py src/<pkg> --tests tests --extra examples`
+- **Script:** `<py> <s>/public_callers.py src/<pkg> --tests tests --extra examples --exclude '*.md'`
+- **Options:** `--extra` is for real callers: example scripts, notebooks, user docs.
+  Exclude audit records, plans and roadmaps (`--exclude`): they name the definitions under
+  audit, and once the audit is written they hide every finding. In crane, planning
+  markdown in `examples/` hid 43 of 96 test-only definitions.
 - **Judge:** Keep when the docstring presents it as user API, a spec requires it, or it
   is exported. Otherwise a removal finding (pre-release) or a "make it private" finding.
   The script matches by name, so a common name hides a dead definition: note that limit.
@@ -28,7 +32,10 @@ interpreter. `<s>` is the scripts directory. Paths assume `src/<pkg>`, `tests/` 
 ### A-err — error taxonomy
 
 - **Question:** Does one kind of check raise different exception types at different sites?
-- **Script:** `<py> <s>/raise_taxonomy.py src/<pkg>`
+- **Script:** `<py> <s>/raise_taxonomy.py src/<pkg> [--mode-terms '<regex>']`
+- **Options:** `--mode-terms` adds the project's words for an unsupported mode (crane:
+  `'dense|sparse (network|parcellation)|requires? a (region|dense|sparse)'`). Without them,
+  those refusals fall into other kinds.
 - **Judge:** The kind classification is heuristic. Re-classify misfiled sites first, then
   report each kind that still mixes types, with the count per type. A value-changing fix.
 
@@ -89,7 +96,9 @@ interpreter. `<s>` is the scripts directory. Paths assume `src/<pkg>`, `tests/` 
 
 - **Question:** Which capabilities split one behaviour, which are too small to stand
   alone, which requirements repeat across capabilities, and which state mechanics?
-- **Script:** `<py> <s>/spec_inventory.py openspec/specs --tests tests`
+- **Script:** `<py> <s>/spec_inventory.py openspec/specs --tests tests [--generic a,b]`
+- **Options:** `--generic` lists the domain words that appear in most capability names and
+  so do not mark a family (crane: `edge,node,network,parcellation,rendering,qc`).
 - **Judge:**
   - small capability: name the capability it folds into, or why it stands alone;
   - name family: merge only when the members describe one behaviour;
