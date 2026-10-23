@@ -67,6 +67,12 @@
       "description": "Reconcile a project's CLAUDE.md, rules and auto-memory against the global ~/.claude/CLAUDE.md defaults, with a verbatim drop log for every removed rule",
       "version": "0.1.0",
       "source": "./plugins/config-reconcile"
+    },
+    {
+      "name": "codebase-audit",
+      "description": "Principled whole-repository quality audit for Python code, tests and OpenSpec specs: scripts sweep every site, the model judges candidates",
+      "version": "0.1.0",
+      "source": "./plugins/codebase-audit"
     }
   ]
 }
