@@ -1,0 +1,19 @@
+{
+  "name": "codebase-audit",
+  "description": "Principled whole-repository quality audit for Python codebases, their tests and OpenSpec specs: deterministic AST sweep scripts count every site, the model judges candidates, and findings are triaged into tidy, decomposition, spec-consolidation and test-consolidation work.",
+  "version": "0.1.0",
+  "author": {
+    "name": "bcmcpher"
+  },
+  "license": "MIT",
+  "keywords": [
+    "audit",
+    "refactoring",
+    "openspec",
+    "test-consolidation",
+    "code-quality"
+  ],
+  "skills": [
+    "./skills/codebase-audit"
+  ]
+}
