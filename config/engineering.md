@@ -76,6 +76,11 @@ current after each edit.
 - Sibling and reference repositories are read-only unless the user says otherwise.
 <!-- source: my-skills, opencite, pylife, memex -->
 
+## Subagents
+
+- For read-only search or lookup subagents (Explore, cavecrew-investigator), pass `model: "haiku"`.
+<!-- source: likely the caveman plugin (cavecrew-investigator); found only in live config, 2026-11-01 -->
+
 ## Plans
 
 Write the plan first to the path plan mode gives. Then write a copy into the project, with a
