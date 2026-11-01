@@ -41,7 +41,12 @@ tmux new-session -d -s <project>-<task> '<cmd> 2>&1 | tee logs/<task>.log'
 Then tell the user the session name, `tmux attach -t <project>-<task>`, and the log path. Check
 progress with `tmux capture-pane -pt <name>` or the log when asked; do not poll in a loop.
 HPC batch work follows the project's rules (usually SLURM scripts the user submits).
-<!-- source: user 2026-10-08; fwdti-plots, prevent-ad-scripts -->
+
+When you find an idle session whose job has completed, kill it with `tmux kill-session -t <name>`.
+Do not ask first. Completed means the pane or log shows the job's done banner or exit status,
+and the pane is back at a shell prompt. Leave a session alone if its job is still running, or
+if you cannot tell. Tell the user which sessions you killed.
+<!-- source: user 2026-10-08; fwdti-plots, prevent-ad-scripts; idle cleanup: user 2026-11-01, pylife -->
 
 ## Code graphs
 
