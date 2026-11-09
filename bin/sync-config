@@ -16,6 +16,7 @@ XDG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
 # Claude Code layer: without them a new machine silently gets tool defaults
 # (openspec re-enables telemetry; caveman starts in mode "full", not "lite").
 # Paths are relative to $XDG_DIR and mirrored under config/xdg/.
+# Per-install fields are stripped on pull: openspec's telemetry.anonymousId.
 XDG_TRACKED=(
   "openspec/config.json"
   "caveman/config.json"
@@ -91,6 +92,17 @@ if [[ "$DIRECTION" == "pull" ]]; then
   for rel in "${XDG_TRACKED[@]}"; do
     copy_file "$XDG_DIR/$rel" "$CONFIG_DIR/xdg/$rel"
   done
+  # openspec's telemetry.anonymousId identifies one install. Tracked, it shows
+  # as a diff on every pull and, after a push, makes every machine one install.
+  # With telemetry off, openspec runs without it and does not recreate it.
+  osc="$CONFIG_DIR/xdg/openspec/config.json"
+  if command -v jq >/dev/null 2>&1 && [[ -f "$osc" ]]; then
+    if jq -e '.telemetry.anonymousId' "$osc" >/dev/null 2>&1; then
+      tmp=$(mktemp)
+      jq 'del(.telemetry.anonymousId)' "$osc" > "$tmp" && mv "$tmp" "$osc"
+      echo "  strip telemetry.anonymousId (per-install)"
+    fi
+  fi
   echo "Done."
 
 elif [[ "$DIRECTION" == "push" ]]; then
