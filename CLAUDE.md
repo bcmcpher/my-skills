@@ -31,7 +31,7 @@ bin/rebuild-tools --freeze     # record the current envs back into the lock file
 bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
 bin/test-hooks --repo          # test the tracked copies in config/hooks/
 bin/test-hooks --sandbox       # either form, inside a read-only bwrap sandbox (always use this)
-bin/test-hooks --awk /usr/bin/mawk   # run the hooks under another awk (CI runs gawk and mawk)
+bin/test-hooks --sandbox --awk /usr/bin/mawk   # run the hooks under another awk (CI runs gawk and mawk)
 ```
 
 Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
@@ -185,7 +185,8 @@ directory. It splits the command into shell words once, with quote removal, and 
 matches a word position rather than raw command text. `config/README.md` has the full table.
 
 Hook test cases are probe commands. Write them into `tests/*-cases.txt` with the Edit tool, never
-in a Bash call, and run `bin/test-hooks` only with `--sandbox`.
+in a Bash call, and run `bin/test-hooks` locally only with `--sandbox`. CI runs it without the sandbox, because
+the runner is a disposable VM.
 
 Ordinary `rm` is in `ask`, not `deny` — it prompts and can be approved. Rule 5 is only the floor
 beneath that prompt, and it deliberately matches the whole target rather than a prefix, so

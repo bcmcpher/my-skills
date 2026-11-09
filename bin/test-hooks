@@ -48,18 +48,28 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo)    HOOK_DIR="$REPO_ROOT/config/hooks"; args+=("$1") ;;
     --sandbox) sandbox=1 ;;
-    --awk)     [[ $# -ge 2 ]] || usage; awk_bin=$2; args+=("$1" "$2"); shift ;;
-    --awk=*)   awk_bin=${1#--awk=}; args+=("$1") ;;
+    --awk)     [[ $# -ge 2 ]] || usage; awk_bin=$2; awk_set=1; shift ;;
+    --awk=*)   awk_bin=${1#--awk=}; awk_set=1 ;;
     *) usage ;;
   esac
   shift
 done
+
+# Resolve --awk before any sandbox: the sandbox hides $HOME, so a path there
+# must be resolved here and bound back in.
+if [[ -n "${awk_set:-}" ]]; then
+  [[ -n "$awk_bin" ]] || usage
+  awk_bin=$(readlink -f "$awk_bin") && [[ -x "$awk_bin" && -f "$awk_bin" ]] \
+    || { echo "--awk: not an executable: $awk_bin" >&2; exit 1; }
+  args+=(--awk "$awk_bin")
+fi
 
 if [[ $sandbox -eq 1 && -z "${TEST_HOOKS_SANDBOXED:-}" ]]; then
   command -v bwrap >/dev/null 2>&1 \
     || { echo "--sandbox needs bwrap, which is not on PATH; refusing to run unsandboxed" >&2; exit 1; }
   binds=(--ro-bind "$REPO_ROOT" "$REPO_ROOT")
   [[ -d "$HOME/.claude/hooks" ]] && binds+=(--ro-bind "$HOME/.claude/hooks" "$HOME/.claude/hooks")
+  [[ -n "$awk_bin" ]] && binds+=(--ro-bind "$awk_bin" "$awk_bin")
   exec bwrap --ro-bind / / --tmpfs "$HOME" "${binds[@]}" \
     --tmpfs /tmp --dev /dev --proc /proc \
     --unshare-all --die-with-parent \
@@ -70,10 +80,9 @@ fi
 
 # Put an `awk` that points at --awk PATH first on PATH. The hooks inherit it.
 if [[ -n "$awk_bin" ]]; then
-  [[ -x "$awk_bin" ]] || { echo "--awk: not an executable: $awk_bin" >&2; exit 1; }
   awk_dir=$(mktemp -d) || exit 1
   trap 'rm -rf "$awk_dir"' EXIT
-  ln -s "$(readlink -f "$awk_bin")" "$awk_dir/awk"
+  ln -s "$awk_bin" "$awk_dir/awk"
   PATH="$awk_dir:$PATH"
 fi
 echo "(awk: $(readlink -f "$(command -v awk)"))"

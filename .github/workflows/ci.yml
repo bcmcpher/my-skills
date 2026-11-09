@@ -33,18 +33,12 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
-      - name: Show which awk the hooks will use
-        run: readlink -f "$(command -v awk)"
-      - name: Run bin/test-hooks against config/hooks/
-        run: bin/test-hooks --repo
-      - name: Also run under mawk, if it is not already the default
-        run: |
-          mawk_bin=$(command -v mawk || true)
-          if [ -n "$mawk_bin" ] && [ "$(readlink -f "$(command -v awk)")" != "$(readlink -f "$mawk_bin")" ]; then
-            bin/test-hooks --repo --awk "$mawk_bin"
-          else
-            echo "mawk is the default awk, or absent; nothing more to run"
-          fi
+      # Each awk is named explicitly, so a missing one fails the job instead of
+      # being skipped. bin/test-hooks prints the awk it used.
+      - name: Run bin/test-hooks under gawk
+        run: bin/test-hooks --repo --awk "$(command -v gawk)"
+      - name: Run bin/test-hooks under mawk
+        run: bin/test-hooks --repo --awk "$(command -v mawk)"
 
   json-parse:
     name: JSON parse check

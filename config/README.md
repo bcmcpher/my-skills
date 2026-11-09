@@ -297,9 +297,9 @@ runtime gets past them.
    through a shell command.
 4. Run `bin/test-hooks --repo --sandbox`. The sandbox makes the filesystem read-only and
    `$HOME` empty, so even a hook bug that ran a case could not change anything. CI also runs
-   the cases on every push, on `ubuntu-26.04`: once with the runner's default awk (gawk on
-   that image), and once with mawk. The hooks call `awk` by name, so add
-   `--awk /usr/bin/mawk` locally after a change to an awk program.
+   the cases on every push, on `ubuntu-26.04`, once under gawk and once under mawk. The hooks
+   call `awk` by name. After a change to an awk program, also run
+   `bin/test-hooks --sandbox --awk /usr/bin/mawk` locally.
 5. Copy the hook to `~/.claude/hooks/`, then run `bin/test-hooks --sandbox`. Use
    `bin/sync-config push` only on a new machine: it also overwrites the live `settings.json`.
 
