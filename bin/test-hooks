@@ -2,13 +2,16 @@
 # test-hooks — exercise the PreToolUse hooks against a table of known cases.
 #
 # Usage:
-#   bin/test-hooks [--repo] [--sandbox]
+#   bin/test-hooks [--repo] [--sandbox] [--awk PATH]
 #
 #   (default)   Test the live hooks in ~/.claude/hooks/
 #   --repo      Test the tracked copies in config/hooks/
 #   --sandbox   Re-run inside a read-only bwrap sandbox: the whole filesystem
 #               read-only, $HOME an empty tmpfs, no network. Exits 1 if bwrap
 #               is missing; it never falls back to running unsandboxed.
+#   --awk PATH  Run the hooks with PATH as their `awk` (e.g. /usr/bin/mawk).
+#               The hooks call awk by name, so a machine whose default awk is
+#               not gawk runs a different parser.
 #
 # Run this after touching a hook, and add a case for every rule you change --
 # one command it must block, one similar command it must let through. Both
@@ -38,22 +41,35 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CASES="$REPO_ROOT/tests/bash-guard-cases.txt"
 PCASES="$REPO_ROOT/tests/protect-files-cases.txt"
 
-usage() { echo "Usage: $(basename "$0") [--repo] [--sandbox]" >&2; exit 1; }
+usage() { echo "Usage: $(basename "$0") [--repo] [--sandbox] [--awk PATH]" >&2; exit 1; }
 
-HOOK_DIR="$HOME/.claude/hooks"; sandbox=0; args=()
-for a in "$@"; do
-  case "$a" in
-    --repo)    HOOK_DIR="$REPO_ROOT/config/hooks"; args+=("$a") ;;
+HOOK_DIR="$HOME/.claude/hooks"; sandbox=0; args=(); awk_bin=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)    HOOK_DIR="$REPO_ROOT/config/hooks"; args+=("$1") ;;
     --sandbox) sandbox=1 ;;
+    --awk)     [[ $# -ge 2 ]] || usage; awk_bin=$2; awk_set=1; shift ;;
+    --awk=*)   awk_bin=${1#--awk=}; awk_set=1 ;;
     *) usage ;;
   esac
+  shift
 done
+
+# Resolve --awk before any sandbox: the sandbox hides $HOME, so a path there
+# must be resolved here and bound back in.
+if [[ -n "${awk_set:-}" ]]; then
+  [[ -n "$awk_bin" ]] || usage
+  awk_bin=$(readlink -f "$awk_bin") && [[ -x "$awk_bin" && -f "$awk_bin" ]] \
+    || { echo "--awk: not an executable: $awk_bin" >&2; exit 1; }
+  args+=(--awk "$awk_bin")
+fi
 
 if [[ $sandbox -eq 1 && -z "${TEST_HOOKS_SANDBOXED:-}" ]]; then
   command -v bwrap >/dev/null 2>&1 \
     || { echo "--sandbox needs bwrap, which is not on PATH; refusing to run unsandboxed" >&2; exit 1; }
   binds=(--ro-bind "$REPO_ROOT" "$REPO_ROOT")
   [[ -d "$HOME/.claude/hooks" ]] && binds+=(--ro-bind "$HOME/.claude/hooks" "$HOME/.claude/hooks")
+  [[ -n "$awk_bin" ]] && binds+=(--ro-bind "$awk_bin" "$awk_bin")
   exec bwrap --ro-bind / / --tmpfs "$HOME" "${binds[@]}" \
     --tmpfs /tmp --dev /dev --proc /proc \
     --unshare-all --die-with-parent \
@@ -61,6 +77,15 @@ if [[ $sandbox -eq 1 && -z "${TEST_HOOKS_SANDBOXED:-}" ]]; then
     "$REPO_ROOT/bin/test-hooks" "${args[@]}"
 fi
 [[ -n "${TEST_HOOKS_SANDBOXED:-}" ]] && echo "(sandboxed: read-only root, empty \$HOME, no network)"
+
+# Put an `awk` that points at --awk PATH first on PATH. The hooks inherit it.
+if [[ -n "$awk_bin" ]]; then
+  awk_dir=$(mktemp -d) || exit 1
+  trap 'rm -rf "$awk_dir"' EXIT
+  ln -s "$awk_bin" "$awk_dir/awk"
+  PATH="$awk_dir:$PATH"
+fi
+echo "(awk: $(readlink -f "$(command -v awk)"))"
 
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 [[ -f "$CASES" ]]  || { echo "missing case file: $CASES" >&2; exit 1; }

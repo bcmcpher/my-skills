@@ -24,6 +24,22 @@ jobs:
           scandir: "."
           severity: warning
 
+  # The PreToolUse guard hooks against tests/*-cases.txt. Pinned to an LTS image
+  # rather than ubuntu-latest, so a label move cannot silently change the awk
+  # under test. No --sandbox: the runner is disposable and the hooks never
+  # evaluate their input; local runs keep --sandbox.
+  hook-tests:
+    name: Hook test cases
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      # Each awk is named explicitly, so a missing one fails the job instead of
+      # being skipped. bin/test-hooks prints the awk it used.
+      - name: Run bin/test-hooks under gawk
+        run: bin/test-hooks --repo --awk "$(command -v gawk)"
+      - name: Run bin/test-hooks under mawk
+        run: bin/test-hooks --repo --awk "$(command -v mawk)"
+
   json-parse:
     name: JSON parse check
     runs-on: ubuntu-latest
