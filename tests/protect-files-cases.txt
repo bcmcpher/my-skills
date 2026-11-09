@@ -4,7 +4,7 @@
 2	file_path	/home/x/proj/package-lock.json
 2	file_path	/home/x/proj/.git/config
 0	file_path	/home/x/proj/src/main.py
-0	file_path	/home/x/proj/README.md
+2	file_path	/home/x/proj/README.md
 2	notebook_path	/home/x/proj/.git/x.ipynb
 2	file_path	/home/x/proj/key.pem
 2	file_path	/home/x/proj/certs/id.key
