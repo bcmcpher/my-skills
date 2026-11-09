@@ -1,7 +1,7 @@
 #!/bin/bash
 # bash-guard.sh — PreToolUse hook for Bash.
 #
-# Covers four classes of command that the permission glob syntax cannot express,
+# Covers classes of command that the permission glob syntax cannot express,
 # so that Bash(find *), Bash(echo *) and Bash(gh api:*) can stay in `allow`
 # without their sharp edges.
 #
@@ -10,25 +10,30 @@
 # ordinary idiom `find . -not -path "./.git/*"`. Rules here are anchored to a
 # command word or a flag, and each has a case in the test matrix.
 #
+# This hook NEVER evaluates its input. It only pattern-matches the command text
+# with jq, awk, grep and `case`. Any change that runs, sources or expands $CMD
+# is a review blocker.
+#
 # rtk rewrites commands before this runs in some orderings (git -> rtk git,
 # cat -> rtk read), so every command matcher accepts an optional "rtk " prefix.
 #
 # ---------------------------------------------------------------------------
-# The central idea: COMMAND WORDS come from the mask, ARGUMENTS from the text.
+# Two views of the command:
+#
+#   CMD     the command with heredoc bodies stripped
+#   TOKENS  CMD split into shell words, one per line, with quote removal done
+#           (`"$HOME"/.bashrc` becomes `$HOME/.bashrc`). Separators, `>` and
+#           `<` are their own tokens, and a word-initial `#` ends the line.
 #
 # Text inside quotes is data. `git commit -m "echo x >> ~/.bashrc is blocked"`
 # does not redirect anything, and blocking it is a false positive -- one that
-# fires exactly when you are writing about these rules. So matching happens
-# against two views of the command:
+# fires exactly when you are writing about these rules. So a word that
+# contained any quoting never counts as a COMMAND word, and quoted `>` or `;`
+# are ordinary characters. An ARGUMENT inside quotes is still an argument --
+# `cat "$HOME/.ssh/id_rsa"` is a real read -- so arguments are classified after
+# quote removal.
 #
-#   CMD   the command with heredoc bodies stripped
-#   MASK  the same string with all quoted spans blanked to spaces, character
-#         for character, so byte offsets still line up with CMD
-#
-# A command word found only inside quotes is prose and must not trigger a rule,
-# so command words are matched against MASK. An argument inside quotes is still
-# an argument -- `cat "$HOME/.ssh/id_rsa"` is a real read -- so once a rule has
-# fired on its command word, its arguments are matched against CMD.
+# Rules 1 and 3's graphql check still use MASK, CMD with quoted spans blanked.
 # ---------------------------------------------------------------------------
 
 INPUT=$(cat)
@@ -58,10 +63,9 @@ CMD=$(printf '%s\n' "$CMD" | awk '
 # \047 is a single quote -- using the escape avoids unreadable shell quoting.
 #
 # A comment is blanked the same way, for the same reason quoted spans are: the
-# text after `#` is prose, not an invocation. `echo hi # cat ~/.ssh/id_rsa` reads
-# no secret. Only a WORD-INITIAL `#` starts a comment, which is also how the
-# shell reads it -- the fragment in `https://example.com/a#frag` is not one.
-# A comment ends at the newline, so `q` is deliberately left untouched.
+# text after `#` is prose, not an invocation. Only a WORD-INITIAL `#` starts a
+# comment, which is also how the shell reads it -- the fragment in
+# `https://example.com/a#frag` is not one.
 MASK=$(printf '%s\n' "$CMD" | awk '
   BEGIN { q = 0 }
   {
@@ -89,6 +93,84 @@ MASK=$(printf '%s\n' "$CMD" | awk '
   }
 ')
 
+# Shell word splitter. Output, one token per line:
+#
+#   S<TAB><sep>    a separator: newline ; & | ( ) ` $(
+#   R<TAB>>        an output redirection (> >> >| &>); the next word is its file
+#   I<TAB><        an input redirection (< << <<<); the next word is its file
+#   <q><t><TAB>w   a word after quote removal. <q> is 1 if any part of it was
+#                  quoted. <t> is 1 if it begins with a tilde the shell would
+#                  expand: an unquoted `~` followed by an unquoted `/` or by
+#                  nothing. `"~"/x` names a directory literally called `~`.
+#
+# `2>file` drops the fd number, and `>&2` is an fd duplication, not a file.
+# A newline inside a quoted word becomes a space, keeping one token per line.
+TOKENS=$(printf '%s' "$CMD" | awk -v RS='\001' '
+  function emit(k, x) { gsub(/\n/, " ", x); print k "\t" x }
+  function addc(ch, quoted) {
+    pos++
+    if (pos == 1) q1 = quoted; else if (pos == 2) q2 = quoted
+    if (quoted) hq = 1
+    w = w ch; inw = 1
+  }
+  function reset() { inw = 0; w = ""; hq = 0; q1 = 0; q2 = 0; pos = 0 }
+  function endw(  tl) {
+    if (inw) {
+      tl = (substr(w, 1, 1) == "~" && !q1 && (pos == 1 || (substr(w, 2, 1) == "/" && !q2)))
+      emit((hq ? "1" : "0") (tl ? "1" : "0"), w)
+    }
+    reset()
+  }
+  { s = s $0 }
+  END {
+    n = length(s); i = 1; q = 0; reset()
+    while (i <= n) {
+      c = substr(s, i, 1)
+      if (q == 1) {
+        if (c == "\047") q = 0; else addc(c, 1)
+        i++; continue
+      }
+      if (q == 2) {
+        if (c == "\"") { q = 0; i++; continue }
+        if (c == "\\" && i < n && index("\"\\$`\n", substr(s, i + 1, 1))) {
+          d = substr(s, i + 1, 1); if (d != "\n") addc(d, 1); i += 2; continue
+        }
+        addc(c, 1); i++; continue
+      }
+      if (c == "\047") { q = 1; inw = 1; hq = 1; i++; continue }
+      if (c == "\"")   { q = 2; inw = 1; hq = 1; i++; continue }
+      if (c == "\\") {
+        if (i < n) { d = substr(s, i + 1, 1); if (d != "\n") addc(d, 1) }
+        i += 2; continue
+      }
+      if (c == " " || c == "\t") { endw(); i++; continue }
+      if (c == "#" && !inw) { while (i <= n && substr(s, i, 1) != "\n") i++; continue }
+      if (c == "&" && substr(s, i + 1, 1) == ">") {
+        endw(); emit("R", ">"); i += 2
+        if (substr(s, i, 1) == ">") i++
+        continue
+      }
+      if (c == "$" && substr(s, i + 1, 1) == "(") { endw(); emit("S", "$("); i += 2; continue }
+      if (c == "\n" || c == ";" || c == "&" || c == "|" || c == "(" || c == ")" || c == "`") {
+        endw(); emit("S", c); i++; continue
+      }
+      if (c == ">") {
+        if (inw && !hq && w ~ /^[0-9]+$/) reset(); else endw()
+        i++
+        if (substr(s, i, 1) == ">" || substr(s, i, 1) == "|") i++
+        if (substr(s, i, 1) == "&") { i++; while (substr(s, i, 1) ~ /[0-9-]/) i++; continue }
+        emit("R", ">"); continue
+      }
+      if (c == "<") {
+        endw(); i++
+        while (substr(s, i, 1) == "<") i++
+        emit("I", "<"); continue
+      }
+      addc(c, 0); i++
+    }
+    endw()
+  }')
+
 block() { echo "Blocked: $1" >&2; exit 2; }
 
 # Command word: start of string, or after a pipe/semicolon/&&/newline.
@@ -99,101 +181,70 @@ cmdword() { printf '%s' "$MASK" | grep -qE "$1"; }
 # Does an argument appear anywhere? Matched against CMD, quotes and all.
 arg() { printf '%s' "$CMD" | grep -qE "$1"; }
 
-# ---------------------------------------------------------------- 1. find
-# -delete and -exec/-execdir/-ok/-okdir turn an allow-listed read command into
-# an arbitrary-deletion primitive.
-if cmdword "${CW}(rtk[[:space:]]+)?find([[:space:]]|\$)"; then
-  if arg '[[:space:]]-(delete|exec|execdir|ok|okdir)([[:space:]]|$)'; then
-    block "find with -delete/-exec is destructive; Bash(find *) only covers searching"
+# ---------------------------------------------------------- path classifiers
+# expand_home <tilde-ok> <word>: set X to the word with a leading ~, $HOME or
+# ${HOME} resolved. Without this, `> "$HOME/.bashrc"` reads as a literal path
+# and matches nothing. A single-quoted '$HOME' cannot be told apart after quote
+# removal and is expanded too, deliberately: a false block costs less than a
+# miss. The `\~` patterns match a literal tilde in untrusted text.
+expand_home() {
+  X=$2
+  if [ "$1" = 1 ]; then
+    case "$X" in
+      \~)    X=$HOME ;;
+      \~/*)  X="${HOME}${X#\~}" ;;
+    esac
   fi
-fi
+  case "$X" in
+    '$HOME'|'$HOME/'*)     X="${HOME}${X#\$HOME}" ;;
+    '${HOME}'|'${HOME}/'*) X="${HOME}${X#\$\{HOME\}}" ;;
+  esac
+}
+
+is_cred_path() {
+  case "$1" in
+    "$HOME"/.ssh|"$HOME"/.ssh/*|"$HOME"/.aws|"$HOME"/.aws/*|"$HOME"/.gnupg|"$HOME"/.gnupg/*) return 0 ;;
+  esac
+  return 1
+}
+
+# Secret by basename. The example/sample/template forms of .env hold no secrets
+# and are committed to repos on purpose.
+is_secret_file() {
+  case "${1##*/}" in
+    .env.example|.env.sample|.env.template) return 1 ;;
+    .env|.env.*|*.pem|*.key) return 0 ;;
+  esac
+  return 1
+}
 
 # ------------------------------------------------------- 2. redirection targets
 # Writing via `>` bypasses both Write/Edit sitting in `ask` and the
 # protect-files.sh hook. Only sensitive destinations are blocked -- redirecting
 # into the worktree or /tmp is ordinary work and stays allowed.
-#
-# The operator is located in MASK, because `>` inside quotes is a literal
-# character and redirects nothing. The target is then read from CMD at the same
-# offset, so a quoted destination like `> "$HOME/.bashrc"` is still caught.
-TARGETS=$(awk 'NR==FNR { m[FNR]=$0; next }
-  {
-    cmd = $0; mask = m[FNR]; n = length(mask)
-    for (i = 1; i <= n; i++) {
-      if (substr(mask, i, 1) != ">") continue
-      j = i + 1
-      if (substr(mask, j, 1) == ">") j++
-      while (j <= n && substr(cmd, j, 1) ~ /[ \t]/) j++
-      t = ""; qc = substr(cmd, j, 1)
-      if (qc == "\"" || qc == "\047") {
-        j++
-        while (j <= n && substr(cmd, j, 1) != qc) { t = t substr(cmd, j, 1); j++ }
-      } else {
-        while (j <= n && substr(cmd, j, 1) !~ /[ \t;&|<>()]/) { t = t substr(cmd, j, 1); j++ }
-      }
-      if (t != "") print t
-      i = j
-    }
-  }' <(printf '%s\n' "$MASK") <(printf '%s\n' "$CMD"))
-
-while IFS= read -r t; do
-  [ -z "$t" ] && continue
-  case "$t" in
-    /dev/null|/dev/stdout|/dev/stderr) continue ;;
-  esac
-  # Expand the two forms a destination is normally written in. Without this,
-  # `> "$HOME/.bashrc"` reads as a literal path and matches nothing.
-  case "$t" in
-    "~"*)        t="${HOME}${t#\~}" ;;
-    '$HOME'*)    t="${HOME}${t#\$HOME}" ;;
-    '${HOME}'*)  t="${HOME}${t#\$\{HOME\}}" ;;
-  esac
-  case "$t" in
-    "$HOME"/.ssh/*|"$HOME"/.aws/*|"$HOME"/.gnupg/*)
-      block "redirection into a credential directory: $t" ;;
+check_redirect() { # <tilde-ok> <word>
+  case "$2" in /dev/null|/dev/stdout|/dev/stderr) return ;; esac
+  expand_home "$1" "$2"
+  is_cred_path "$X" && block "redirection into a credential directory: $X"
+  case "$X" in
     "$HOME"/.*)
-      block "redirection into a \$HOME dotfile: $t (shell rc and config files are not editable this way)" ;;
+      block "redirection into a \$HOME dotfile: $X (shell rc and config files are not editable this way)" ;;
     /etc/*|/usr/*|/bin/*|/sbin/*|/boot/*|/lib/*|/lib64/*)
-      block "redirection into a system path: $t" ;;
+      block "redirection into a system path: $X" ;;
   esac
-  case "$t" in
-    *.pem|*.key|.env|.env.*|*/.env|*/.env.*)
-      block "redirection into a secret file: $t" ;;
+  case "${X##*/}" in
+    *.pem|*.key|.env|.env.*) block "redirection into a secret file: $X" ;;
   esac
-done <<< "$TARGETS"
-
-# ------------------------------------------------------------------ 3. gh api
-# `gh api` is not read-only. Bash(gh api:*) is in allow for querying; mutating
-# verbs, field flags (-f/-F imply POST) and --input must go through a prompt.
-if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api([[:space:]]|\$)"; then
-  if arg '[[:space:]](-X|--method)[[:space:]]+["\x27]?(POST|PUT|PATCH|DELETE)'; then
-    block "gh api with a mutating method; Bash(gh api:*) only covers reads"
-  fi
-  # `gh api graphql` always passes the query via -f query=..., for reads as well
-  # as writes, so the field-flag rule cannot apply there. Distinguish on the
-  # GraphQL operation instead: a mutation is a write, a query is not. The query
-  # body is quoted, so this one deliberately reads CMD.
-  if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api[[:space:]]+graphql([[:space:]]|\$)"; then
-    if arg '(^|[^[:alnum:]_])mutation([^[:alnum:]_]|$)'; then
-      block "gh api graphql with a mutation; Bash(gh api:*) only covers reads"
-    fi
-  elif arg '[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]]|=)'; then
-    block "gh api with field/input flags implies POST; Bash(gh api:*) only covers reads"
-  fi
-fi
+}
 
 # ------------------------------------------------------- 4. secret reads via Bash
 # The deny list binds the Read tool only -- Read(**/.env), Read(~/.ssh/*) etc.
 # do not constrain Bash. Close that asymmetry for the common readers.
-READERS='cat|head|tail|less|more|strings|xxd|od|base64|nl|tac'
-if cmdword "${CW}(rtk[[:space:]]+read|${READERS})([[:space:]]|\$)"; then
-  if arg "[[:space:]/\"\x27](\.env(\.[^[:space:]\"\x27]*)?|[^[:space:]\"\x27]*\.pem|[^[:space:]\"\x27]*\.key)([[:space:]\"\x27]|\$)"; then
-    block "reading a secret file through Bash; the Read deny rules do not cover Bash"
-  fi
-  if arg "[[:space:]\"\x27](~|\\\$HOME|\\\$\{HOME\}|${HOME})/\.(ssh|aws|gnupg)/"; then
-    block "reading a credential directory through Bash; the Read deny rules do not cover Bash"
-  fi
-fi
+check_read() { # <tilde-ok> <word>
+  expand_home "$1" "$2"
+  is_secret_file "$X" && block "reading a secret file through Bash; the Read deny rules do not cover Bash: $X"
+  is_cred_path "$X" && block "reading a credential directory through Bash; the Read deny rules do not cover Bash: $X"
+}
 
 # ------------------------------------------------------------------ 5. rm floor
 # Ordinary `rm` lives in `ask` -- it prompts, and you can approve it. This rule
@@ -224,68 +275,108 @@ fi
 #
 # Flags are not required for a block. `rm /etc` fails on its own anyway, and not
 # special-casing -r/-f keeps the rule short and impossible to spell around.
-if cmdword "${CW}(rtk[[:space:]]+)?rm([[:space:]]|\$)"; then
-  # Targets are the non-flag words after each `rm`, with `--` ending the flags.
-  # Read from CMD, not MASK: a quoted "$HOME" is still a real target.
-  RM_TARGETS=$(printf '%s\n' "$CMD" | awk '
-    { line = $0
-      # Space the separators out before splitting. They are punctuation, not
-      # words, and `rm -rf ./build;ls /` glues one to the previous word -- which
-      # left `inrm` set and scanned `ls`'"'"'s argument as an rm target, blocking
-      # an ordinary command list. `&&` and `||` become two tokens, each of which
-      # the separator test below already matches.
-      gsub(/[;&|]/, " \\& ", line)
-      n = split(line, w, /[ \t]+/)
-      inrm = 0; endflags = 0
-      for (i = 1; i <= n; i++) {
-        t = w[i]
-        # Rest of the line is a comment. MASK already stops `cmdword` firing on
-        # a commented-out rm; this is the mirror case, a real rm whose trailing
-        # comment must not be read as arguments.
-        if (t ~ /^#/) break
-        if (t ~ /^(rtk|sudo|xargs|env)$/) continue
-        if (t == "rm") { inrm = 1; endflags = 0; continue }
-        if (!inrm) continue
-        # A shell separator ends this rm invocation.
-        if (t ~ /^(\||;|&&|\|\||&)$/) { inrm = 0; continue }
-        if (t == "--") { endflags = 1; continue }
-        if (!endflags && t ~ /^-/) continue
-        gsub(/^["\047]|["\047]$/, "", t)
-        if (t != "") print t
-      } }')
+check_rm() { # <tilde-ok> <word>
+  expand_home "$1" "$2"
+  # Strip a single trailing slash so `/usr/` and `/usr` are one case. Not
+  # applied to "/" itself, which would otherwise become the empty string.
+  [ "$X" != "/" ] && X="${X%/}"
+  case "$X" in
+    /|"/*")
+      block "rm targeting the filesystem root: $X" ;;
+    "$HOME"|"$HOME/*")
+      block "rm targeting your home directory: $X" ;;
+    /etc|/usr|/var|/bin|/sbin|/boot|/lib|/lib64|/opt|/root|/home|/srv|/mnt|/media|"/etc/*"|"/usr/*"|"/var/*"|"/bin/*"|"/sbin/*"|"/boot/*"|"/lib/*"|"/lib64/*"|"/opt/*"|"/root/*"|"/home/*"|"/srv/*"|"/mnt/*"|"/media/*")
+      block "rm targeting a system directory: $X" ;;
+    ..)
+      block "rm targeting the parent directory: $X" ;;
+  esac
+  is_cred_path "$X" && block "rm targeting a credential directory: $X"
+}
 
-  while IFS= read -r t; do
-    [ -z "$t" ] && continue
-    # Same three expansions rule 2 uses for redirection destinations. Without
-    # them `rm -rf "$HOME"` reads as a literal path and matches nothing.
-    # shellcheck disable=SC2088  # these are case *patterns* matching a literal
-    # tilde in untrusted command text; expanding them is exactly what must not
-    # happen here, since the whole point is to resolve `~` ourselves.
-    case "$t" in
-      "~")         t="$HOME" ;;
-      "~/"*)       t="${HOME}${t#\~}" ;;
-      '$HOME')     t="$HOME" ;;
-      '$HOME/'*)   t="${HOME}${t#\$HOME}" ;;
-      '${HOME}')   t="$HOME" ;;
-      '${HOME}/'*) t="${HOME}${t#\$\{HOME\}}" ;;
-    esac
-    # Strip a single trailing slash so `/usr/` and `/usr` are one case. Not
-    # applied to "/" itself, which would otherwise become the empty string.
-    [ "$t" != "/" ] && t="${t%/}"
-
-    case "$t" in
-      /|"/*")
-        block "rm targeting the filesystem root: $t" ;;
-      "$HOME"|"$HOME/*")
-        block "rm targeting your home directory: $t" ;;
-      /etc|/usr|/var|/bin|/sbin|/boot|/lib|/lib64|/opt|/root|/home|/srv|/mnt|/media|"/etc/*"|"/usr/*"|"/var/*"|"/bin/*"|"/sbin/*"|"/boot/*"|"/lib/*"|"/lib64/*"|"/opt/*"|"/root/*"|"/home/*"|"/srv/*"|"/mnt/*"|"/media/*")
-        block "rm targeting a system directory: $t" ;;
-      ..)
-        block "rm targeting the parent directory: $t" ;;
-      "$HOME"/.ssh|"$HOME"/.ssh/*|"$HOME"/.aws|"$HOME"/.aws/*|"$HOME"/.gnupg|"$HOME"/.gnupg/*)
-        block "rm targeting a credential directory: $t" ;;
-    esac
-  done <<< "$RM_TARGETS"
+# ---------------------------------------------------------------- 1. find
+# -delete and -exec/-execdir/-ok/-okdir turn an allow-listed read command into
+# an arbitrary-deletion primitive.
+if cmdword "${CW}(rtk[[:space:]]+)?find([[:space:]]|\$)"; then
+  if arg '[[:space:]]-(delete|exec|execdir|ok|okdir)([[:space:]]|$)'; then
+    block "find with -delete/-exec is destructive; Bash(find *) only covers searching"
+  fi
 fi
+
+# ------------------------------------------------------------------ 3. gh api
+# `gh api` is not read-only. Bash(gh api:*) is in allow for querying; mutating
+# verbs, field flags (-f/-F imply POST) and --input must go through a prompt.
+if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api([[:space:]]|\$)"; then
+  if arg '[[:space:]](-X|--method)[[:space:]]+["\x27]?(POST|PUT|PATCH|DELETE)'; then
+    block "gh api with a mutating method; Bash(gh api:*) only covers reads"
+  fi
+  # `gh api graphql` always passes the query via -f query=..., for reads as well
+  # as writes, so the field-flag rule cannot apply there. Distinguish on the
+  # GraphQL operation instead: a mutation is a write, a query is not. The query
+  # body is quoted, so this one deliberately reads CMD.
+  if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api[[:space:]]+graphql([[:space:]]|\$)"; then
+    if arg '(^|[^[:alnum:]_])mutation([^[:alnum:]_]|$)'; then
+      block "gh api graphql with a mutation; Bash(gh api:*) only covers reads"
+    fi
+  elif arg '[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]]|=)'; then
+    block "gh api with field/input flags implies POST; Bash(gh api:*) only covers reads"
+  fi
+fi
+
+# ------------------------------------------------------------ word-level rules
+# Walk TOKENS. An unquoted word naming a known command opens a SCOPE, and the
+# scope's words are collected up to the next separator. Only the first known
+# command in a segment opens one, so an argument that happens to be a command
+# name (`cp cat ~/x`) does not hide the real command. Prefix words such as
+# `sudo`, `xargs`, `env` and `rtk` name no scope and are passed over.
+# `>` and `<` targets are checked wherever they appear.
+
+scope_name() { # <word> <previous word>: set N
+  case "$1" in
+    rm)  N="rm" ;;
+    cat|head|tail|less|more|strings|xxd|od|base64|nl|tac) N="read" ;;
+    read) if [ "$2" = rtk ]; then N="read"; else N=""; fi ;;
+    *)   N="" ;;
+  esac
+}
+
+# Each SW entry is "<tilde-ok><TAB><word>".
+finish_scope() {
+  local e t w endflags=0
+  for e in "${SW[@]}"; do
+    t=${e%%$'\t'*}; w=${e#*$'\t'}
+    if [ $endflags = 0 ]; then
+      [ "$w" = "--" ] && { endflags=1; continue; }
+      case "$w" in -?*) continue ;; esac
+    fi
+    [ -z "$w" ] && continue
+    case "$scope" in
+      rm)   check_rm "$t" "$w" ;;
+      read) check_read "$t" "$w" ;;
+    esac
+  done
+  scope=""; SW=()
+}
+
+scope=""; SW=(); prevw=""; pending=""
+while IFS= read -r tok; do
+  [ -z "$tok" ] && continue
+  k=${tok%%$'\t'*}; w=${tok#*$'\t'}
+  case "$k" in
+    S)   finish_scope; pending=""; prevw=""; continue ;;
+    R|I) pending=$k; continue ;;
+  esac
+  tl=${k:1:1}
+  if [ -n "$pending" ]; then
+    if [ "$pending" = R ]; then check_redirect "$tl" "$w"; else check_read "$tl" "$w"; fi
+    pending=""; continue
+  fi
+  if [ -z "$scope" ] && [ "${k:0:1}" = 0 ]; then
+    scope_name "$w" "$prevw"
+    if [ -n "$N" ]; then scope=$N; prevw=$w; continue; fi
+  fi
+  [ -n "$scope" ] && SW+=("$tl"$'\t'"$w")
+  prevw=$w
+done <<< "$TOKENS"
+finish_scope
 
 exit 0
