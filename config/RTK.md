@@ -30,11 +30,13 @@ the call fails with "a hook changed this call's input".
 Write the rtk form yourself so the hook has nothing to change:
 
 - `rtk git …`, `rtk ls`, `rtk grep`, `rtk diff`, `rtk find`.
-- `rtk read <file> [--max-lines N]`, not `cat` or `head`.
+- `rtk read <file> [--max-lines N]`, not `cat <file>` or `head <file>`.
+- After a pipe, leave `grep` and `head` as they are. `rtk grep` ignores stdin and searches the
+  directory; the hook does not rewrite them there either.
 - When unsure of the form, check it with `rtk hook check '<cmd>'`.
 - Prefer the Read, Grep and Glob tools to shell reads. They bypass Bash, the hook and the
   classifier.
 - Keep each Bash call to one command or a short chain. A long `;` chain gets several
   rewrites, and a failed call costs more to retry.
 
-Refer to CLAUDE.md for full command reference.
+Run `rtk --help` for the full command list.
