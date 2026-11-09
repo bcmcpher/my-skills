@@ -1,6 +1,7 @@
 # Run the hook test suite in CI
 
-Status: draft, 2026-11-09. Not started. Two open decisions below.
+Status: draft, 2026-11-09. Not started. Decisions taken 2026-11-09: CI uses the runner's
+default awk, without the sandbox, on `ubuntu-26.04`. Awaiting go-ahead.
 
 ## Context
 
@@ -9,9 +10,11 @@ catches a regression. CI (`.github/workflows/ci.yml`) runs `bin/validate`, shell
 parse check. Shellcheck does not test behaviour: a hook edit can pass shellcheck and still allow
 `rm -rf ~` or block `git status`.
 
-The hooks call `awk` by name. Locally that is GNU Awk 5.1. On `ubuntu-latest` (24.04), `awk` is
-mawk unless gawk is installed. The tokenizer was written and tested only under gawk. mawk is
-installed here at `/usr/bin/mawk`, so the difference can be tested locally first.
+The hooks call `awk` by name. Locally that is GNU Awk 5.1. The tokenizer was written and tested
+only under gawk. On 2026-11-09, `ubuntu-latest` resolved to the `ubuntu-26.04` image
+(20261101.186.1), the newest LTS. Which awk that image runs by default is not yet confirmed; on
+Ubuntu it has been mawk. mawk is installed here at `/usr/bin/mawk`, so the difference can be
+tested locally first.
 
 ## Safety
 
@@ -48,9 +51,11 @@ Add a `hook-tests` job to `ci.yml`:
 ```yaml
   hook-tests:
     name: Hook test cases
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
+      - name: Show which awk the hooks will use
+        run: readlink -f "$(command -v awk)"
       - name: Run bin/test-hooks against config/hooks/
         run: bin/test-hooks --repo
 ```
@@ -58,22 +63,18 @@ Add a `hook-tests` job to `ci.yml`:
 `--repo` tests the tracked copies. The default mode reads `~/.claude/hooks/`, which does not
 exist on a runner.
 
-**Open decision A: which awk the job uses.**
+**Decided (2026-11-09):**
 
-- **Runner default (mawk). Recommended if step 1 passes.** CI then tests the awk that a fresh
-  Ubuntu machine has, which is the more likely portability failure.
-- **Install gawk** (`sudo apt-get install -y gawk`). Matches this machine exactly, but hides a
-  mawk break on any other Linux machine.
-- **Both, as a matrix.** Two short jobs; catches both.
-
-**Open decision B: `--sandbox` in CI.**
-
-- **Without the sandbox. Recommended.** The runner is a disposable VM, and the hooks do not
-  evaluate input. bwrap is not installed by default. Ubuntu 24.04 also restricts unprivileged
-  user namespaces through AppArmor, so bwrap needs
-  `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` first.
-- **With the sandbox.** Install `bubblewrap`, set the sysctl, run `--repo --sandbox`. This keeps
-  one rule everywhere, at the cost of two setup steps that can break with a runner image change.
+- **Runner image: `ubuntu-26.04`, pinned.** It is the newest LTS and is what `ubuntu-latest`
+  gives today. Pinning it means a later move of the `-latest` label cannot silently change the
+  awk under test; moving to the next LTS is then a deliberate one-line edit. The other jobs
+  keep `ubuntu-latest`.
+- **awk: the runner's default.** CI then tests the awk a fresh Ubuntu machine has, which is the
+  more likely portability failure. Do not install gawk to match this machine. If the default
+  turns out to be gawk, run the job's tests once more under mawk (`--awk "$(command -v mawk)"`)
+  if mawk is present, so a mawk break is still caught.
+- **No `--sandbox` in CI.** The runner is a disposable VM, and the hooks do not evaluate input.
+  Local runs keep `--sandbox`.
 
 ### 3. Graph gate test
 
