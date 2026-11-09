@@ -96,6 +96,8 @@ PROTECT="$HOOK_DIR/protect-files.sh"
 if [[ -f "$PROTECT" ]]; then
   while IFS=$'\t' read -r want field path; do
     [[ -z "${want:-}" || "$want" == \#* ]] && continue
+    # The tools send absolute paths; a leading ~ in the table stands for $HOME.
+    path="${path/#\~/$HOME}"
     got=$(jq -cn --arg f "$field" --arg p "$path" '{tool_input:{($f):$p}}' \
             | bash "$PROTECT" >/dev/null 2>&1; echo $?)
     report "" "$want" "$got" "protect-files $field=$path"
