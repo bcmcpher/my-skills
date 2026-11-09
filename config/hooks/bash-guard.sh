@@ -305,22 +305,44 @@ fi
 # ------------------------------------------------------------------ 3. gh api
 # `gh api` is not read-only. Bash(gh api:*) is in allow for querying; mutating
 # verbs, field flags (-f/-F imply POST) and --input must go through a prompt.
-if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api([[:space:]]|\$)"; then
-  if arg '[[:space:]](-X|--method)[[:space:]]+["\x27]?(POST|PUT|PATCH|DELETE)'; then
-    block "gh api with a mutating method; Bash(gh api:*) only covers reads"
-  fi
-  # `gh api graphql` always passes the query via -f query=..., for reads as well
-  # as writes, so the field-flag rule cannot apply there. Distinguish on the
-  # GraphQL operation instead: a mutation is a write, a query is not. The query
-  # body is quoted, so this one deliberately reads CMD.
-  if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api[[:space:]]+graphql([[:space:]]|\$)"; then
-    if arg '(^|[^[:alnum:]_])mutation([^[:alnum:]_]|$)'; then
-      block "gh api graphql with a mutation; Bash(gh api:*) only covers reads"
-    fi
-  elif arg '[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]]|=)'; then
-    block "gh api with field/input flags implies POST; Bash(gh api:*) only covers reads"
+#
+# `gh api graphql` always passes the query via -f query=..., for reads as well
+# as writes, so the field-flag rule cannot apply there. Distinguish on the
+# GraphQL operation instead: a mutation is a write, a query is not. The query
+# body is quoted, so this one deliberately reads CMD.
+GH_GRAPHQL=0
+if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api[[:space:]]+graphql([[:space:]]|\$)"; then
+  GH_GRAPHQL=1
+  if arg '(^|[^[:alnum:]_])mutation([^[:alnum:]_]|$)'; then
+    block "gh api graphql with a mutation; Bash(gh api:*) only covers reads"
   fi
 fi
+
+# The method and field flags are read from the words of a `gh api` scope, so
+# every spelling counts: `-X POST`, `-XPOST`, `--method=post`, `-fbody=x`,
+# `--input=f.json`. An explicit `-X GET` with fields is a read: gh then sends
+# the fields as query parameters, the usual way to call the search endpoints.
+check_gh() {
+  local e w method="" want=0 fields=0
+  [ "${SW[0]#*$'\t'}" = api ] || return 0
+  for e in "${SW[@]:1}"; do
+    w=${e#*$'\t'}
+    if [ $want = 1 ]; then method=$w; want=0; continue; fi
+    case "$w" in
+      -X|--method) want=1 ;;
+      --method=*)  method=${w#--method=} ;;
+      -X*)         method=${w#-X} ;;
+      -f*|-F*|--field|--field=*|--raw-field|--raw-field=*|--input|--input=*) fields=1 ;;
+    esac
+  done
+  method=${method^^}
+  case "$method" in
+    POST|PUT|PATCH|DELETE) block "gh api with a mutating method; Bash(gh api:*) only covers reads" ;;
+  esac
+  if [ $fields = 1 ] && [ $GH_GRAPHQL = 0 ] && [ "$method" != GET ]; then
+    block "gh api with field/input flags implies POST; Bash(gh api:*) only covers reads"
+  fi
+}
 
 # ------------------------------------------------------------ word-level rules
 # Walk TOKENS. An unquoted word naming a known command opens a SCOPE, and the
@@ -333,6 +355,7 @@ fi
 scope_name() { # <word> <previous word>: set N
   case "$1" in
     rm)  N="rm" ;;
+    gh)  N="gh" ;;
     cat|head|tail|less|more|strings|xxd|od|base64|nl|tac) N="read" ;;
     read) if [ "$2" = rtk ]; then N="read"; else N=""; fi ;;
     *)   N="" ;;
@@ -342,6 +365,10 @@ scope_name() { # <word> <previous word>: set N
 # Each SW entry is "<tilde-ok><TAB><word>".
 finish_scope() {
   local e t w endflags=0
+  case "$scope" in
+    "") return ;;
+    gh) check_gh; scope=""; SW=(); return ;;
+  esac
   for e in "${SW[@]}"; do
     t=${e%%$'\t'*}; w=${e#*$'\t'}
     if [ $endflags = 0 ]; then

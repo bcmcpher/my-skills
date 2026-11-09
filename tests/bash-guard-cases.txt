@@ -88,6 +88,9 @@
 0	gh api -X GET /user
 0	gh api --method=GET /user
 0	gh api /repos/o/r/pulls --jq '.[].title'
+0	gh api -X GET search/issues -f q=repo:o/r
+0	gh pr create -f
+2	rtk proxy gh api -X PATCH /repos/o/r
 2	rm -rf "$HOME"/
 2	rm -rf "$HOME"
 2	rm -rf ~/".ssh"
