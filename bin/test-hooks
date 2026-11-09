@@ -83,6 +83,8 @@ GUARD="$HOOK_DIR/bash-guard.sh"
 if [[ -f "$GUARD" ]]; then
   while IFS=$'\t' read -r want cmd; do
     [[ -z "${want:-}" || "$want" == \#* ]] && continue
+    # @USER@ stands for your login name, for the `~name` tilde form.
+    cmd="${cmd//@USER@/${USER:-$(id -un)}}"
     got=$(jq -cn --arg c "$cmd" '{tool_input:{command:$c}}' \
             | bash "$GUARD" >/dev/null 2>&1; echo $?)
     report "" "$want" "$got" "$cmd"

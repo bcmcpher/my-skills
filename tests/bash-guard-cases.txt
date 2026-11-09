@@ -143,3 +143,33 @@
 0	cp -r src/ /tmp/out/
 0	ln -s ~/Projects/x/bin/tool ~/bin/tool
 0	sed -i -e 's/~\/.ssh/x/' notes.md
+2	echo "$(cat ~/.ssh/id_rsa)"
+2	x="$(rm -rf ~)"
+2	echo "key: `cat .env`"
+0	git commit -m "build $(date +%F)"
+0	echo "a $(pwd) b" > /tmp/x
+2	echo x >& ~/.bashrc
+0	echo x >&2
+0	ls 2>&1 | head
+2	\cat ~/.ssh/id_rsa
+2	c''at .env
+2	"rm" -rf ~
+2	gh api graphql -f query='{viewer{login}}'; gh api repos/o/r/issues -f title=x
+2	rm -rf ~//
+2	rm -rf /usr//
+2	rm -rf /etc/./
+2	rm -rf ~/Projects/..
+0	rm -rf ~/Projects/x/../y
+2	cat ~/./.ssh/id_rsa
+2	cat ~@USER@/.ssh/id_rsa
+0	echo cat .env
+0	echo rm -rf /
+0	man rm
+2	sudo -u bob rm -rf /
+2	if true; then rm -rf /; fi
+2	FOO=1 cat .env
+2	timeout 5 rm -rf /
+0	grep foo <<< "my.key"
+0	cat <<.env
+2	cat .envrc
+0	echo x > .env.example

@@ -259,8 +259,11 @@ In auto mode, a command in `ask` goes to the auto-mode classifier, not to you. T
 PreToolUse guards are the only check that gives the same answer every time.
 
 `bash-guard.sh` splits the command into shell words once, with quote removal, so
-`"$HOME"/.bashrc` reads as `$HOME/.bashrc`. A word that contained quotes never counts as a
-command name. An unquoted `~` expands; a quoted one does not, so `"~"/x` stays a literal path.
+`"$HOME"/.bashrc` reads as `$HOME/.bashrc`. Paths are normalised, so `~//` and `~/./.ssh` count.
+A command is recognised only in command position: the first word of a segment, or any word after
+a prefix such as `sudo`, `xargs`, `env` or `timeout`. So `echo rm -rf /` passes and
+`\rm -rf ~` does not. A `$( )` or backtick substitution inside double quotes is checked like any
+other command. An unquoted `~` expands; a quoted one does not, so `"~"/x` stays a literal path.
 Its rules:
 
 | Rule | Blocks |
@@ -269,7 +272,7 @@ Its rules:
 | 2. `>` and `>>` | any `$HOME` dotfile, credential directories, system paths, secret files |
 | 2b. `tee`, `cp`, `mv`, `install`, `ln`, `sed -i`, `dd of=`, `truncate` | credential directories, system paths, secret files, shell startup files (`.bashrc`, `.profile`, `.zshrc` and the like) |
 | 3. `gh api` | `-X`/`--method` POST, PUT, PATCH or DELETE in any spelling; `-f`, `-F`, `--field`, `--raw-field` or `--input` without `-X GET`; a graphql `mutation` |
-| 4. secret reads | `.env`, `.env.*`, `*.pem`, `*.key` or a credential directory as an operand of a reader (`cat`, `head`, `grep`, `awk`, `jq`, `sort`, `cp`, `tar`, `scp` and others) or of `<` |
+| 4. secret reads | `.env`, `.env.*`, `.envrc`, `*.pem`, `*.key` or a credential directory as an operand of a reader (`cat`, `head`, `grep`, `awk`, `jq`, `sort`, `cp`, `tar`, `scp` and others) or of `<` |
 | 5. `rm` floor | see the section above |
 
 Rule 2b is narrower than rule 2 on purpose. `cp config/RTK.md ~/.claude/RTK.md` is normal work
@@ -278,8 +281,8 @@ first operand, which is the pattern or program. So `grep -n 'cat ~/.ssh/id_rsa' 
 reads only `notes.md`. With `-e` or `-f`, every operand is a file.
 
 `protect-files.sh` checks the `file_path` or `notebook_path` of Write, Edit and NotebookEdit. It
-matches path components: a `.git` directory, the basenames `.env`, `.env.*`, `*.pem`, `*.key`
-and `package-lock.json`, and anything under `~/.ssh`, `~/.aws` or `~/.gnupg`.
+matches path components: a `.git` directory, the basenames `.env`, `.env.*`, `.envrc`, `*.pem`,
+`*.key` and `package-lock.json`, and anything under `~/.ssh`, `~/.aws` or `~/.gnupg`.
 `.env.example`, `.env.sample` and `.env.template` are allowed.
 
 These hooks catch mistakes. They are not a sandbox: `base64 -d | sh` or a variable built at

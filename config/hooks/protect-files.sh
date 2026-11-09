@@ -16,7 +16,7 @@ block() { echo "Blocked: $FILE_PATH $1" >&2; exit 2; }
 
 case "${FILE_PATH##*/}" in
   .env.example|.env.sample|.env.template) ;;
-  .env|.env.*)       block "is an environment file that may hold secrets" ;;
+  .env|.env.*|.envrc) block "is an environment file that may hold secrets" ;;
   *.pem|*.key)       block "is a key or certificate file" ;;
   package-lock.json) block "is a generated lock file" ;;
 esac

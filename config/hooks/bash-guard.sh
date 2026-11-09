@@ -97,33 +97,42 @@ MASK=$(printf '%s\n' "$CMD" | awk '
 #
 #   S<TAB><sep>    a separator: newline ; & | ( ) ` $(
 #   R<TAB>>        an output redirection (> >> >| &>); the next word is its file
-#   I<TAB><        an input redirection (< << <<<); the next word is its file
+#   I<TAB><        an input redirection (<); the next word is its file
+#   H<TAB><<       a heredoc or here-string (<< <<<); the next word is data
 #   <q><t><TAB>w   a word after quote removal. <q> is 1 if any part of it was
 #                  quoted. <t> is 1 if it begins with a tilde the shell would
-#                  expand: an unquoted `~` followed by an unquoted `/` or by
-#                  nothing. `"~"/x` names a directory literally called `~`.
+#                  expand: an unquoted `~` with no quoted character before the
+#                  first unquoted `/`. `"~"/x` names a directory called `~`.
 #
-# `2>file` drops the fd number, and `>&2` is an fd duplication, not a file.
+# A command substitution runs even inside double quotes, so `$(` and a
+# backtick in a double-quoted span leave the quotes until the matching `)` or
+# backtick: `echo "$(cat ~/.ssh/id_rsa)"` is a read of the key.
+#
+# `2>file` drops the fd number. `>&2` and `>&-` are fd duplications, but
+# `>& file` writes to the file.
 # A newline inside a quoted word becomes a space, keeping one token per line.
 TOKENS=$(printf '%s' "$CMD" | awk -v RS='\001' '
   function emit(k, x) { gsub(/\n/, " ", x); print k "\t" x }
   function addc(ch, quoted) {
     pos++
-    if (pos == 1) q1 = quoted; else if (pos == 2) q2 = quoted
+    if (pos == 1) tl = (ch == "~" && !quoted)
+    else if (tp) { if (ch == "/" && !quoted) tp = 0; else if (quoted) tl = 0 }
     if (quoted) hq = 1
     w = w ch; inw = 1
   }
-  function reset() { inw = 0; w = ""; hq = 0; q1 = 0; q2 = 0; pos = 0 }
-  function endw(  tl) {
-    if (inw) {
-      tl = (substr(w, 1, 1) == "~" && !q1 && (pos == 1 || (substr(w, 2, 1) == "/" && !q2)))
-      emit((hq ? "1" : "0") (tl ? "1" : "0"), w)
-    }
+  function reset() { inw = 0; w = ""; hq = 0; tl = 0; tp = 1; pos = 0 }
+  function endw() {
+    if (inw) emit((hq ? "1" : "0") (tl ? "1" : "0"), w)
     reset()
   }
+  # Leave a double-quoted span for a command substitution.
+  function subst_open(sep) { endw(); emit("S", sep); q = 0 }
+  # Back into the double-quoted span the substitution came from.
+  function subst_close(sep) { endw(); emit("S", sep); q = 2; inw = 1; hq = 1 }
   { s = s $0 }
   END {
     n = length(s); i = 1; q = 0; reset()
+    pd = 0; sp = 0; bq = 0
     while (i <= n) {
       c = substr(s, i, 1)
       if (q == 1) {
@@ -135,6 +144,10 @@ TOKENS=$(printf '%s' "$CMD" | awk -v RS='\001' '
         if (c == "\\" && i < n && index("\"\\$`\n", substr(s, i + 1, 1))) {
           d = substr(s, i + 1, 1); if (d != "\n") addc(d, 1); i += 2; continue
         }
+        if (c == "$" && substr(s, i + 1, 1) == "(") {
+          subst_open("$("); pd++; ret[++sp] = pd; i += 2; continue
+        }
+        if (c == "`") { subst_open("`"); bq = 1; i++; continue }
         addc(c, 1); i++; continue
       }
       if (c == "\047") { q = 1; inw = 1; hq = 1; i++; continue }
@@ -150,20 +163,38 @@ TOKENS=$(printf '%s' "$CMD" | awk -v RS='\001' '
         if (substr(s, i, 1) == ">") i++
         continue
       }
-      if (c == "$" && substr(s, i + 1, 1) == "(") { endw(); emit("S", "$("); i += 2; continue }
-      if (c == "\n" || c == ";" || c == "&" || c == "|" || c == "(" || c == ")" || c == "`") {
+      if (c == "$" && substr(s, i + 1, 1) == "(") { endw(); emit("S", "$("); pd++; i += 2; continue }
+      if (c == "(") { endw(); emit("S", c); pd++; i++; continue }
+      if (c == ")") {
+        if (sp > 0 && ret[sp] == pd) { sp--; pd--; subst_close(c); i++; continue }
+        if (pd > 0) pd--
+        endw(); emit("S", c); i++; continue
+      }
+      if (c == "`") {
+        if (bq) { bq = 0; subst_close(c); i++; continue }
+        endw(); emit("S", c); i++; continue
+      }
+      if (c == "\n" || c == ";" || c == "&" || c == "|") {
         endw(); emit("S", c); i++; continue
       }
       if (c == ">") {
         if (inw && !hq && w ~ /^[0-9]+$/) reset(); else endw()
         i++
         if (substr(s, i, 1) == ">" || substr(s, i, 1) == "|") i++
-        if (substr(s, i, 1) == "&") { i++; while (substr(s, i, 1) ~ /[0-9-]/) i++; continue }
+        if (substr(s, i, 1) == "&") {
+          i++; j = i
+          while (substr(s, j, 1) ~ /[0-9-]/) j++
+          if (j > i && (j > n || substr(s, j, 1) ~ /[ \t\n;&|()<>]/)) { i = j; continue }
+        }
         emit("R", ">"); continue
       }
       if (c == "<") {
         endw(); i++
-        while (substr(s, i, 1) == "<") i++
+        if (substr(s, i, 1) == "(") continue
+        if (substr(s, i, 1) == "<") {
+          while (substr(s, i, 1) == "<") i++
+          emit("H", "<<"); continue
+        }
         emit("I", "<"); continue
       }
       addc(c, 0); i++
@@ -186,19 +217,45 @@ arg() { printf '%s' "$CMD" | grep -qE "$1"; }
 # ${HOME} resolved. Without this, `> "$HOME/.bashrc"` reads as a literal path
 # and matches nothing. A single-quoted '$HOME' cannot be told apart after quote
 # removal and is expanded too, deliberately: a false block costs less than a
-# miss. The `\~` patterns match a literal tilde in untrusted text.
+# miss. The `\~` patterns match a literal tilde in untrusted text. `~me` is
+# your own home too; other users' homes are not resolved.
+#
+# The result is then normalised lexically: `//` and `/./` collapse, and `x/..`
+# cancels. Without this, `rm -rf ~//` and `cat ~/./.ssh/id_rsa` match nothing.
+# Lexical `..` can disagree with a symlink; a false block costs less.
+ME=${USER:-$(id -un 2>/dev/null)}
 expand_home() {
   X=$2
   if [ "$1" = 1 ]; then
     case "$X" in
-      \~)    X=$HOME ;;
-      \~/*)  X="${HOME}${X#\~}" ;;
+      \~|\~/*)         X="${HOME}${X#\~}" ;;
+      \~"$ME"|\~"$ME"/*) X="${HOME}${X#\~"$ME"}" ;;
     esac
   fi
   case "$X" in
     '$HOME'|'$HOME/'*)     X="${HOME}${X#\$HOME}" ;;
     '${HOME}'|'${HOME}/'*) X="${HOME}${X#\$\{HOME\}}" ;;
   esac
+  normalize_path
+}
+
+normalize_path() { # normalise X in place
+  local IFS=/ abs="" p parts out=()
+  case "$X" in /*) abs=/ ;; esac
+  read -ra parts <<< "$X"
+  for p in "${parts[@]}"; do
+    case "$p" in
+      ""|.) ;;
+      ..) if [ ${#out[@]} -gt 0 ] && [ "${out[-1]}" != .. ]; then
+            unset 'out[-1]'
+          elif [ -z "$abs" ]; then
+            out+=("..")
+          fi ;;
+      *)  out+=("$p") ;;
+    esac
+  done
+  X="$abs${out[*]}"
+  [ -z "$X" ] && X=.
 }
 
 is_cred_path() {
@@ -209,11 +266,12 @@ is_cred_path() {
 }
 
 # Secret by basename. The example/sample/template forms of .env hold no secrets
-# and are committed to repos on purpose.
+# and are committed to repos on purpose. `.envrc` is direnv's, and often
+# exports credentials.
 is_secret_file() {
   case "${1##*/}" in
     .env.example|.env.sample|.env.template) return 1 ;;
-    .env|.env.*|*.pem|*.key) return 0 ;;
+    .env|.env.*|.envrc|*.pem|*.key) return 0 ;;
   esac
   return 1
 }
@@ -232,9 +290,7 @@ check_redirect() { # <tilde-ok> <word>
     /etc/*|/usr/*|/bin/*|/sbin/*|/boot/*|/lib/*|/lib64/*)
       block "redirection into a system path: $X" ;;
   esac
-  case "${X##*/}" in
-    *.pem|*.key|.env|.env.*) block "redirection into a secret file: $X" ;;
-  esac
+  is_secret_file "$X" && block "redirection into a secret file: $X"
 }
 
 # --------------------------------------------- 2b. write destinations of tools
@@ -329,9 +385,7 @@ fi
 # as writes, so the field-flag rule cannot apply there. Distinguish on the
 # GraphQL operation instead: a mutation is a write, a query is not. The query
 # body is quoted, so this one deliberately reads CMD.
-GH_GRAPHQL=0
 if cmdword "${CW}(rtk[[:space:]]+)?gh[[:space:]]+api[[:space:]]+graphql([[:space:]]|\$)"; then
-  GH_GRAPHQL=1
   if arg '(^|[^[:alnum:]_])mutation([^[:alnum:]_]|$)'; then
     block "gh api graphql with a mutation; Bash(gh api:*) only covers reads"
   fi
@@ -341,13 +395,16 @@ fi
 # every spelling counts: `-X POST`, `-XPOST`, `--method=post`, `-fbody=x`,
 # `--input=f.json`. An explicit `-X GET` with fields is a read: gh then sends
 # the fields as query parameters, the usual way to call the search endpoints.
+# The graphql exemption is per call: one graphql query does not exempt a
+# second `gh api` in the same command line.
 check_gh() {
-  local e w method="" want=0 fields=0
+  local e w method="" want=0 fields=0 graphql=0
   [ "${SW[0]#*$'\t'}" = api ] || return 0
   for e in "${SW[@]:1}"; do
     w=${e#*$'\t'}
     if [ $want = 1 ]; then method=$w; want=0; continue; fi
     case "$w" in
+      graphql)     graphql=1 ;;
       -X|--method) want=1 ;;
       --method=*)  method=${w#--method=} ;;
       -X*)         method=${w#-X} ;;
@@ -358,19 +415,23 @@ check_gh() {
   case "$method" in
     POST|PUT|PATCH|DELETE) block "gh api with a mutating method; Bash(gh api:*) only covers reads" ;;
   esac
-  if [ $fields = 1 ] && [ $GH_GRAPHQL = 0 ] && [ "$method" != GET ]; then
+  if [ $fields = 1 ] && [ $graphql = 0 ] && [ "$method" != GET ]; then
     block "gh api with field/input flags implies POST; Bash(gh api:*) only covers reads"
   fi
 }
 
 # ------------------------------------------------------------ word-level rules
-# Walk TOKENS. An unquoted word naming a known command opens a SCOPE, and the
-# scope's words are collected up to the next separator. Only the first known
-# command in a segment opens one, so an argument that happens to be a command
-# name (`cp cat ~/x`) does not hide the real command. Prefix words such as
-# `sudo`, `xargs`, `env` and `rtk` name no scope and are passed over.
+# Walk TOKENS. A word in COMMAND POSITION that names a known command opens a
+# SCOPE, and the scope's words are collected up to the next separator.
+# Command position is the first word of a segment, after any VAR=value
+# assignments and shell keywords (`then`, `do`, `!` ...). After a prefix
+# command (`sudo`, `xargs`, `env`, `rtk`, `time`, `timeout` ...) any later word
+# may open the scope, because the prefix's own options and values come first:
+# `sudo -u bob rm -rf /`. A known name that is only an argument -- `echo cat
+# .env`, `man rm` -- opens nothing. Quoting does not hide a command name:
+# `\cat` and `c''at` still run cat.
+#
 # `>` and `<` targets are checked wherever they appear.
-
 #
 # Scope names, and what each checks:
 #
@@ -532,22 +593,33 @@ finish_scope() {
   scope=""; SW=()
 }
 
-scope=""; SW=(); prevw=""; pending=""
+# cpos: 1 = command position, 2 = after a prefix command, 0 = arguments.
+# rtk stays at the current position: `rtk read`, `rtk git`, `rtk proxy gh` all
+# name the real command next.
+scope=""; SW=(); prevw=""; pending=""; cpos=1
 while IFS= read -r tok; do
   [ -z "$tok" ] && continue
   k=${tok%%$'\t'*}; w=${tok#*$'\t'}
   case "$k" in
-    S)   finish_scope; pending=""; prevw=""; continue ;;
-    R|I) pending=$k; continue ;;
+    S)     finish_scope; pending=""; prevw=""; cpos=1; continue ;;
+    R|I|H) pending=$k; continue ;;
   esac
   tl=${k:1:1}
   if [ -n "$pending" ]; then
-    if [ "$pending" = R ]; then check_redirect "$tl" "$w"; else check_read "$tl" "$w"; fi
+    case "$pending" in
+      R) check_redirect "$tl" "$w" ;;
+      I) check_read "$tl" "$w" ;;
+    esac
     pending=""; continue
   fi
-  if [ -z "$scope" ] && [ "${k:0:1}" = 0 ]; then
+  if [ -z "$scope" ] && [ $cpos -gt 0 ]; then
     scope_name "$w" "$prevw"
-    if [ -n "$N" ]; then scope=$N; prevw=$w; continue; fi
+    if [ -n "$N" ]; then scope=$N; cpos=0; prevw=$w; continue; fi
+    case "$w" in
+      rtk|proxy|then|do|else|elif|if|while|until|'!'|'{') ;;
+      sudo|doas|env|xargs|time|nice|nohup|command|exec|timeout|stdbuf|ionice|builtin|watch) cpos=2 ;;
+      *) if [[ $w =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then :; elif [ $cpos = 1 ]; then cpos=0; fi ;;
+    esac
   fi
   [ -n "$scope" ] && SW+=("$tl"$'\t'"$w")
   prevw=$w

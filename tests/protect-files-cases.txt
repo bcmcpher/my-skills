@@ -20,3 +20,4 @@
 0	file_path	/home/x/proj/docs/env.md
 0	notebook_path	/home/x/proj/analysis.ipynb
 0	file_path	~/.claude/settings.json
+2	file_path	/home/x/proj/.envrc
