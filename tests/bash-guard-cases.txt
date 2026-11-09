@@ -132,3 +132,14 @@
 0	jq '.env' config.json
 0	sort data.csv
 0	diff a.txt b.txt
+2	cat < .env
+2	cp -t ~/.ssh evil
+2	sed -i.bak s/a/b/ ~/.profile
+2	jq --arg k v . .env
+2	grep -rnf pats.txt .env
+0	cat .env.example
+0	npm install foo
+0	git diff --stat
+0	cp -r src/ /tmp/out/
+0	ln -s ~/Projects/x/bin/tool ~/bin/tool
+0	sed -i -e 's/~\/.ssh/x/' notes.md

@@ -237,6 +237,25 @@ check_redirect() { # <tilde-ok> <word>
   esac
 }
 
+# --------------------------------------------- 2b. write destinations of tools
+# tee, cp, mv, install, ln, sed -i, dd of= and truncate write files too. These
+# get a NARROWER list than `>`: copying into ~/.claude/ or another dotfile is
+# normal work here and falls through to the prompt. Blocked are credential
+# directories, system paths, secret files, and the shell startup files, which
+# run code in every new shell.
+check_dest() { # <tilde-ok> <word>
+  case "$2" in /dev/null|/dev/stdout|/dev/stderr) return ;; esac
+  expand_home "$1" "$2"
+  is_cred_path "$X" && block "write into a credential directory: $X"
+  case "$X" in
+    /etc/*|/usr/*|/bin/*|/sbin/*|/boot/*|/lib/*|/lib64/*)
+      block "write into a system path: $X" ;;
+    "$HOME"/.bashrc|"$HOME"/.bash_profile|"$HOME"/.bash_login|"$HOME"/.bash_logout|"$HOME"/.profile|"$HOME"/.zshrc|"$HOME"/.zprofile|"$HOME"/.zshenv)
+      block "write into a shell startup file: $X" ;;
+  esac
+  is_secret_file "$X" && block "write into a secret file: $X"
+}
+
 # ------------------------------------------------------- 4. secret reads via Bash
 # The deny list binds the Read tool only -- Read(**/.env), Read(~/.ssh/*) etc.
 # do not constrain Bash. Close that asymmetry for the common readers.
@@ -352,35 +371,164 @@ check_gh() {
 # `sudo`, `xargs`, `env` and `rtk` name no scope and are passed over.
 # `>` and `<` targets are checked wherever they appear.
 
+#
+# Scope names, and what each checks:
+#
+#   rm                     every operand against the rm floor (rule 5)
+#   gh                     `gh api` method and field flags (rule 3)
+#   cat (the plain readers) every operand as a secret read (rule 4)
+#   grep rg awk sed jq     the same, except the first operand: that is the
+#                          pattern or program, unless -e/-f supplied it.
+#                          `grep -n 'cat ~/.ssh/id_rsa' notes.md` reads notes.md.
+#                          sed -i also checks its files as write destinations.
+#   cp                     every operand as a read (a copy of a secret is a read
+#                          of it), and the destination as a write (rule 2b)
+#   mv install ln          the destination as a write
+#   tee truncate           every operand as a write
+#   rsync scp              every operand as a read
+#   dd                     of= as a write, if= as a read
 scope_name() { # <word> <previous word>: set N
   case "$1" in
-    rm)  N="rm" ;;
-    gh)  N="gh" ;;
-    cat|head|tail|less|more|strings|xxd|od|base64|nl|tac) N="read" ;;
-    read) if [ "$2" = rtk ]; then N="read"; else N=""; fi ;;
+    rm|gh|grep|rg|awk|sed|jq|cp|mv|install|ln|tee|truncate|rsync|scp|dd) N=$1 ;;
+    egrep|fgrep) N="grep" ;;
+    gawk)        N="awk" ;;
+    cat|head|tail|less|more|strings|xxd|od|base64|nl|tac|sort|uniq|cut|diff|cmp|bat|zip|gzip|tar) N="cat" ;;
+    read) if [ "$2" = rtk ]; then N="cat"; else N=""; fi ;;
     *)   N="" ;;
   esac
 }
 
-# Each SW entry is "<tilde-ok><TAB><word>".
-finish_scope() {
-  local e t w endflags=0
-  case "$scope" in
-    "") return ;;
-    gh) check_gh; scope=""; SW=(); return ;;
+# Short options that take a value, per scope. In a cluster, the first such
+# letter takes the rest of the word, or the next word if it is last (`-rnf
+# pats`). Missing an option here only means its value is checked as an
+# operand; a wrong entry could hide an operand, so the lists stay small.
+short_values() {
+  case "$1" in
+    grep)    V="efmABCdD" ;;
+    rg)      V="efmABCgtTMjE" ;;
+    awk)     V="Fvf" ;;
+    sed)     V="efl" ;;
+    jq)      V="fL" ;;
+    cp|mv|ln) V="tS" ;;
+    install) V="tmogS" ;;
+    truncate) V="sr" ;;
+    rsync)   V="eT" ;;
+    scp)     V="iFoPcJlS" ;;
+    *)       V="" ;;
   esac
+}
+
+# Long options that take the NEXT word as a value (the `--opt=value` form needs
+# no entry). Sets need (words to skip), kind (t: the value is a target
+# directory) and PAT (the pattern was given by option).
+long_option() { # <scope> <option>
+  case "$1:$2" in
+    sed:--in-place) INPLACE=1 ;;
+    grep:--regexp|grep:--file|rg:--regexp|rg:--file|sed:--expression|sed:--file|awk:--file|jq:--from-file)
+      PAT=1; need=1 ;;
+    grep:--max-count|grep:--context|grep:--after-context|grep:--before-context|rg:--max-count|rg:--context|rg:--glob|rg:--type|awk:--assign|awk:--field-separator|jq:--indent|truncate:--size|truncate:--reference|install:--mode|install:--owner|install:--group)
+      need=1 ;;
+    jq:--arg|jq:--argjson|jq:--slurpfile|jq:--rawfile)
+      need=2 ;;
+    cp:--target-directory|mv:--target-directory|ln:--target-directory|install:--target-directory)
+      need=1; kind=t ;;
+  esac
+}
+
+# Split SW into operands P (tilde flags in PT), and note PAT, INPLACE (sed -i)
+# and TDIR (a -t/--target-directory destination).
+split_scope() {
+  local e t w s c i need=0 kind="" endflags=0
+  P=(); PT=(); PAT=0; INPLACE=0; TDIR=""; TDIRT=0
+  short_values "$scope"
   for e in "${SW[@]}"; do
     t=${e%%$'\t'*}; w=${e#*$'\t'}
+    if [ $need -gt 0 ]; then
+      need=$((need - 1))
+      if [ "$kind" = t ]; then TDIR=$w; TDIRT=$t; fi
+      continue
+    fi
+    kind=""
     if [ $endflags = 0 ]; then
-      [ "$w" = "--" ] && { endflags=1; continue; }
-      case "$w" in -?*) continue ;; esac
+      case "$w" in
+        --) endflags=1; continue ;;
+        --*=*)
+          case "$scope:${w%%=*}" in
+            sed:--in-place) INPLACE=1 ;;
+            grep:--regexp|grep:--file|rg:--regexp|rg:--file|sed:--expression|sed:--file|awk:--file|jq:--from-file) PAT=1 ;;
+            cp:--target-directory|mv:--target-directory|ln:--target-directory|install:--target-directory)
+              TDIR=${w#*=}; TDIRT=0 ;;
+          esac
+          continue ;;
+        --?*) long_option "$scope" "$w"; continue ;;
+        -?*)
+          s=${w#-}
+          for ((i = 0; i < ${#s}; i++)); do
+            c=${s:i:1}
+            # sed -i[SUFFIX]: the rest of the cluster is the backup suffix.
+            if [ "$scope" = sed ] && [ "$c" = i ]; then INPLACE=1; break; fi
+            case "$V" in
+              *"$c"*)
+                case "$scope:$c" in grep:[ef]|rg:[ef]|sed:[ef]|awk:f|jq:f) PAT=1 ;; esac
+                if [ $((i + 1)) -eq ${#s} ]; then
+                  need=1; [ "$c" = t ] && kind=t
+                elif [ "$c" = t ]; then
+                  TDIR=${s:i+1}; TDIRT=0
+                fi
+                break ;;
+            esac
+          done
+          continue ;;
+      esac
     fi
     [ -z "$w" ] && continue
-    case "$scope" in
-      rm)   check_rm "$t" "$w" ;;
-      read) check_read "$t" "$w" ;;
-    esac
+    P+=("$w"); PT+=("$t")
   done
+}
+
+finish_scope() {
+  local i n start v
+  case "$scope" in
+    "") return ;;
+    gh) check_gh ;;
+    *)
+      split_scope
+      n=${#P[@]}
+      case "$scope" in
+        rm)
+          for ((i = 0; i < n; i++)); do check_rm "${PT[i]}" "${P[i]}"; done ;;
+        cat|rsync|scp|cp)
+          for ((i = 0; i < n; i++)); do check_read "${PT[i]}" "${P[i]}"; done ;;
+        grep|rg|awk|sed|jq)
+          start=$((1 - PAT))
+          for ((i = start; i < n; i++)); do
+            check_read "${PT[i]}" "${P[i]}"
+            [ $INPLACE = 1 ] && check_dest "${PT[i]}" "${P[i]}"
+          done ;;
+        tee|truncate)
+          for ((i = 0; i < n; i++)); do check_dest "${PT[i]}" "${P[i]}"; done ;;
+        dd)
+          # Bash tilde-expands after `=` in an assignment-shaped word, so
+          # of=~/x does reach $HOME.
+          for ((i = 0; i < n; i++)); do
+            v=${P[i]#*=}
+            case "${P[i]}" in
+              of=*) check_dest 1 "$v" ;;
+              if=*) check_read 1 "$v" ;;
+            esac
+          done ;;
+      esac
+      # The destination of cp, mv, install and ln: -t DIR, else the last
+      # operand when there are at least two.
+      case "$scope" in
+        cp|mv|install|ln)
+          if [ -n "$TDIR" ]; then
+            check_dest "$TDIRT" "$TDIR"
+          elif [ "$n" -ge 2 ]; then
+            check_dest "${PT[n-1]}" "${P[n-1]}"
+          fi ;;
+      esac ;;
+  esac
   scope=""; SW=()
 }
 
