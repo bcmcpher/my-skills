@@ -1,0 +1,7 @@
+# protect-files.sh cases: <expected-rc><TAB><tool_input field><TAB><path>
+# 2 = blocked, 0 = allowed. Read by bin/test-hooks; never executed.
+2	file_path	/home/x/proj/.env
+2	file_path	/home/x/proj/package-lock.json
+2	file_path	/home/x/proj/.git/config
+0	file_path	/home/x/proj/src/main.py
+0	file_path	/home/x/proj/README.md
