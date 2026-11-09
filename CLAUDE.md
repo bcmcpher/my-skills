@@ -30,6 +30,7 @@ bin/rebuild-tools --freeze     # record the current envs back into the lock file
 # Exercise the PreToolUse hooks against the case table in tests/
 bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
 bin/test-hooks --repo          # test the tracked copies in config/hooks/
+bin/test-hooks --sandbox       # either form, inside a read-only bwrap sandbox (always use this)
 ```
 
 Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
@@ -176,9 +177,14 @@ idiom `find . -not -path "./.git/*"` while letting `grep --exclude-dir=.git` thr
 `.git/` is covered by the `Read(**/.git/*)` deny rule instead.
 
 The `bash-guard.sh` hook that replaced it guards a different set: destructive `find` flags, shell
-redirection into `$HOME` dotfiles or system paths, `gh api` with mutating verbs, Bash reads of
+redirection into `$HOME` dotfiles or system paths, writes by `tee`/`cp`/`mv`/`sed -i`/`dd`/`truncate`
+into credential, system, secret or shell startup files, `gh api` with mutating verbs, Bash reads of
 secret files, and `rm` aimed at a filesystem/home root, a system directory, `..`, or a credential
-directory. Every rule matches an argument position rather than raw command text.
+directory. It splits the command into shell words once, with quote removal, and every rule
+matches a word position rather than raw command text. `config/README.md` has the full table.
+
+Hook test cases are probe commands. Write them into `tests/*-cases.txt` with the Edit tool, never
+in a Bash call, and run `bin/test-hooks` only with `--sandbox`.
 
 Ordinary `rm` is in `ask`, not `deny` — it prompts and can be approved. Rule 5 is only the floor
 beneath that prompt, and it deliberately matches the whole target rather than a prefix, so
