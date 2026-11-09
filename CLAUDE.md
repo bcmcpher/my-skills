@@ -31,6 +31,7 @@ bin/rebuild-tools --freeze     # record the current envs back into the lock file
 bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
 bin/test-hooks --repo          # test the tracked copies in config/hooks/
 bin/test-hooks --sandbox       # either form, inside a read-only bwrap sandbox (always use this)
+bin/test-hooks --awk /usr/bin/mawk   # run the hooks under another awk (CI runs gawk and mawk)
 ```
 
 Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
