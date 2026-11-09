@@ -1,6 +1,6 @@
 # Close the gaps in bash-guard.sh and protect-files.sh
 
-Status: draft, 2026-11-09. Not approved, not started. Branch `bash-guard-gaps`.
+Status: draft, 2026-11-09. Both open decisions taken; awaiting go-ahead to start. Branch `bash-guard-gaps`.
 
 ## Context
 
@@ -84,7 +84,7 @@ Use one `check_dest` function for redirect targets and for these:
 - the file words of `sed -i`/`--in-place`
 - `dd of=FILE`, `truncate … FILE`
 
-**Open decision 1:** what `check_dest` blocks for the new verbs. Rule 2 blocks every
+**Decided (2026-11-09), narrow set:** what `check_dest` blocks for the new verbs. Rule 2 blocks every
 `$HOME` dotfile. Applying that to `cp` would block `cp config/RTK.md ~/.claude/RTK.md`, which is
 normal work here. Recommended: for the new verbs, block credential directories, system paths,
 secret files and shell startup files (`.bashrc .bash_profile .bash_login .profile .zshrc
@@ -95,7 +95,7 @@ secret files and shell startup files (`.bashrc .bash_profile .bash_login .profil
 Add `grep egrep fgrep rg awk gawk sed sort uniq cut diff cmp jq bat cp rsync scp tar zip gzip`
 to the readers. The `cp`/`rsync`/`scp` source words are copies of the secret.
 
-**Open decision 2:** some of these readers take a quoted pattern first (`grep`, `rg`, `awk`,
+**Decided (2026-11-09), skip the pattern:** some of these readers take a quoted pattern first (`grep`, `rg`, `awk`,
 `sed`, `jq`). Case 34 (`grep -n 'cat ~/.ssh/id_rsa' notes.md`) must still pass. Recommended:
 for those five, skip the first non-flag word, which is the pattern or program. Treat the rest as
 file arguments. `grep -e PAT` and `-f FILE` patterns count as the pattern.
