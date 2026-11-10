@@ -25,7 +25,9 @@ After changing anything here, work through [`VERIFY.md`](VERIFY.md) in a fresh s
 | `xdg/caveman/config.json` | `~/.config/caveman/config.json` | caveman default mode |
 | `skills/youtube-transcript/SKILL.md` | `~/.claude/skills/youtube-transcript/SKILL.md` | Hand-written global skill — pulls YouTube captions via `yt-dlp` |
 
-### One value is deliberately stripped
+### Two values are deliberately stripped
+
+`pull` uses jq to remove two machine-specific values. Without jq it warns and leaves them in.
 
 `pull` deletes `extraKnownMarketplaces.local` from the tracked `settings.json`. That entry records
 an absolute path to wherever this repo was cloned, so leaving it in means a `push` on another
@@ -39,6 +41,11 @@ claude plugin marketplace add "$(pwd)"   # from this repo's root
 Nothing else in the tracked config contains an absolute path — `grep -nE '"/[^"]*"'
 config/settings.json` should return nothing. Hook commands use `~/`-relative paths, which are
 portable.
+
+`pull` also deletes `telemetry.anonymousId` from `xdg/openspec/config.json`. The ID identifies
+one install. Tracked, it shows as a diff on every `pull`, and a `push` gives every machine the
+same ID. With telemetry off, openspec runs without the ID and does not recreate it. A `push`
+therefore removes the live ID, which matters only if telemetry is turned back on.
 
 The two `xdg/` files matter more than their size suggests: without them a new machine silently
 gets tool defaults. openspec re-enables telemetry, and caveman starts in mode `full` rather than
