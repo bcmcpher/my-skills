@@ -46,6 +46,30 @@ copy_file() {
   echo "  copy  $src → $dst"
 }
 
+# strip_json_key <file> <jq-path> <reason> — delete one machine-specific value
+# from a tracked JSON file. Rewrites the file in place, so its mode is kept.
+strip_json_key() {
+  local file="$1" path="$2" reason="$3" tmp
+  [[ -f "$file" ]] || return 0
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "  warn  jq not found; $path left in $file" >&2
+    return 0
+  fi
+  jq empty "$file" 2>/dev/null \
+    || { echo "  error $file is not valid JSON; $path not stripped" >&2; return 1; }
+  jq -e "$path" "$file" >/dev/null 2>&1 || return 0
+  tmp=$(mktemp)
+  if jq "del($path)" "$file" > "$tmp"; then
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
+    echo "  strip $path ($reason)"
+  else
+    rm -f "$tmp"
+    echo "  error could not strip $path from $file" >&2
+    return 1
+  fi
+}
+
 if [[ "$DIRECTION" == "pull" ]]; then
   echo "Pulling ~/.claude/ → config/"
   copy_file "$CLAUDE_DIR/settings.json"              "$CONFIG_DIR/settings.json"
@@ -53,14 +77,7 @@ if [[ "$DIRECTION" == "pull" ]]; then
   # cloned, which is machine-specific by definition. Left in, a `push` on another
   # machine registers a marketplace pointing at a directory that does not exist.
   # Re-add it there with: claude plugin marketplace add <path-to-this-repo>
-  if command -v jq >/dev/null 2>&1 && [[ -f "$CONFIG_DIR/settings.json" ]]; then
-    if jq -e '.extraKnownMarketplaces.local' "$CONFIG_DIR/settings.json" >/dev/null 2>&1; then
-      tmp=$(mktemp)
-      jq 'del(.extraKnownMarketplaces.local)' "$CONFIG_DIR/settings.json" > "$tmp" \
-        && mv "$tmp" "$CONFIG_DIR/settings.json"
-      echo "  strip extraKnownMarketplaces.local (machine-specific path)"
-    fi
-  fi
+  strip_json_key "$CONFIG_DIR/settings.json" '.extraKnownMarketplaces.local' "machine-specific path"
   copy_file "$CLAUDE_DIR/CLAUDE.md"                  "$CONFIG_DIR/CLAUDE.md"
   copy_file "$CLAUDE_DIR/RTK.md"                     "$CONFIG_DIR/RTK.md"
   copy_file "$CLAUDE_DIR/git.md"                     "$CONFIG_DIR/git.md"
@@ -95,14 +112,7 @@ if [[ "$DIRECTION" == "pull" ]]; then
   # openspec's telemetry.anonymousId identifies one install. Tracked, it shows
   # as a diff on every pull and, after a push, makes every machine one install.
   # With telemetry off, openspec runs without it and does not recreate it.
-  osc="$CONFIG_DIR/xdg/openspec/config.json"
-  if command -v jq >/dev/null 2>&1 && [[ -f "$osc" ]]; then
-    if jq -e '.telemetry.anonymousId' "$osc" >/dev/null 2>&1; then
-      tmp=$(mktemp)
-      jq 'del(.telemetry.anonymousId)' "$osc" > "$tmp" && mv "$tmp" "$osc"
-      echo "  strip telemetry.anonymousId (per-install)"
-    fi
-  fi
+  strip_json_key "$CONFIG_DIR/xdg/openspec/config.json" '.telemetry.anonymousId' "per-install"
   echo "Done."
 
 elif [[ "$DIRECTION" == "push" ]]; then
