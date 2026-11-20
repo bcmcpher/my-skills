@@ -1,12 +1,14 @@
 # Writing agents
 
 Status: draft, revised 2026-11-19. Not started. Phase 1 (the technical-docs writer) is
-specified below and ready to execute after the open decisions are answered. Phase 2 (the
-manuscript writer) is a stub.
+specified below, its decisions are settled, and it is ready to execute. Phase 2 (the manuscript
+writer) is a stub.
 
 The old blocker is resolved: the ASD-STE100 vocabulary lives at
 `~/Documents/ASD-STE100/ASD-STE100_ISSUE9.pdf`, outside the repo. A script reads the dictionary
-from that PDF on the user's machine. The repo never holds the dictionary or a copy of it.
+from that PDF on the user's machine. The user holds the PDF under a qualified use, so a local
+derived lexicon is in scope. The repo still never holds the dictionary or a copy of it, because
+the repo is meant to become public.
 
 The config-reconcile work that once shared this plan is done. Its record is in the git history of
 `plans/config-reconcile-and-writing-agents.md` (last version before 2026-11-09).
@@ -16,9 +18,12 @@ The config-reconcile work that once shared this plan is done. Its record is in t
 Two writing agents, each separate from the `writing.md` fallback, which stays in the global
 config:
 
-1. **technical-docs-writer** — writes and revises technical documentation in ASD-STE100
-   Simplified Technical English (STE). It checks its output with a deterministic STE checker. On
-   request, it classifies a document by the documentation quadrants and proposes a split.
+1. **technical-docs-writer** — writes and revises technical documentation at about 80% of
+   ASD-STE100 Simplified Technical English (STE), the same level as `writing.md`. The aim is
+   consistent phrasing and descriptions, and catching jargon leaks — not full STE compliance. It
+   checks its output with a deterministic checker that works with any dictionary in a common
+   format. On request, it classifies a document by the documentation quadrants and proposes a
+   split.
 2. **manuscript-writer** — drafts and edits grants and manuscripts in the user's professional
    voice. Phase 2.
 
@@ -26,16 +31,18 @@ config:
 
 ### Pieces
 
-A new plugin, `plugins/tech-docs/` (name open, see decisions):
+A new plugin, `plugins/tech-docs/`. The manuscript writer gets its own plugin later, because the
+two tasks share almost no references.
 
 ```
 plugins/tech-docs/
 ├── .claude-plugin/plugin.json
 ├── agents/technical-docs-writer/SKILL.md   # the agent: write, revise, self-check
 ├── skills/ste-check/
-│   ├── SKILL.md                             # run the checker, read its report
+│   ├── SKILL.md                             # build a lexicon, run the checker, read its report
+│   ├── references/lexicon-format.md         # the common lexicon format
 │   └── scripts/
-│       ├── ste_lexicon.py                   # PDF → local lexicon (one-time build)
+│       ├── lexicon.py                       # source dictionary → common lexicon
 │       └── ste_check.py                     # promoted from evaluations/2026-10-08-ste-docs/
 ├── skills/doc-quadrants/
 │   ├── SKILL.md                             # classify, propose a split, audit a doc set
@@ -43,14 +50,42 @@ plugins/tech-docs/
 └── tests/                                   # synthetic fixtures only; no dictionary text
 ```
 
-### 1. Lexicon builder (`ste_lexicon.py`)
+### 1. Common lexicon format
 
-Deterministic. Stdlib Python plus `pdftotext -layout` (poppler; already on this machine).
+The checker reads one format, and it knows nothing about STE or PDFs. Any dictionary can feed
+it. `references/lexicon-format.md` documents the format. A lexicon is a JSON file:
 
-- Input: the PDF. Path from `--pdf`, else `$STE100_PDF`, else
+- `name` — a label for reports, for example `ste100-issue9`.
+- `closed` — `true` when the approved entries are a complete vocabulary, as in STE. Only a closed
+  lexicon enables the `jargon` flag, because only then does "not in the list" mean something.
+  A replacement list, such as a personal list of words to avoid, is open.
+- `entries` — each with `term` (one word or a phrase), optional `pos`, `approved` (true or false),
+  optional `forms` (the permitted inflections), and, for a term that is not approved,
+  `alternatives` (each a term, an optional `pos`, and an optional kind: `TN` or `TV`).
+
+The checker takes `--lexicon` more than once. Lexicons stack, and a later one overrides an
+earlier one for the same term. A user can then layer a project list on top of STE.
+
+### 2. Lexicon builder (`lexicon.py`)
+
+Deterministic, stdlib Python. It converts a source dictionary into the common format. Two
+sources at first:
+
+- `lexicon.py build --from tsv <file>` — a hand-written list, one entry per line:
+  `term<TAB>replacement[<TAB>pos]`. An empty replacement marks an approved term. This makes the
+  tool useful for any plain-language word list, not only STE.
+- `lexicon.py build --from ste-pdf [<pdf>]` — the ASD-STE100 adapter, described below.
+
+Output goes to `${XDG_DATA_HOME:-~/.local/share}/tech-docs/lexicons/<name>.json` by default. The
+builder refuses an output path inside a git work tree, so a licensed lexicon cannot be committed
+by mistake.
+
+#### The STE adapter
+
+It uses `pdftotext -layout` (poppler; already on this machine).
+
+- Input path: the argument, else `$STE100_PDF`, else
   `~/Documents/ASD-STE100/ASD-STE100_ISSUE9.pdf`.
-- Output: `${XDG_DATA_HOME:-~/.local/share}/ste100/lexicon-issue9.json`, never inside a repo.
-  The builder refuses an output path inside a git work tree.
 - Parse only the dictionary pages, whose footers read `Page 2-1-<letter><n>` (for example
   `Page 2-1-V3`). The changelog and the introduction (`2-0-*`) repeat entries and must not count.
 - Headwords can be multi-word (`brush on (v)`, `in order to`). Match phrases before single words.
@@ -69,28 +104,39 @@ Deterministic. Stdlib Python plus `pdftotext -layout` (poppler; already on this 
 A first probe (2026-11-19) found that the text extracts cleanly despite the PDF's copy flag. The
 column layout survives: `ensure (v)   MAKE SURE (v)`, `via (prep)   THROUGH (prep)`.
 
-### 2. Checker (`ste_check.py`)
+### 3. Checker (`ste_check.py`)
 
 Promote the evaluation checker into the plugin. The evaluation keeps a pointer to the new path
 rather than its own copy. Keep the current rules (`length`, `passive`, `ing`, `hedge`,
-`multi-instruction`, paragraph length). Add the dictionary rules when a lexicon is present:
+`multi-instruction`, paragraph length). Its hard-coded `NON_APPROVED` list becomes a small
+built-in open lexicon in the common format. Add the dictionary rules when a lexicon is loaded:
 
 | Flag | Meaning | Report |
 |---|---|---|
-| `word` | Headword listed as not approved | The approved alternatives from the lexicon |
-| `pos` | Approved word, probably used as a different part of speech (rule 1.2) | Low confidence; off by default |
-| `form` | Verb form not listed for an approved verb (for example `-ing` of an approved verb) | The listed forms |
-| `jargon` | Word not in the dictionary at all | A candidate technical noun or verb, or a word to replace |
+| `word` | Term listed as not approved | The approved alternatives from the lexicon |
+| `form` | Inflection not listed for an approved term (for example `-ing` of an approved verb) | The listed forms |
+| `jargon` | Word in no loaded lexicon (closed lexicons only) | A candidate technical term, or a word to replace |
+| `variant` | One term written two ways in the same doc set | Both spellings and their counts |
 
-The `jargon` flag is the jargon finder the user asked for. STE rules 1.5 and 1.12 permit
-technical nouns and verbs that are not in the dictionary. So a `jargon` hit is a question, not an
-error. Resolve it in this order:
+`variant` serves the consistency goal. It is deterministic: it groups words that are equal after
+removing case, hyphens and spaces (`code graph`, `code-graph`, `codegraph`). It also flags a doc
+that uses both a non-approved term and its approved alternative, so the same idea appears in two
+words. A `pos` check for rule 1.2 needs a part-of-speech tagger, so it stays out.
+
+**The checker is a soft audit.** It always exits 0, and it reports; it never blocks. The score
+target is about 80%, the `writing.md` level, not 100%. Concise technical docs cannot avoid
+jargon, so the jargon report is a list to review, not a list to eliminate.
+
+The `jargon` flag is the jargon finder. STE rules 1.5 and 1.12 permit technical nouns and verbs
+that are not in the dictionary. So a `jargon` hit is a question, not an error. Resolve it in this
+order:
 
 1. The word is in the project glossary (`GLOSSARY.md`, `docs/glossary.md`, or a "Key terms"
    section). It is an accepted technical term. Suppress it.
 2. The word is in a project allowlist (`.ste-allow`, one word per line). Suppress it.
-3. Otherwise, report it with its count and first location. `--jargon` prints only this list, so
-   the agent or user can triage it into the glossary or a rewrite.
+3. Otherwise, report it with its count and first location, most frequent first. `--jargon`
+   prints only this list, so the agent or user can triage it into the glossary or a rewrite.
+   A frequent term belongs in the glossary. A term used once is the likeliest leak.
 
 This ties the checker to the existing `writing.md` rule that every technical term goes in the
 glossary.
@@ -99,16 +145,17 @@ Morphology stays simple and deterministic: lowercase, strip plural `-s`/`-es` fo
 match verb forms only against the forms the dictionary lists. Code spans, fences, link targets and
 headings are stripped first, as now.
 
-Without a lexicon, the checker runs the rule subset as now and says so in its output. This keeps
-CI and other machines working, because CI never has the PDF.
+Without a closed lexicon, the checker runs the other rules and says that `jargon` is off. This
+keeps CI and other machines working, because CI never has the PDF.
 
-### 3. Quadrants skill (`doc-quadrants`)
+### 4. Quadrants skill (`doc-quadrants`)
 
 Source: Daniele Procida's documentation framework (Diátaxis), as summarized by Steve Dunn,
 <https://dunnhq.com/posts/2023/documentation-quadrants/>. `references/quadrants.md` is our own
 summary with both links. It does not copy either text.
 
-The model, as the skill uses it:
+The model, as the skill uses it. The fourth quadrant is "Explanation" (the Diátaxis name)
+everywhere in the plugin. Dunn calls it "Discussion"; the reference notes that alias once.
 
 | Quadrant | Serves | Contains | Keeps out |
 |---|---|---|---|
@@ -131,23 +178,26 @@ Three modes. The agent uses them only when the user asks:
 STE applies to all four quadrants. Procedural rules dominate tutorials and how-to guides, and
 descriptive rules dominate reference and explanation.
 
-### 4. The agent (`technical-docs-writer`)
+### 5. The agent (`technical-docs-writer`)
 
 An agent rather than a skill, because whole-document passes suit an isolated context.
 
+- Model: `inherit` (the session's model) for now.
 - Tools: Read, Grep, Glob, Bash (for the checker), Edit, Write.
 - Workflow: read the target and the project glossary → write or revise → run `ste_check.py` →
-  fix flagged sentences until the score target holds → triage `jargon` hits (glossary, allowlist
-  or rewrite) → report the score and the open `jargon` list.
+  fix flagged sentences until the score is about 80% → triage `jargon` and `variant` hits
+  (glossary, allowlist or rewrite) → report the score and the open hits.
+- New files: the agent writes them directly. Existing files: it delivers a diff for the user to
+  apply, as `engineering.md` requires for hand-curated files.
 - Precedence: a project's own documentation style overrides the agent, as with `writing.md`.
 - Does not apply to manuscripts, grants, spec artifacts, or chat replies.
 
-### 5. Evaluation
+### 6. Evaluation
 
 Extend `evaluations/2026-10-08-ste-docs/` rather than starting a new one:
 
 - **STE A/B.** Three arms on the same prompt: base, `writing.md`, and the agent. Score with the
-  full checker (lexicon on). Same n=3 and tmux procedure as the existing harness.
+  full checker (STE lexicon on). Same n=3 and tmux procedure as the existing harness.
 - **Quadrant classification.** Hand-label the sections of 3–4 existing READMEs
   (`config/README.md` is a known mix). Compare the skill's labels against them.
 - **Jargon precision.** On two READMEs, check by hand what fraction of `jargon` hits are true
@@ -155,28 +205,41 @@ Extend `evaluations/2026-10-08-ste-docs/` rather than starting a new one:
 
 ### Success criteria
 
-- `ste_lexicon.py` reproduces 875 approved and 1274 non-approved words from Issue 9.
+- `lexicon.py build --from ste-pdf` reproduces 875 approved and 1274 non-approved words from
+  Issue 9.
+- `lexicon.py build --from tsv` and the checker work on a synthetic open lexicon with no STE
+  input. `jargon` stays off for it.
 - No dictionary text, lexicon file or extract is in the repo. `bin/graduate tech-docs` passes.
-- The checker runs with and without a lexicon. Tests use a synthetic lexicon fixture.
+- The checker runs with and without a lexicon, and always exits 0. Tests use synthetic lexicon
+  fixtures.
 - The agent arm scores at least as high as the `writing.md` arm, and keeps the same key facts.
 - On the hand-labelled READMEs, the quadrants skill agrees with the labels on most sections.
 
-### Open decisions
+### Decisions (settled 2026-11-19)
 
-1. **Licensing.** The ASD copyright notice restricts reproduction in whole or in part. A derived
-   lexicon on the user's own machine, built from the user's own copy, seems within personal use,
-   but the user decides that. The plan keeps every derived file out of the repo either way.
-2. **STE strictness.** Full STE (dictionary words only, plus glossary terms), or the `writing.md`
-   level of about 80%? This sets the agent's score target.
-3. **Quadrant names.** Diátaxis uses "Explanation". Dunn uses "Discussion". Pick one and use it
-   everywhere. Recommended: Explanation, the more widely known term.
-4. **Editing existing docs.** May the agent edit an existing document directly, or does it
-   deliver a diff, as for hand-curated files (`engineering.md`)? Recommended: it writes new files
-   directly, and it delivers a diff for files that already exist.
-5. **Plugin name and layout.** One plugin per agent (`tech-docs` now, `manuscript` later), or one
-   `writing` plugin with both? Recommended: separate plugins, because the two share almost no
-   references.
-6. **Model.** Inherit, or pin one.
+1. **Licensing:** the user holds the PDF under a qualified use. A local derived lexicon is in
+   scope. Derived files still stay out of the repo.
+2. **Dictionary scope:** the checker works with any dictionary in the common lexicon format. STE
+   is one source. The audit is soft: it reports and never blocks, because concise docs cannot
+   avoid jargon.
+3. **Strictness:** about 80% of STE, the `writing.md` level. The goal is consistent phrasing and
+   descriptions, and catching jargon leaks.
+4. **Quadrant name:** Explanation.
+5. **Existing docs:** new files are written directly; existing files get a diff.
+6. **Layout:** separate plugins, `tech-docs` now and `manuscript` later.
+7. **Model:** inherit the session's model for now.
+
+### Execution order
+
+Each step ends in a commit on `plan/writing-agents`:
+
+1. Common lexicon format, `lexicon.py --from tsv`, and synthetic fixtures with tests.
+2. The STE adapter, checked against the 875/1274 counts on the local PDF.
+3. Promote `ste_check.py`; add `word`, `form`, `jargon`, `variant` and the glossary and
+   allowlist suppression.
+4. The `doc-quadrants` skill and its reference.
+5. The agent, `plugin.json`, README, and `bin/graduate tech-docs`.
+6. The evaluation extensions and their results.
 
 ## Phase 2: manuscript-writer (stub)
 
