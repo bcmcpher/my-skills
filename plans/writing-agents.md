@@ -60,11 +60,29 @@ it. `references/lexicon-format.md` documents the format. A lexicon is a JSON fil
   lexicon enables the `jargon` flag, because only then does "not in the list" mean something.
   A replacement list, such as a personal list of words to avoid, is open.
 - `entries` — each with `term` (one word or a phrase), optional `pos`, `approved` (true or false),
-  optional `forms` (the permitted inflections), and, for a term that is not approved,
-  `alternatives` (each a term, an optional `pos`, and an optional kind: `TN` or `TV`).
+  optional `kind` (`TN` or `TV`, for a declared technical noun or verb), optional `forms` (the
+  permitted inflections), and, for a term that is not approved, `alternatives` (each a term, an
+  optional `pos`, and an optional kind).
 
 The checker takes `--lexicon` more than once. Lexicons stack, and a later one overrides an
 earlier one for the same term. A user can then layer a project list on top of STE.
+
+#### Declared technical terms
+
+A project can declare its technical terms up front: the product names, tools, file formats and
+domain nouns that its docs must use. The declared list is the jargon input. It is an open lexicon
+of approved entries with kind `TN` or `TV`, so the checker needs no second mechanism for it.
+
+- File: `.tech-terms` at the project root, found automatically, or `--terms <file>`. One term per
+  line, written in its canonical spelling, with an optional `<TAB>TV` for a verb (`TN` is the
+  default). `#` starts a comment.
+- The project glossary feeds the same list. The checker reads each defined term from
+  `GLOSSARY.md`, `docs/glossary.md`, or a "Key terms" section. The glossary stays the place where
+  a term is defined; `.tech-terms` is the lighter option for a project with no glossary.
+- `.tech-terms` replaces the `.ste-allow` allowlist of the earlier draft.
+
+Write the list from the source material — code, `plugin.json`, the domain — not from the docs
+that the checker will score. A list built from the output makes the leak count circular.
 
 ### 2. Lexicon builder (`lexicon.py`)
 
@@ -115,11 +133,12 @@ built-in open lexicon in the common format. Add the dictionary rules when a lexi
 |---|---|---|
 | `word` | Term listed as not approved | The approved alternatives from the lexicon |
 | `form` | Inflection not listed for an approved term (for example `-ing` of an approved verb) | The listed forms |
-| `jargon` | Word in no loaded lexicon (closed lexicons only) | A candidate technical term, or a word to replace |
-| `variant` | One term written two ways in the same doc set | Both spellings and their counts |
+| `jargon` | Word in no loaded lexicon and not a declared term (closed lexicons only) | A leak: an undeclared term, or a word to replace |
+| `variant` | One term written two ways in the same doc set | Both spellings, their counts, and the declared spelling if there is one |
 
 `variant` serves the consistency goal. It is deterministic: it groups words that are equal after
-removing case, hyphens and spaces (`code graph`, `code-graph`, `codegraph`). It also flags a doc
+removing case, hyphens and spaces (`code graph`, `code-graph`, `codegraph`). When one spelling is
+a declared term, the report names it as correct; otherwise it names no winner. It also flags a doc
 that uses both a non-approved term and its approved alternative, so the same idea appears in two
 words. A `pos` check for rule 1.2 needs a part-of-speech tagger, so it stays out.
 
@@ -128,15 +147,19 @@ target is about 80%, the `writing.md` level, not 100%. Concise technical docs ca
 jargon, so the jargon report is a list to review, not a list to eliminate.
 
 The `jargon` flag is the jargon finder. STE rules 1.5 and 1.12 permit technical nouns and verbs
-that are not in the dictionary. So a `jargon` hit is a question, not an error. Resolve it in this
-order:
+that are not in the dictionary. The declared terms separate the permitted ones from the leaks:
 
-1. The word is in the project glossary (`GLOSSARY.md`, `docs/glossary.md`, or a "Key terms"
-   section). It is an accepted technical term. Suppress it.
-2. The word is in a project allowlist (`.ste-allow`, one word per line). Suppress it.
-3. Otherwise, report it with its count and first location, most frequent first. `--jargon`
-   prints only this list, so the agent or user can triage it into the glossary or a rewrite.
-   A frequent term belongs in the glossary. A term used once is the likeliest leak.
+1. A word in the dictionary, or a declared term: accepted. No flag.
+2. Any other word: a leak. Report it with its count and first location, most frequent first.
+   `--jargon` prints only this list, so the agent or user can triage each leak: declare it,
+   define it in the glossary, or rewrite it. A frequent leak probably needs declaring. A leak
+   used once is the likeliest unplanned term.
+
+The report also states how many hits each declared-term source suppressed. A list that hides a
+large share of all hits is too broad, and the count makes that visible.
+
+With no declared terms, the checker still runs `jargon`, but every technical term then appears
+as a leak. The report says so, and suggests a `.tech-terms` file.
 
 This ties the checker to the existing `writing.md` rule that every technical term goes in the
 glossary.
@@ -184,9 +207,12 @@ An agent rather than a skill, because whole-document passes suit an isolated con
 
 - Model: `inherit` (the session's model) for now.
 - Tools: Read, Grep, Glob, Bash (for the checker), Edit, Write.
-- Workflow: read the target and the project glossary → write or revise → run `ste_check.py` →
-  fix flagged sentences until the score is about 80% → triage `jargon` and `variant` hits
-  (glossary, allowlist or rewrite) → report the score and the open hits.
+- Workflow: read the target, the project glossary and `.tech-terms` → write or revise, using the
+  declared terms in their declared spelling → run `ste_check.py` → fix flagged sentences until
+  the score is about 80% → triage `jargon` and `variant` hits (declare, define in the glossary,
+  or rewrite) → report the score, the open hits, and any terms it suggests declaring.
+- The agent proposes additions to `.tech-terms`; it does not add them itself. Otherwise it could
+  silence its own leaks.
 - New files: the agent writes them directly. Existing files: it delivers a diff for the user to
   apply, as `engineering.md` requires for hand-curated files.
 - Precedence: a project's own documentation style overrides the agent, as with `writing.md`.
@@ -200,8 +226,17 @@ Extend `evaluations/2026-10-08-ste-docs/` rather than starting a new one:
   full checker (STE lexicon on). Same n=3 and tmux procedure as the existing harness.
 - **Quadrant classification.** Hand-label the sections of 3–4 existing READMEs
   (`config/README.md` is a known mix). Compare the skill's labels against them.
-- **Jargon precision.** On two READMEs, check by hand what fraction of `jargon` hits are true
-  technical terms, and what fraction are words that need replacing.
+- **Declared terms for the A/B.** Before the runs, write a `.tech-terms` list for the target
+  plugin from its code and `plugin.json`. All arms receive the same list in the prompt context.
+  Two new measures per arm, beside the score:
+  - **leak rate:** `jargon` hits per 100 words;
+  - **term coverage:** the share of declared terms that the output uses where it describes that
+    thing, in the declared spelling, rather than a paraphrase or a `variant`.
+- **Jargon detection.** Plant known leaks (undeclared terms, non-approved words, spelling
+  variants) in a synthetic fixture doc, and count how many the checker catches. Repeat with the
+  declared list removed, to show what the list adds.
+- **Jargon precision.** On two READMEs with a declared list, check by hand what fraction of the
+  remaining `jargon` hits are real leaks.
 
 ### Success criteria
 
@@ -212,7 +247,9 @@ Extend `evaluations/2026-10-08-ste-docs/` rather than starting a new one:
 - No dictionary text, lexicon file or extract is in the repo. `bin/graduate tech-docs` passes.
 - The checker runs with and without a lexicon, and always exits 0. Tests use synthetic lexicon
   fixtures.
+- The checker finds every planted leak in the fixture doc when the declared list is loaded.
 - The agent arm scores at least as high as the `writing.md` arm, and keeps the same key facts.
+  Its leak rate is no higher, and its term coverage no lower.
 - On the hand-labelled READMEs, the quadrants skill agrees with the labels on most sections.
 
 ### Decisions (settled 2026-11-19)
@@ -228,6 +265,9 @@ Extend `evaluations/2026-10-08-ste-docs/` rather than starting a new one:
 5. **Existing docs:** new files are written directly; existing files get a diff.
 6. **Layout:** separate plugins, `tech-docs` now and `manuscript` later.
 7. **Model:** inherit the session's model for now.
+8. **Declared terms:** a project can declare its technical terms up front in `.tech-terms`. The
+   list separates permitted terms from leaks, sets the canonical spelling for `variant`, and
+   gives the evaluation its leak rate and term coverage measures.
 
 ### Execution order
 
@@ -235,8 +275,8 @@ Each step ends in a commit on `plan/writing-agents`:
 
 1. Common lexicon format, `lexicon.py --from tsv`, and synthetic fixtures with tests.
 2. The STE adapter, checked against the 875/1274 counts on the local PDF.
-3. Promote `ste_check.py`; add `word`, `form`, `jargon`, `variant` and the glossary and
-   allowlist suppression.
+3. Promote `ste_check.py`; add `word`, `form`, `jargon`, `variant`, and the declared terms
+   (`.tech-terms`, `--terms`, glossary) with their suppression counts.
 4. The `doc-quadrants` skill and its reference.
 5. The agent, `plugin.json`, README, and `bin/graduate tech-docs`.
 6. The evaluation extensions and their results.
