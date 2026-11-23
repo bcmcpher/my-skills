@@ -322,6 +322,21 @@ Each step ends in a commit on `plan/writing-agents`:
   lexicon, scores are 84–92%. With the STE lexicon on, the README scores 47.5%. Full STE
   vocabulary is much stricter than the rule-only checks, so the A/B compares arms, not the 80%
   target.
+- **Review fixes (done).** `/code-review` on steps 1–5 found seven checker bugs. Each has a
+  regression test that fails on the old code:
+  - A suffix strips only from an entry of a part of speech it inflects (`-ed`/`-ing`: verbs;
+    `-er`/`-est`: adjectives and adverbs). `user` was `us` + `er`, `server` was `serve` + `er`,
+    `thing` was `the` + `ing`. The fix turns up real leaks, and `copying` now matches the
+    non-approved verb COPY, not the approved noun. `named` is a leak where STE lists `name` as a
+    noun only.
+  - Phrases with punctuation (`and/or`) and multi-word forms (`came on`) now match.
+  - The determiner rule reads token positions, and prose `code` is no longer a determiner.
+  - Inline code is spaced off from adjacent letters (`` `x`s `` was the leak `codes`), and no
+    phrase or variant bigram spans inline code or an identifier.
+  - A missing path exits 2; an unreadable or non-UTF-8 file is skipped with a warning.
+  - Glossary headings count as terms only in a glossary with no bold or table terms.
+  - Leaks are keyed without a possessive (`repo's` joins `repo`).
+  With no lexicon, the fixes change no score on the 14 calibration READMEs.
 
 ## Phase 2: manuscript-writer (stub)
 

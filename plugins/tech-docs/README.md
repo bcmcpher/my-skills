@@ -50,8 +50,8 @@ work tree, so a lexicon from a licensed dictionary cannot reach a repository.
 python3 -I skills/ste-check/scripts/ste_check.py --lexicon ste100-issue9 --show 10 README.md docs/
 ```
 
-The score is the share of sentences with no flags. The target is about 80%. The checker always
-exits 0: it is a soft audit, not a gate.
+The score is the share of sentences with no flags. The target is about 80%. The checker exits 0
+on findings: it is a soft audit, not a gate. It exits 2 on a bad lexicon or a missing path.
 
 | Flag | Meaning |
 |---|---|

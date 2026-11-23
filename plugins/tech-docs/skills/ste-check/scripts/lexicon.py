@@ -267,7 +267,6 @@ def ste_parse(text):
             else:                                 # provided (that), so (that)
                 word = f"{outer} {inner}"
         word = word.strip()
-        word = word.strip()
         letters = re.sub(r"[^A-Za-z]", "", word)
         approved = letters.isupper()
         if not approved and not letters.islower():

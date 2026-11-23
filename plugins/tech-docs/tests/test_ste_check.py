@@ -152,3 +152,95 @@ def test_indented_fences_and_non_ascii_words(tmp_path):
     res = ste_check.DocSet(ste_check.Lexicons([ste_check.BUILTIN], []), set()).score_file(doc)
     assert [r["sentence"] for r in res["rows"]] == ["Run this:", "Read about Diátaxis here."]
     assert ste_check.WORD.findall("Diátaxis") == ["Diátaxis"]
+
+
+# ── Regressions from the code review ─────────────────────────────────────────
+
+def _lex(*entries, closed=True):
+    return ste_check.Lexicons([ste_check.BUILTIN, {"name": "t", "closed": closed,
+                                                   "entries": list(entries)}], [])
+
+
+def _score(tmp_path, text, lex):
+    doc = tmp_path / "a.md"
+    doc.write_text(text, encoding="utf-8")
+    ds = ste_check.DocSet(lex, set())
+    return ds, ds.score_file(doc)
+
+
+def _flags(res, rule):
+    return [f for r in res["rows"] for f in r["flags"] if f.startswith(rule + ":")]
+
+
+def test_a_suffix_strips_only_from_a_part_of_speech_it_inflects():
+    lex = _lex({"term": "us", "approved": True, "pos": "pron"},
+               {"term": "in", "approved": True, "pos": "prep"},
+               {"term": "use", "approved": True, "pos": "v", "forms": ["used"]},
+               {"term": "fast", "approved": True, "pos": "adj"},
+               {"term": "be", "approved": True, "pos": "v", "forms": ["is"]},
+               {"term": "the", "approved": True, "pos": "art"})
+    look = lambda w: ste_check.Lexicons.lookup(w, lex.full)[0]  # noqa: E731
+    assert look("user") == "unknown"     # not us + er, not use + r
+    assert look("inner") == "unknown"    # in is a preposition
+    assert look("thing") == "unknown"    # not the + ing
+    assert look("faster") == "ok"        # -er inflects an adjective
+    assert look("used") == "ok"
+    assert look("being") == "form"       # a two-letter verb still inflects
+
+
+def test_a_possessive_leak_is_listed_under_its_word(tmp_path):
+    ds, _ = _score(tmp_path, "The grobber's tool is a grobber.\n", _lex())
+    assert [x["word"] for x in ds.leak_list() if x["word"].startswith("grob")] == ["grobber"]
+
+
+def test_a_phrase_with_punctuation_matches_its_term(tmp_path):
+    lex = _lex({"term": "and/or", "approved": False, "alternatives": [{"term": "or"}]})
+    ds, res = _score(tmp_path, "Use the tool and/or the help.\n", lex)
+    assert _flags(res, "word") == ["word:and/or→or"]
+    assert "and" not in {x["word"] for x in ds.leak_list()}
+
+
+def test_a_multi_word_form_matches(tmp_path):
+    lex = _lex({"term": "come on", "approved": True, "pos": "v", "forms": ["came on"]})
+    ds, _ = _score(tmp_path, "The tool came on.\n", lex)
+    assert {x["word"] for x in ds.leak_list()} & {"came", "on"} == set()
+
+
+def test_a_missing_file_is_a_usage_error_and_a_bad_file_is_skipped(tmp_path):
+    r = run("--root", str(tmp_path), str(tmp_path / "nope.md"))
+    assert r.returncode == 2 and "nope.md" in r.stderr and "Traceback" not in r.stderr
+    bad = tmp_path / "bad.md"
+    bad.write_bytes(b"Use the \xff tool.\n")
+    good = tmp_path / "good.md"
+    good.write_text("Use the tool.\n")
+    r = run("--root", str(tmp_path), "--json", str(bad), str(good))
+    assert r.returncode == 0 and "skipped" in r.stderr
+    assert [f["file"] for f in json.loads(r.stdout)["files"]] == [str(good)]
+
+
+def test_a_bigram_never_spans_inline_code(tmp_path):
+    ds, _ = _score(tmp_path, "Run `y` time again.\n\nThe runtime is easy.\n", _lex())
+    assert ds.variants() == []
+
+
+def test_inline_code_with_a_suffix_is_not_a_leak(tmp_path):
+    ds, _ = _score(tmp_path, "Use the `x`s and `a`-`b` here.\n", _lex())
+    leaks = {x["word"] for x in ds.leak_list()}
+    assert not leaks & {"codes", "code", "code-code"}
+
+
+def test_the_noun_rule_reads_positions_and_only_real_determiners(tmp_path):
+    lex = _lex({"term": "list", "approved": False, "pos": "v",
+                "alternatives": [{"term": "show", "pos": "v"}]})
+    _, res = _score(tmp_path, "Use the list and list it.\n", lex)
+    assert _flags(res, "word") == ["word:list→show"]       # only the second list
+    _, res = _score(tmp_path, "Read code list now.\n", lex)
+    assert _flags(res, "word") == ["word:list→show"]       # prose code is not a determiner
+    _, res = _score(tmp_path, "Read `x` list now.\n", lex)
+    assert _flags(res, "word") == []                       # inline code is
+
+
+def test_glossary_headings_count_only_in_a_heading_style_glossary():
+    assert ste_check.glossary_terms("## Overview\n\n- **lexicon** — x.\n") == ["lexicon"]
+    assert ste_check.glossary_terms("## lexicon\n\nA list.\n\n## leak\n\nA word.\n") == \
+        ["lexicon", "leak"]

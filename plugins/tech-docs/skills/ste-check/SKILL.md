@@ -14,8 +14,9 @@ Check documentation with `ste_check.py`, and build lexicons for it with `lexicon
 `<refs>` is `${CLAUDE_PLUGIN_ROOT}/skills/ste-check/references`.
 Both scripts are stdlib-only Python. Run them with `python3 -I`.
 
-The checker is a soft audit. It always exits 0 on findings, and it never blocks. The score
-target is about 80%, the `writing.md` level, not 100%.
+The checker is a soft audit. It always exits 0 on findings, and it never blocks. It skips a
+file that it cannot read or decode, with a warning. It exits 2 on a usage error: a bad lexicon,
+or a path that does not exist. The score target is about 80%, the `writing.md` level, not 100%.
 
 ## Steps
 
@@ -30,8 +31,9 @@ target is about 80%, the `writing.md` level, not 100%.
    The format is in `<refs>/lexicon-format.md`. Never write a lexicon into a repository; the
    builder refuses a path inside a git work tree.
 3. **Check for declared terms.** Look for `.tech-terms` at the project root and for a glossary
-   (`GLOSSARY.md`, `docs/glossary.md`, or a "Key terms" section). If none exists and the user
-   wants jargon findings, offer to write `.tech-terms` (step 6).
+   (`GLOSSARY.md`, `docs/glossary.md`, or a "Key terms" section). A glossary term is a bold
+   item lead or a first table cell. Headings are terms only in a glossary that has neither. If
+   none exists and the user wants jargon findings, offer to write `.tech-terms` (step 6).
 4. **Run the checker.** Use this command:
    `python3 -I <scripts>/ste_check.py --lexicon ste100-issue9 --show 10 <files or dirs>`.
    Stack lexicons by repeating `--lexicon`; a later one overrides an earlier one. Use `--terms
@@ -70,5 +72,9 @@ that the checker scores. A list built from the output makes the leak count circu
 - No dictionary text, lexicon file or extract goes into a repository.
 - Without a closed lexicon, `jargon` is off and the report says so. That is expected on CI.
 - The checker has no part-of-speech tagger. It treats a term as approved when any of its entries
-  is approved, and it treats a word after a determiner as a noun. Expect some false `word` hits.
+  is approved, and it treats a word after a determiner or inline code as a noun. Expect some
+  false `word` hits.
+- An inflection matches only an entry of a part of speech that takes it: `-ed` and `-ing` a
+  verb, `-er` and `-est` an adjective or adverb, `-s` any entry. So `named` is a leak when the
+  lexicon lists `name` only as a noun.
 - Do not edit the user's `.tech-terms` or glossary to silence findings. Propose the change.

@@ -81,11 +81,24 @@ ABBREV = re.compile(r"\b(e\.g|i\.e|etc|vs|cf|approx|Fig|No)\.", re.I)
 WORD = re.compile(r"[^\W\d_](?:[\w'’-]*[^\W_])?")  # starts with a letter; Diátaxis is one word
 IDENT = re.compile(r".*\d")  # ASD-STE100, v2: identifiers, never looked up
 
-# Inflection suffixes tried when a word is not itself a term: (suffix, restore, plural?).
-SUFFIXES = [("ies", "y", True), ("es", "", True), ("s", "", True), ("ied", "y", False),
-            ("ed", "", False), ("ed", "e", False), ("d", "", False), ("ing", "", False),
-            ("ing", "e", False), ("er", "", False), ("er", "e", False), ("est", "", False),
-            ("est", "e", False)]
+
+
+def skipped(token):
+    """Inline code and identifiers: counted as words, never looked up."""
+    return token == CODE or IDENT.match(token) is not None
+
+
+# Inflection suffixes tried when a word is not itself a term: (suffix, restore, parts of
+# speech the suffix inflects). None in the set is an entry with no part of speech. The -s
+# suffixes take every part of speech: a plural noun or a third-person verb.
+ANY = None
+VERB = {"v", None}
+COMPARE = {"adj", "adv", None}
+SUFFIXES = [("ies", "y", ANY), ("es", "", ANY), ("s", "", ANY), ("ied", "y", VERB),
+            ("ed", "", VERB), ("ed", "e", VERB), ("d", "", VERB), ("ing", "", VERB),
+            ("ing", "e", VERB), ("er", "", COMPARE), ("er", "e", COMPARE),
+            ("est", "", COMPARE), ("est", "e", COMPARE)]
+MIN_BASE = 2  # being is be + ing. The part of speech, not length, stops user -> us + er
 
 GLOSSARY_FILES = ("GLOSSARY.md", "docs/glossary.md")
 MIN_VARIANT = 5                                 # letters in a two-word variant key
@@ -106,8 +119,16 @@ def clean(text):
                   flags=re.S | re.M)                                     # fences, also indented
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)                     # images
     text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)                 # links -> text
-    text = re.sub(r"`[^`\n]*`", CODE, text)                              # inline code
+    text = re.sub(r"`[^`\n]*`", _code, text)                             # inline code
     return text
+
+
+def _code(m):
+    """CODE, spaced off from an adjacent word character so `x`s cannot become CODEs."""
+    s, e, t = m.start(), m.end(), m.string
+    left = " " if s and re.match(r"[\w'’-]", t[s - 1]) else ""
+    right = " " if e < len(t) and re.match(r"[\w'’-]", t[e]) else ""
+    return left + CODE + right
 
 
 def blocks(text):
@@ -178,30 +199,39 @@ class Lexicons:
                     continue
                 by_term.setdefault(term, []).append(e)
             terms.update(by_term)  # override per term
+        keys = set(terms)
         for term, entries in terms.items():
             for e in entries:
                 if e["approved"]:
                     for f in e.get("forms", []):
                         forms.setdefault(f.lower(), term)
-            toks = tuple(w.lower() for w in WORD.findall(term))
+        for key in keys | set(forms):  # and/or keeps its slash; came on is a form of come on
+            toks = tuple(w.lower() for w in WORD.findall(key))
             if len(toks) > 1:
-                phrases.setdefault(toks[0], []).append(toks)
+                phrases.setdefault(toks[0], []).append((toks, key))
         for v in phrases.values():
-            v.sort(key=len, reverse=True)
+            v.sort(key=lambda p: (-len(p[0]), p[1]))
         return {"terms": terms, "forms": forms, "phrases": phrases}
 
-    def units(self, tokens, index):
-        """Group tokens into lookup units: the longest phrase first, else one word."""
+    @staticmethod
+    def units(tokens, index):
+        """Group tokens into lookup units (key, surface, start): the longest phrase first,
+        else one word. CODE and identifiers split the run: no unit spans them."""
         out, i = [], 0
         low = [t.lower() for t in tokens]
         while i < len(tokens):
-            for ph in index["phrases"].get(low[i], ()):
-                if tuple(low[i:i + len(ph)]) == ph:
-                    out.append((" ".join(ph), " ".join(tokens[i:i + len(ph)])))
-                    i += len(ph)
+            if skipped(tokens[i]):
+                i += 1
+                continue
+            for toks, key in index["phrases"].get(low[i], ()):
+                n = len(toks)
+                if tuple(low[i:i + n]) == toks and not any(map(skipped, tokens[i:i + n])):
+                    surface = " ".join(tokens[i:i + n])
+                    out.append((key, surface if surface.lower() == key else key, i))
+                    i += n
                     break
             else:
-                out.append((low[i], tokens[i]))
+                out.append((low[i], tokens[i], i))
                 i += 1
         return out
 
@@ -233,21 +263,23 @@ class Lexicons:
             return "word", word, entries
         if word in index["forms"]:
             return "ok", index["forms"][word], terms[index["forms"][word]]
-        for suffix, restore, plural in SUFFIXES:
-            if not word.endswith(suffix) or len(word) - len(suffix) < 2:
+        for suffix, restore, pos in SUFFIXES:
+            if not word.endswith(suffix):
                 continue
             base = word[:-len(suffix)] + restore
             candidates = [base]
-            if not restore and len(base) >= 3 and base[-1] == base[-2]:
+            if not restore and len(base) > MIN_BASE and base[-1] == base[-2]:
                 candidates.append(base[:-1])  # stopped -> stop
             for b in candidates:
-                if b not in terms:
+                if len(b) < MIN_BASE or b not in terms:
                     continue
-                entries = terms[b]
+                entries = [e for e in terms[b] if pos is ANY or e.get("pos") in pos]
+                if not entries:
+                    continue  # inner: in is a preposition, so -er cannot inflect it
                 approved = [e for e in entries if e["approved"]]
                 if not approved:
                     return ("ok" if cls.permitted(b, entries) else "word"), b, entries
-                if plural and any(e.get("pos") in (None, "n") for e in approved):
+                if pos is ANY and any(e.get("pos") in (None, "n") for e in approved):
                     return "ok", b, entries
                 if any(e.get("forms") for e in approved):
                     return "form", b, approved
@@ -278,20 +310,21 @@ def read_terms_file(path, source):
 
 
 def glossary_terms(text):
-    """Defined terms in a glossary: headings, bold item leads, and first table cells."""
-    out = []
+    """Defined terms in a glossary: bold item leads and first table cells. Headings count
+    only in a glossary that has neither, one heading per term; else ## Overview would be a term."""
+    items, heads = [], []
     for line in text.splitlines():
         s = line.strip()
-        m = (re.match(r"^#{2,6}\s+(.+?)\s*#*$", s)
-             or re.match(r"^(?:[-*+]\s+)?\*\*([^*]+)\*\*", s)
-             or re.match(r"^\|\s*\**([^|*]+?)\**\s*\|", s))
+        h = re.match(r"^#{2,6}\s+(.+?)\s*#*$", s)
+        m = h or (re.match(r"^(?:[-*+]\s+)?\*\*([^*]+)\*\*", s)
+                  or re.match(r"^\|\s*\**([^|*]+?)\**\s*\|", s))
         if not m:
             continue
         term = m.group(1).strip().rstrip(":").strip()
         if re.fullmatch(r"[-: ]+", term) or term.lower() in ("term", "terms", "key terms"):
             continue
-        out.append(term)
-    return out
+        (heads if h else items).append(term)
+    return items or heads
 
 
 def key_terms_section(text):
@@ -317,8 +350,12 @@ def declared_terms(root, terms_file, files):
         if p.is_file():
             out += [(t, "TN", g) for t in glossary_terms(p.read_text(encoding="utf-8"))]
     for f in sorted(set(files) | {root / "README.md"}):
-        if Path(f).is_file():
-            section = key_terms_section(Path(f).read_text(encoding="utf-8"))
+        try:
+            text = Path(f).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue  # score_file reports it
+        if text:
+            section = key_terms_section(text)
             if section:
                 out += [(t, "TN", f"Key terms ({Path(f).name})") for t in glossary_terms(section)]
     seen, unique = set(), []
@@ -358,13 +395,13 @@ def check(sentence, kind):
 
 
 DETERMINERS = set("a an the this that these those each every its your our their my some no "
-                  "all".split()) | {CODE.lower()}
+                  "all".split())
 
 
 def noun_positions(tokens):
-    """Words that follow a determiner or inline code, so are probably nouns."""
-    low = [t.lower() for t in tokens]
-    return {b for a, b in zip(low, low[1:]) if a in DETERMINERS}
+    """Indexes of words that follow a determiner or inline code, so are probably nouns."""
+    return {i for i in range(1, len(tokens))
+            if tokens[i - 1] == CODE or tokens[i - 1].lower() in DETERMINERS}
 
 
 def alt_text(entries):
@@ -388,14 +425,13 @@ class DocSet:
         self.declared_used = Counter()
 
     def lexical(self, sentence, where, file_terms):
-        all_tokens = WORD.findall(sentence)
-        tokens = [t for t in all_tokens if t != CODE and not IDENT.match(t)]
-        after_det = noun_positions(all_tokens)
+        tokens = WORD.findall(sentence)
+        after_det = noun_positions(tokens)
         flags = []
         bad_words, bad_forms, leaks = [], [], []
-        for term, surface in self.lex.units(tokens, self.lex.full):
+        for term, surface, at in self.lex.units(tokens, self.lex.full):
             status, base, entries = self.lex.lookup(term, self.lex.full)
-            if status == "word" and surface.lower() in after_det \
+            if status == "word" and at in after_det \
                     and not any(e.get("pos") == "n" for e in entries):
                 status = "unknown"  # the file: a noun that STE lists only as a verb
             file_terms[base] += 1
@@ -412,7 +448,8 @@ class DocSet:
                 bad_forms.append(f"{surface}({base}: {listed})")
             elif status == "unknown" and self.lex.closed and len(term) > 1:
                 leaks.append(surface)
-                rec = self.leaks.setdefault(term, [0, where])
+                key = re.sub(r"['’]s$", "", term)  # asd's leaks as asd
+                rec = self.leaks.setdefault(key, [0, where])
                 rec[0] += 1
         if bad_words and "word" not in self.ignore:
             flags.append("word:" + ",".join(bad_words))
@@ -427,12 +464,19 @@ class DocSet:
         return flags
 
     def _collect_spellings(self, tokens):
-        low = [t.lower() for t in tokens]
-        for t in low:
-            key = re.sub(r"[-\s]", "", t)
+        """Count each spelling. A bigram never spans inline code or an identifier:
+        run `y` time is not run time."""
+        for t in tokens:
+            if skipped(t):
+                continue
+            low = t.lower()
+            key = re.sub(r"[-\s]", "", low)
             self.single_keys.add(key)
-            self.spellings.setdefault(key, Counter())[t] += 1
-        for a, b in zip(low, low[1:]):
+            self.spellings.setdefault(key, Counter())[low] += 1
+        for a, b in zip(tokens, tokens[1:]):
+            if skipped(a) or skipped(b):
+                continue
+            a, b = a.lower(), b.lower()
             key = a + b
             if len(key) >= MIN_VARIANT and "-" not in key:  # skip into / in to
                 self.spellings.setdefault(key, Counter())[f"{a} {b}"] += 1
@@ -618,9 +662,18 @@ def main(argv=None):
     except (lexmod.LexiconError, OSError) as exc:
         print(f"ste_check.py: {exc}", file=sys.stderr)
         return 2
+    missing = [str(f) for f in files if not f.is_file()]
+    if missing:
+        print(f"ste_check.py: not a file or directory: {', '.join(missing)}", file=sys.stderr)
+        return 2
     lex = Lexicons(lexicons, declared)
     ds = DocSet(lex, ignore)
-    results = [ds.score_file(f) for f in files]
+    results = []
+    for f in files:
+        try:
+            results.append(ds.score_file(f))
+        except (OSError, UnicodeDecodeError) as exc:  # soft audit: skip it, check the rest
+            print(f"ste_check.py: skipped {f}: {exc}", file=sys.stderr)
     if args.json:
         for r in results:
             r.pop("rows")
