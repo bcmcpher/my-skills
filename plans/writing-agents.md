@@ -295,6 +295,7 @@ Each step ends in a commit on `plan/writing-agents`:
   the gap. The user chose to pin the measured counts on 2026-11-23, so the check still catches
   parser drift. Eighteen non-approved entries have no alternatives, because the dictionary gives
   a sentence construction there instead of a word.
+- **Step 4 (done).** `doc-quadrants` is read-only (Read, Grep, Glob). A split needs approval and then goes to the agent or the user.
 - **Step 3 (done).** The evaluation copy of the checker is gone; `run.sh` and the evaluation
   README point to the plugin. With no lexicon, scores match the old checker on the calibration
   docs, to within one sentence on `config/README.md`. Choices made while building it:
