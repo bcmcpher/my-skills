@@ -1,0 +1,20 @@
+{
+ "name": "mini-closed",
+ "closed": true,
+ "entries": [
+  {"term": "use", "approved": true, "pos": "v", "forms": ["uses", "used"]},
+  {"term": "the", "approved": true, "pos": "art"},
+  {"term": "to", "approved": true, "pos": "prep"},
+  {"term": "find", "approved": true, "pos": "v", "forms": ["finds", "found"]},
+  {"term": "you", "approved": true, "pos": "pron"},
+  {"term": "can", "approved": true, "pos": "v"},
+  {"term": "help", "approved": true, "pos": "v", "forms": ["helps", "helped"]},
+  {"term": "be", "approved": true, "pos": "v", "forms": ["is", "are", "was", "were"]},
+  {"term": "easy", "approved": true, "pos": "adj"},
+  {"term": "put", "approved": true, "pos": "v", "forms": ["puts", "put"]},
+  {"term": "in", "approved": true, "pos": "prep"},
+  {"term": "write", "approved": true, "pos": "v", "forms": ["writes", "wrote", "written"]},
+  {"term": "tool", "approved": true, "pos": "n"},
+  {"term": "commence", "approved": false, "pos": "v", "alternatives": [{"term": "start", "pos": "v"}]}
+ ]
+}

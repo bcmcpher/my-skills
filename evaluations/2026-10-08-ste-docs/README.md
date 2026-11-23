@@ -12,6 +12,11 @@ And can compliance be tested at all without the licensed STE dictionary?
 
 ## The checker
 
+The checker now lives in the `tech-docs` plugin:
+[`plugins/tech-docs/skills/ste-check/scripts/ste_check.py`](../../plugins/tech-docs/skills/ste-check/scripts/ste_check.py).
+This evaluation used the version before it moved; its git history has that copy. With no
+`--lexicon`, the plugin version gives the same scores on the docs below, to within one sentence.
+
 `ste_check.py` is stdlib-only Python. It scores Markdown against the STE rules that can be
 measured:
 
@@ -30,7 +35,7 @@ stripped first. A sentence is procedural if it is a numbered-list item or starts
 imperative verb. `--ignore <rule>` drops a rule; `--show N` prints the worst sentences.
 
 ```bash
-python3 -I evaluations/2026-10-08-ste-docs/ste_check.py --show 10 README.md
+python3 -I plugins/tech-docs/skills/ste-check/scripts/ste_check.py --show 10 README.md
 ```
 
 ## Calibration (existing docs, written without the style)

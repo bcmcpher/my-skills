@@ -30,4 +30,4 @@ for i in $(seq 1 "$n"); do
   done
 done
 
-python3 -I "$here/ste_check.py" "$out"/base-*.md "$out"/ste-*.md | tee "$out/scores.txt"
+python3 -I "$repo/plugins/tech-docs/skills/ste-check/scripts/ste_check.py" "$out"/base-*.md "$out"/ste-*.md | tee "$out/scores.txt"

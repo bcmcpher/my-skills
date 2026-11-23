@@ -295,6 +295,24 @@ Each step ends in a commit on `plan/writing-agents`:
   the gap. The user chose to pin the measured counts on 2026-11-23, so the check still catches
   parser drift. Eighteen non-approved entries have no alternatives, because the dictionary gives
   a sentence construction there instead of a word.
+- **Step 3 (done).** The evaluation copy of the checker is gone; `run.sh` and the evaluation
+  README point to the plugin. With no lexicon, scores match the old checker on the calibration
+  docs, to within one sentence on `config/README.md`. Choices made while building it:
+  - `jargon` flags do not lower the score, so scores stay comparable with the old calibration.
+    `word` and `form` do.
+  - The checker strips inflection suffixes (`-s`, `-es`, `-ed`, `-ing`, `-er`, `-est`) to find
+    the base term. A non-approved base gives `word` (`utilized` → `utilize`). An approved base
+    with listed forms gives `form`. An approved base with no listed forms is accepted.
+  - A non-approved entry that offers its own term as a TN or TV (`list (v)` → `LIST (TN)`) makes
+    the term permitted.
+  - Without a part-of-speech tagger, a word after a determiner or inline code counts as a noun.
+    A term that STE lists only as a non-noun becomes a jargon candidate there, not a `word` hit
+    (`the file`).
+  - A hyphenated word is accepted when every part is known. Tokens with digits are identifiers
+    and are not looked up.
+  - `variant` pairs need a key of five or more letters (`into` / `in to` is skipped). The "term
+    and its alternative" report skips function-word alternatives (`in order to` / `to`).
+  - Leak plurals merge with their singular (`term(s)`).
 
 ## Phase 2: manuscript-writer (stub)
 
