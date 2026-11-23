@@ -1,0 +1,15 @@
+{
+  "name": "tech-docs",
+  "description": "Technical documentation in ASD-STE100 Simplified Technical English at about 80%: a technical-docs-writer agent, an ste-check skill with a deterministic checker that reads any dictionary in a common lexicon format and finds non-approved words, undeclared jargon and spelling variants, and a doc-quadrants skill that classifies docs as tutorial, how-to, reference or explanation.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["documentation", "ste", "asd-ste100", "simplified-technical-english", "jargon", "diataxis", "readme"],
+  "skills": [
+    "./skills/ste-check",
+    "./skills/doc-quadrants"
+  ],
+  "agents": [
+    "./agents/technical-docs-writer"
+  ]
+}

@@ -46,7 +46,7 @@ target is about 80%, the `writing.md` level, not 100%.
    - The suppression lines show how many hits each declared-term source hid. A source that hides
      a large share of all hits is too broad.
 6. **Triage jargon leaks.** For each leak, recommend one action: declare it, define it in the
-   glossary, or rewrite it. A frequent leak probably needs declaring. A leak used once is the
+   glossary, or rewrite it. Declare a frequent leak. A leak used once is the
    likeliest unplanned term. Propose `.tech-terms` additions as a list for the user to approve.
 
 ## The `.tech-terms` file

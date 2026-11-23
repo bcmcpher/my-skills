@@ -295,7 +295,6 @@ Each step ends in a commit on `plan/writing-agents`:
   the gap. The user chose to pin the measured counts on 2026-11-23, so the check still catches
   parser drift. Eighteen non-approved entries have no alternatives, because the dictionary gives
   a sentence construction there instead of a word.
-- **Step 4 (done).** `doc-quadrants` is read-only (Read, Grep, Glob). A split needs approval and then goes to the agent or the user.
 - **Step 3 (done).** The evaluation copy of the checker is gone; `run.sh` and the evaluation
   README point to the plugin. With no lexicon, scores match the old checker on the calibration
   docs, to within one sentence on `config/README.md`. Choices made while building it:
@@ -314,6 +313,15 @@ Each step ends in a commit on `plan/writing-agents`:
   - `variant` pairs need a key of five or more letters (`into` / `in to` is skipped). The "term
     and its alternative" report skips function-word alternatives (`in order to` / `to`).
   - Leak plurals merge with their singular (`term(s)`).
+- **Step 4 (done).** `doc-quadrants` is read-only (Read, Grep, Glob). A split needs the user's
+  approval, and then the agent or the user makes the edit.
+- **Step 5 (done).** `bin/graduate tech-docs` passes (version 0.1.0 warning only). The plugin is
+  in the marketplace and the root README. Two checker fixes found by running it on the plugin's
+  own README: fences indented under a list item are now stripped (the old checker missed them),
+  and a word can hold non-ASCII letters (`Diátaxis`). On the plugin's own docs, with no
+  lexicon, scores are 84–92%. With the STE lexicon on, the README scores 47.5%. Full STE
+  vocabulary is much stricter than the rule-only checks, so the A/B compares arms, not the 80%
+  target.
 
 ## Phase 2: manuscript-writer (stub)
 

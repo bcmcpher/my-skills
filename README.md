@@ -44,6 +44,7 @@ Once a plugin graduates to its own repo you can add it as a standalone marketpla
 | [programming-tools](./plugins/programming-tools/) | `/tdd`, `/retrofit-tests`, `/code-check`, plus six review subagents (code review, simplification, silent failures, type design, comments, PR tests) |
 | [project-init](./plugins/project-init/) | Scaffold and configure new projects across coding-tool, data-analysis, and info-management types |
 | [stat-analysis](./plugins/stat-analysis/) | Merge input data, plan the right statistical test with QC checks, and scaffold a jupytext report |
+| [tech-docs](./plugins/tech-docs/) | `technical-docs-writer` agent, `/ste-check` and `/doc-quadrants` — write and check docs in ASD-STE100 Simplified Technical English, find jargon leaks and spelling variants |
 
 Every plugin is listed in [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json);
 `bin/validate` fails if that file and `plugins/` disagree.

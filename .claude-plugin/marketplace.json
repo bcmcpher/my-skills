@@ -73,6 +73,12 @@
       "description": "Principled whole-repository quality audit for Python code, tests and OpenSpec specs: scripts sweep every site, the model judges candidates",
       "version": "0.1.0",
       "source": "./plugins/codebase-audit"
+    },
+    {
+      "name": "tech-docs",
+      "description": "Write and check technical documentation in ASD-STE100 Simplified Technical English at about 80%: a technical-docs-writer agent, an ste-check skill for non-approved words, jargon leaks and spelling variants, and a doc-quadrants skill",
+      "version": "0.1.0",
+      "source": "./plugins/tech-docs"
     }
   ]
 }

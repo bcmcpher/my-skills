@@ -42,13 +42,13 @@ Call the fourth quadrant **Explanation**, never "Discussion".
 
 ### audit
 
-1. List the Markdown files in the directory (`**/*.md`), skipping vendored and generated trees.
+1. List the Markdown files in the directory (`**/*.md`). Leave out vendored and generated trees.
 2. Classify each file at file level: its main quadrant, or mixed. Read only as much of each file
    as the label needs.
 3. Report the quadrants that exist (with their files), the quadrants that are missing, and the
    mixed files. For each mixed file, name the sections that cause the mix.
-4. Recommend the next step for the largest gap: a missing quadrant, or the mixed file that most
-   readers meet first (usually the README).
+4. Recommend the next step for the largest gap. That is a missing quadrant, or the mixed file
+   that most readers meet first (usually the README).
 
 ## Constraints
 

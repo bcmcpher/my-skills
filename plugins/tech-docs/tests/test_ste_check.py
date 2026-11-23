@@ -143,3 +143,12 @@ def test_line_numbers_follow_each_sentence(tmp_path):
     doc.write_text("```\ncode\n```\nFirst sentence here.\nSecond one is\nwrapped here.\n")
     res = ste_check.DocSet(ste_check.Lexicons([ste_check.BUILTIN], []), set()).score_file(doc)
     assert [r["line"] for r in res["rows"]] == [4, 5]
+
+
+def test_indented_fences_and_non_ascii_words(tmp_path):
+    doc = tmp_path / "a.md"
+    doc.write_text("1. Run this:\n\n   ```bash\n   python3 -I tool.py build\n   ```\n\n"
+                   "Read about Diátaxis here.\n")
+    res = ste_check.DocSet(ste_check.Lexicons([ste_check.BUILTIN], []), set()).score_file(doc)
+    assert [r["sentence"] for r in res["rows"]] == ["Run this:", "Read about Diátaxis here."]
+    assert ste_check.WORD.findall("Diátaxis") == ["Diátaxis"]

@@ -78,7 +78,7 @@ PASSIVE = re.compile(
     r"\b(?:is|are|was|were|be|been|being|gets|get|got)\s+(?:\w+ly\s+)?"
     r"(?:\w+ed|" + PARTICIPLES_IRREGULAR + r")\b", re.I)
 ABBREV = re.compile(r"\b(e\.g|i\.e|etc|vs|cf|approx|Fig|No)\.", re.I)
-WORD = re.compile(r"[A-Za-z][A-Za-z0-9'’-]*[A-Za-z0-9]|[A-Za-z]")
+WORD = re.compile(r"[^\W\d_](?:[\w'’-]*[^\W_])?")  # starts with a letter; Diátaxis is one word
 IDENT = re.compile(r".*\d")  # ASD-STE100, v2: identifiers, never looked up
 
 # Inflection suffixes tried when a word is not itself a term: (suffix, restore, plural?).
@@ -102,7 +102,8 @@ def clean(text):
     """Strip what is not prose. Removed blocks keep their newlines, so line numbers hold."""
     text = re.sub(r"\A---\n.*?\n---\n", _blank, text, flags=re.S)        # front matter
     text = re.sub(r"<!--.*?-->", _blank, text, flags=re.S)               # comments
-    text = re.sub(r"^(```|~~~).*?^\1.*?$", _blank, text, flags=re.S | re.M)  # fences
+    text = re.sub(r"^[ \t]*(```|~~~).*?^[ \t]*\1.*?$", _blank, text,
+                  flags=re.S | re.M)                                     # fences, also indented
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)                     # images
     text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)                 # links -> text
     text = re.sub(r"`[^`\n]*`", CODE, text)                              # inline code
