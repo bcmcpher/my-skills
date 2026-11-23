@@ -117,7 +117,8 @@ It uses `pdftotext -layout` (poppler; already on this machine).
 - Do not store the example columns. The checker does not need them, and leaving them out keeps
   the derived file minimal.
 - Acceptance check: the introduction states 875 approved words and 1274 non-approved words. The
-  builder prints its counts, and it exits non-zero when they differ.
+  builder prints its counts, and it exits non-zero when they differ. (As built: the pages hold
+  879 and 1317, and the check pins those. See "As built" below.)
 
 A first probe (2026-11-19) found that the text extracts cleanly despite the PDF's copy flag. The
 column layout survives: `ensure (v)   MAKE SURE (v)`, `via (prep)   THROUGH (prep)`.
@@ -240,8 +241,8 @@ Extend `evaluations/2026-10-08-ste-docs/` rather than starting a new one:
 
 ### Success criteria
 
-- `lexicon.py build --from ste-pdf` reproduces 875 approved and 1274 non-approved words from
-  Issue 9.
+- `lexicon.py build --from ste-pdf` reproduces the Issue 9 counts: 879 approved and 1317
+  non-approved entries (the introduction's 875 and 1274 do not match the pages).
 - `lexicon.py build --from tsv` and the checker work on a synthetic open lexicon with no STE
   input. `jargon` stays off for it.
 - No dictionary text, lexicon file or extract is in the repo. `bin/graduate tech-docs` passes.
@@ -280,6 +281,20 @@ Each step ends in a commit on `plan/writing-agents`:
 4. The `doc-quadrants` skill and its reference.
 5. The agent, `plugin.json`, README, and `bin/graduate tech-docs`.
 6. The evaluation extensions and their results.
+
+### As built
+
+- **Step 1 (done).** The format follows the spec. One addition: a term can have one entry per part
+  of speech. Without a part-of-speech tagger, the checker treats a term as approved when any of
+  its entries is approved. TSV replacements can hold more than one alternative, comma-separated.
+- **Step 2 (done). The count check pins 879 approved and 1317 not approved, not 875 and 1274.**
+  The Issue 9 introduction states 875 and 1274, but the dictionary pages (`2-1-*`) hold 2196
+  entries, not 2149. Two independent counts agree. The 208 approved verbs match the PDF's own list
+  of approved verbs exactly. No counting rule reproduces the stated numbers: unique terms
+  (806/1255), single-word entries (860/1262) and others were tried. The changelog does not explain
+  the gap. The user chose to pin the measured counts on 2026-11-23, so the check still catches
+  parser drift. Eighteen non-approved entries have no alternatives, because the dictionary gives
+  a sentence construction there instead of a word.
 
 ## Phase 2: manuscript-writer (stub)
 

@@ -89,3 +89,65 @@ def test_tsv_rejects_an_unknown_pos(tmp_path):
 def test_validate_rejects_malformed_lexicons(lex, message):
     with pytest.raises(lexicon.LexiconError, match=message):
         lexicon.validate(lex)
+
+
+# ── STE adapter, on a synthetic layout with invented words ──────────────────
+
+def ste_fixture():
+    entries, problems = lexicon.ste_parse((FIXTURES / "ste-layout.txt").read_text())
+    return {e["term"]: e for e in entries}, problems
+
+
+def test_ste_parse_reads_only_dictionary_pages():
+    by_term, problems = ste_fixture()
+    assert "zorble" not in by_term
+    assert problems == []
+    assert len(by_term) == 15
+
+
+def test_ste_parse_uses_case_for_approval_and_reads_forms():
+    by_term, _ = ste_fixture()
+    assert by_term["flim"] == {"term": "flim", "approved": True, "pos": "v",
+                               "forms": ["flims", "flimmed", "flimmed"]}
+    assert by_term["hazzle"]["forms"] == ["hazzler", "hazzlest"]
+    assert by_term["kwanto"]["forms"] == ["kwantos", "kwantoed"]   # no commas
+    assert by_term["snaz"]["forms"] == ["snazzes", "snazzed", "snazzed"]
+    assert by_term["quix"]["forms"] == ["quixe"]                     # QUIX (or QUIXE)
+    assert by_term["zap"]["approved"] is False
+
+
+def test_ste_parse_joins_wrapped_headwords():
+    by_term, _ = ste_fixture()
+    assert by_term["grobnik"]["pos"] == "adj"        # (adj) on the next line
+    assert by_term["kwantoment"]["pos"] == "n"       # not taken as a form of KWANTO
+    assert by_term["megagrobular"]["pos"] == "adj"   # MEGA- / GROBULAR
+    assert by_term["longified"]["pos"] == "adv"      # one-space gap, (adv) after a page break
+    assert by_term["so that"]["pos"] == "conj"       # so (that)
+    assert "pos" not in by_term["for grobs"]         # no part of speech at all
+    assert by_term["for grobs"]["approved"] is True
+
+
+def test_ste_parse_reads_alternatives():
+    by_term, _ = ste_fixture()
+    assert by_term["flimsify"]["alternatives"] == [
+        {"term": "flim", "pos": "v"}, {"term": "grob", "kind": "TN", "pos": "n"}]
+    assert by_term["plonk"]["alternatives"] == [
+        {"term": "flim", "pos": "v"}, {"term": "hazzle", "pos": "adj"}]  # (adj) wrapped
+    assert by_term["nogrob"]["alternatives"] == [{"term": "not grobular"}]  # no pos
+    assert by_term["so that"]["alternatives"] == [{"term": "kwanto", "pos": "v"}]
+    assert "alternatives" not in by_term["flim"]
+
+
+def test_ste_build_fails_when_counts_differ(tmp_path, monkeypatch):
+    monkeypatch.setattr(lexicon, "ste_text",
+                        lambda pdf: (FIXTURES / "ste-layout.txt").read_text())
+    pdf = tmp_path / "fake.pdf"
+    pdf.write_bytes(b"%PDF")
+    out = tmp_path / "ste.json"
+    rc = lexicon.main(["build", "--from", "ste-pdf", str(pdf), "-o", str(out)])
+    assert rc == 2
+    assert not out.exists()
+    monkeypatch.setattr(lexicon, "STE_EXPECTED", {"approved": 10, "not_approved": 5})
+    assert lexicon.main(["build", "--from", "ste-pdf", str(pdf), "-o", str(out)]) == 0
+    lex = json.loads(out.read_text())
+    assert lex["closed"] is True and lex["name"] == "ste100-issue9"
