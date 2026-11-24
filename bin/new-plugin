@@ -198,9 +198,10 @@ if [[ "$TYPE" == "skill" ]]; then
   echo "     → write trigger description, steps, and constraints"
 fi
 if [[ "$TYPE" == "agent" ]]; then
-  echo "  3. Edit $DEST/agents/$NAME.md"
+  echo "  2. Edit $DEST/agents/$NAME.md"
   echo "     → write agent purpose, steps, and constraints"
 fi
 echo ""
 echo "  Test:    claude --plugin-dir $DEST"
-echo "  Install: claude plugin install $DEST"
+echo "  Install: add $NAME to .claude-plugin/marketplace.json, then"
+echo "           claude plugin install $NAME@local   (after claude plugin marketplace add . once)"

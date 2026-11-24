@@ -97,8 +97,11 @@ check_skill_or_agent() {
   # an agent entry that names a directory.
   local skill_md
   if [[ "$kind" == "agent" ]]; then
-    if [[ "$path" != *.md ]]; then
+    if [[ -d "$path" ]]; then
       add_error "$display: an agent entry must be a .md file, not a directory"
+      return
+    elif [[ "$path" != *.md ]]; then
+      add_error "$display: an agent entry must name a .md file"
       return
     fi
     skill_md="$path"
@@ -222,11 +225,14 @@ for plugin_dir in "${targets[@]}"; do
   if [[ $have_claude -eq 1 ]]; then
     if ! cc_out=$(claude plugin validate "$plugin_dir" 2>&1); then
       add_error "claude plugin validate failed:"
+      # Keep the error block only. The plugin-directory catalog section that follows it
+      # (icon, README length, privacy URL) does not affect the result, so stop there.
+      cc_errors=$(awk '/^Plugin directory checks/{exit} /^✘ Found/{p=1; next} p && /❯/' <<<"$cc_out" | head -10)
+      # No error block (a crash, an older CLI, a changed format): show the raw output instead.
+      [[ -z "$cc_errors" ]] && cc_errors=$(head -10 <<<"$cc_out")
       while IFS= read -r line; do
         errors+=("      $line")
-      # Keep the error block only; the plugin-directory catalog warnings that follow it
-      # (icon, privacy URL) do not affect the result.
-      done < <(awk '/^✘ Found/{p=1; next} /^Plugin directory checks/{p=0} p && /❯/' <<<"$cc_out" | head -10)
+      done <<<"$cc_errors"
     fi
   fi
 
