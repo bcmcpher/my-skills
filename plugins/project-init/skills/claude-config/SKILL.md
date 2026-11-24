@@ -11,7 +11,7 @@ description: >
   "set up memory", "add status line", or "/claude-config". Safe to run on new or existing
   projects; safe to re-run to add options later. Detects project type from CLAUDE.md or asks.
   Does not set up programming environments — use /env-check for that.
-argument-hint: [coding-tool|data-analysis|info-management]
+argument-hint: '[coding-tool|data-analysis|info-management]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit

@@ -82,7 +82,7 @@ plugins/<name>/
 ```yaml
 name: skill-name          # becomes /skill-name slash command
 description: ...          # Claude reads this to decide auto-invocation — be specific
-argument-hint: [optional] # shown in autocomplete UI
+argument-hint: '[optional]' # shown in autocomplete UI
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob

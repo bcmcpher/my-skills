@@ -8,7 +8,7 @@ description: >
   "recreate the virtualenv", "update packages", or "/env-check". Detects language from
   project files automatically. Does not scaffold project structure or configure Claude
   Code tooling — use /new-project or /claude-config for those.
-argument-hint: [language] [--recreate]
+argument-hint: '[language] [--recreate]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit

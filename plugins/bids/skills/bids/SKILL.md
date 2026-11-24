@@ -6,7 +6,7 @@ description: >
   structure, mentions entities like sub/ses/task/run, asks about JSON sidecars
   for MRI/fMRI/DWI/EEG/MEG/PET, or references a bids/ dataset directory.
   Use when validating filenames, suggesting sidecar fields, or organizing data.
-argument-hint: [datatype, path, or question]
+argument-hint: '[datatype, path, or question]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash

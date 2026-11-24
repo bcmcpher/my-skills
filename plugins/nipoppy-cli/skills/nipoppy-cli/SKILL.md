@@ -8,7 +8,7 @@ description: >
   phenotypes (extract/IDPs), or managing the pipeline catalog (pipeline install/search/
   upload/validate). Also invoke for /nipoppy-cli or when a manifest.tsv or nipoppy
   config.json is present.
-argument-hint: [command | question | dataset-path]
+argument-hint: '[command | question | dataset-path]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob, Grep

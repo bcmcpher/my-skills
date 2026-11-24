@@ -1,7 +1,7 @@
 ---
 name: git-workflow
 description: Auto-invoke when the user asks about committing changes, writing a commit message, creating or reviewing a pull request, branching, rebasing, resolving merge conflicts, or coordinating parallel agents with worktrees. Provides decision context and references for git operations in Claude Code sessions.
-argument-hint: [describe task or ask about specific git operation]
+argument-hint: '[describe task or ask about specific git operation]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash

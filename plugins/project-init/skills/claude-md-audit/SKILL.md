@@ -7,7 +7,7 @@ description: >
   project memory", or "/claude-md-audit". Scans for all CLAUDE.md files, scores quality
   against standard criteria, outputs a report, then makes targeted improvements after
   confirmation. Safe to run on any project at any time.
-argument-hint: [path] — audit a specific directory instead of the current one
+argument-hint: '[path] — audit a specific directory instead of the current one'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit
