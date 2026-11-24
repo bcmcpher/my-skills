@@ -61,11 +61,11 @@ Write the body as imperative steps + constraints. Reference `$ARGUMENTS` if the 
 - Good: `"Delegate when the user asks for a detailed security audit of a file or function"`
 - Bad: `"A security-focused assistant"`
 
-The body of the agent's `SKILL.md` is its system prompt. Start with a purpose statement, list explicit steps, end with `Always:` / `Never:` constraints.
+The body of the agent's `.md` file is its system prompt. Start with a purpose statement, list explicit steps, end with `Always:` / `Never:` constraints.
 
 ### 4. Bundle resources (optional)
 
-Each skill/agent directory has three optional subdirectories:
+Each skill directory has three optional subdirectories. An agent is one file, so its resources go at the plugin root:
 
 ```
 skills/your-skill/

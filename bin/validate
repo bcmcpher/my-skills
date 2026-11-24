@@ -149,6 +149,9 @@ check_skill_or_agent() {
 
 all_skill_names=()   # accumulates "skill-name::plugin-name" for collision check
 
+have_claude=0
+command -v claude >/dev/null 2>&1 && have_claude=1
+
 for plugin_dir in "${targets[@]}"; do
   plugin_name="$(basename "$plugin_dir")"
   errors=()
@@ -212,6 +215,19 @@ for plugin_dir in "${targets[@]}"; do
       abs_path="$plugin_dir/$rel_path"
       check_skill_or_agent "$abs_path" "agent $rel_path" "agent"
     done < <(jq -r '.agents[]' "$manifest" 2>/dev/null)
+  fi
+
+  # 7. Claude Code's own validator, when the CLI is installed (CI has none). It parses the
+  #    frontmatter as YAML and checks hooks.json, which the checks above do not.
+  if [[ $have_claude -eq 1 ]]; then
+    if ! cc_out=$(claude plugin validate "$plugin_dir" 2>&1); then
+      add_error "claude plugin validate failed:"
+      while IFS= read -r line; do
+        errors+=("      $line")
+      # Keep the error block only; the plugin-directory catalog warnings that follow it
+      # (icon, privacy URL) do not affect the result.
+      done < <(awk '/^✘ Found/{p=1; next} /^Plugin directory checks/{p=0} p && /❯/' <<<"$cc_out" | head -10)
+    fi
   fi
 
   # Result
