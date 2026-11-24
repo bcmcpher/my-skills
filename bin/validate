@@ -89,18 +89,31 @@ check_frontmatter_field() {
 }
 
 check_skill_or_agent() {
-  local dir_path="$1"    # absolute path to the skill/agent dir
+  local path="$1"        # absolute path: a skill directory, or an agent .md file
   local display="$2"     # label for error messages
   local kind="$3"        # "skill" or "agent"
 
-  if [[ ! -d "$dir_path" ]]; then
-    add_error "$display: directory not found: $dir_path"
-    return
+  # Claude Code loads a skill from <dir>/SKILL.md, and an agent from one .md file. It rejects
+  # an agent entry that names a directory.
+  local skill_md
+  if [[ "$kind" == "agent" ]]; then
+    if [[ -d "$path" ]]; then
+      add_error "$display: an agent entry must be a .md file, not a directory"
+      return
+    elif [[ "$path" != *.md ]]; then
+      add_error "$display: an agent entry must name a .md file"
+      return
+    fi
+    skill_md="$path"
+  else
+    if [[ ! -d "$path" ]]; then
+      add_error "$display: directory not found: $path"
+      return
+    fi
+    skill_md="$path/SKILL.md"
   fi
-
-  local skill_md="$dir_path/SKILL.md"
   if [[ ! -f "$skill_md" ]]; then
-    add_error "$display: SKILL.md not found"
+    add_error "$display: $(basename "$skill_md") not found"
     return
   fi
 
@@ -108,7 +121,7 @@ check_skill_or_agent() {
   local dash_count
   dash_count=$(grep -c '^---$' "$skill_md" 2>/dev/null || true)
   if [[ "$dash_count" -lt 2 ]]; then
-    add_error "$display: SKILL.md missing frontmatter delimiters (---)"
+    add_error "$display: $(basename "$skill_md") missing frontmatter delimiters (---)"
     return
   fi
 
@@ -138,6 +151,9 @@ check_skill_or_agent() {
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 all_skill_names=()   # accumulates "skill-name::plugin-name" for collision check
+
+have_claude=0
+command -v claude >/dev/null 2>&1 && have_claude=1
 
 for plugin_dir in "${targets[@]}"; do
   plugin_name="$(basename "$plugin_dir")"
@@ -196,12 +212,28 @@ for plugin_dir in "${targets[@]}"; do
     done < <(jq -r '.skills[]' "$manifest" 2>/dev/null)
   fi
 
-  # 6. Check each agent dir
+  # 6. Check each agent file
   if [[ "$agents_count" -gt 0 ]]; then
     while IFS= read -r rel_path; do
       abs_path="$plugin_dir/$rel_path"
       check_skill_or_agent "$abs_path" "agent $rel_path" "agent"
     done < <(jq -r '.agents[]' "$manifest" 2>/dev/null)
+  fi
+
+  # 7. Claude Code's own validator, when the CLI is installed (CI has none). It parses the
+  #    frontmatter as YAML and checks hooks.json, which the checks above do not.
+  if [[ $have_claude -eq 1 ]]; then
+    if ! cc_out=$(claude plugin validate "$plugin_dir" 2>&1); then
+      add_error "claude plugin validate failed:"
+      # Keep the error block only. The plugin-directory catalog section that follows it
+      # (icon, README length, privacy URL) does not affect the result, so stop there.
+      cc_errors=$(awk '/^Plugin directory checks/{exit} /^✘ Found/{p=1; next} p && /❯/' <<<"$cc_out" | head -10)
+      # No error block (a crash, an older CLI, a changed format): show the raw output instead.
+      [[ -z "$cc_errors" ]] && cc_errors=$(head -10 <<<"$cc_out")
+      while IFS= read -r line; do
+        errors+=("      $line")
+      done <<<"$cc_errors"
+    fi
   fi
 
   # Result

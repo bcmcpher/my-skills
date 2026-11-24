@@ -24,10 +24,9 @@ delegate automatically. Example triggers depend on the agent's description.
 PLUGIN_NAME/
 ├── .claude-plugin/
 │   └── plugin.json         # Manifest
-└── agents/
-    └── AGENT_NAME/
-        ├── SKILL.md        # Agent system prompt
-        ├── scripts/        # Helper scripts (optional)
-        ├── references/     # Reference docs (optional)
-        └── assets/         # Static files (optional)
+├── agents/
+│   └── AGENT_NAME.md       # Agent system prompt (one file per agent)
+├── scripts/                # Helper scripts (optional)
+├── references/             # Reference docs (optional)
+└── assets/                 # Static files (optional)
 ```

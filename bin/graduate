@@ -74,7 +74,8 @@ done < <(find "$PLUGIN_DIR" \( \
     -name "hooks.json" -o \
     -name ".mcp.json" -o \
     -name "README.md" -o \
-    -name "SETUP.md" \
+    -name "SETUP.md" -o \
+    -path "*/agents/*.md" \
   \) -type f)
 
 # ── 4. No empty scaffold subdirectories ──────────────────────────────────────
@@ -90,7 +91,7 @@ while IFS= read -r dir; do
       fi
       ;;
   esac
-done < <(find "$PLUGIN_DIR" -mindepth 2 -type d)
+done < <(find "$PLUGIN_DIR" -mindepth 1 -type d)  # depth 1: an agent plugin keeps them at the root
 
 # ── 5. plugin.json has author field ──────────────────────────────────────────
 

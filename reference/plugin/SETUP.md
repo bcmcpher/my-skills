@@ -15,10 +15,7 @@ Every file and directory in this reference — what it is, whether it's required
 | `skills/<name>/scripts/` | Optional | skill has deterministic helper logic to bundle |
 | `skills/<name>/references/` | Optional | skill has large docs to load on demand |
 | `skills/<name>/assets/` | Optional | skill embeds static files in output |
-| `agents/<name>/SKILL.md` | Conditional | plugin includes a delegatable subagent |
-| `agents/<name>/scripts/` | Optional | same as skill scripts |
-| `agents/<name>/references/` | Optional | same as skill references |
-| `agents/<name>/assets/` | Optional | same as skill assets |
+| `agents/<name>.md` | Conditional | plugin includes a delegatable subagent. One file per agent; `plugin.json` must list the `.md` file, because Claude Code rejects a directory. An agent's scripts or references go at the plugin root or in a skill |
 | `hooks/hooks.json` | Conditional | plugin needs PreToolUse / PostToolUse / Notification / Stop hooks |
 | `.mcp.json` | Conditional | plugin exposes MCP servers |
 | `servers/` | Conditional | `.mcp.json` uses a local `stdio` server bundled in the plugin |
@@ -28,9 +25,9 @@ Every file and directory in this reference — what it is, whether it's required
 
 Copy this directory to `plugins/my-plugin-name`, then:
 
-1. Rename `skills/SKILL_NAME/` and `agents/AGENT_NAME/` directories
+1. Rename the `skills/SKILL_NAME/` directory and the `agents/AGENT_NAME.md` file
 2. Edit `.claude-plugin/plugin.json` — update all placeholder values
-3. Edit the `SKILL.md` files — fill in frontmatter and bodies
+3. Edit the `SKILL.md` and agent `.md` files — fill in frontmatter and bodies
 4. Replace this file (`SETUP.md`) with your plugin's `README.md`
 5. Delete unused resource subdirectories (`scripts/`, `references/`, `assets/`)
 6. Add hooks or MCP config only if you need them (see sections below)
@@ -44,7 +41,7 @@ Copy this directory to `plugins/my-plugin-name`, then:
 
 ```bash
 mv plugins/my-plugin-name/skills/SKILL_NAME  plugins/my-plugin-name/skills/your-skill
-mv plugins/my-plugin-name/agents/AGENT_NAME  plugins/my-plugin-name/agents/your-agent
+mv plugins/my-plugin-name/agents/AGENT_NAME.md  plugins/my-plugin-name/agents/your-agent.md
 ```
 
 Update the `skills` and `agents` arrays in `plugin.json` to match the new paths.
@@ -64,11 +61,11 @@ Write the body as imperative steps + constraints. Reference `$ARGUMENTS` if the 
 - Good: `"Delegate when the user asks for a detailed security audit of a file or function"`
 - Bad: `"A security-focused assistant"`
 
-The body of the agent's `SKILL.md` is its system prompt. Start with a purpose statement, list explicit steps, end with `Always:` / `Never:` constraints.
+The body of the agent's `.md` file is its system prompt. Start with a purpose statement, list explicit steps, end with `Always:` / `Never:` constraints.
 
 ### 4. Bundle resources (optional)
 
-Each skill/agent directory has three optional subdirectories:
+Each skill directory has three optional subdirectories. An agent is one file, so its resources go at the plugin root:
 
 ```
 skills/your-skill/
@@ -173,7 +170,7 @@ claude plugin install my-plugin-name@local   # then restart Claude Code
   "license": "MIT",
   "keywords": [],               // used for discovery
   "skills": ["./skills/..."],   // array of skill directories
-  "agents": ["./agents/..."],   // array of agent directories
+  "agents": ["./agents/<name>.md"], // agent .md files; a directory is rejected
 
   // Add only when needed:
   "hooks": "./hooks/hooks.json",

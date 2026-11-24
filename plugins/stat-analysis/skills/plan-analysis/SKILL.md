@@ -1,7 +1,7 @@
 ---
 name: plan-analysis
 description: User describes a research question — what they're trying to predict or explain, what variables are involved, and what the study design looks like — and wants a recommended statistical model with a hierarchical test sequence from null to fully specified. Use this skill whenever the user asks which statistical test or model to use, wants to plan an analysis, needs help choosing between ANOVA/regression/mixed effects/CCA/factor analysis, or describes outcome and predictor variables and wants a structured modelling approach.
-argument-hint: [outcome variable(s) and predictor description]
+argument-hint: '[outcome variable(s) and predictor description]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob

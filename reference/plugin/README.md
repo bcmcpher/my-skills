@@ -35,11 +35,7 @@ PLUGIN_NAME/
 │       ├── references/         # Reference docs (optional)
 │       └── assets/             # Static files (optional)
 ├── agents/
-│   └── AGENT_NAME/
-│       ├── SKILL.md            # Agent system prompt
-│       ├── scripts/            # Helper scripts (optional)
-│       ├── references/         # Reference docs (optional)
-│       └── assets/             # Static files (optional)
+│   └── AGENT_NAME.md           # Agent system prompt: one .md file per agent, not a directory
 ├── .lsp.json                   # LSP server config (optional)
 ├── hooks/hooks.json            # Event hooks (optional)
 └── .mcp.json                   # MCP server config (optional)

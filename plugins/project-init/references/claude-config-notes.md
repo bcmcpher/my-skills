@@ -34,7 +34,7 @@ already has these configured — copying is faster than generating from scratch.
 |------|--------------|
 | `.claude/settings.json` `"hooks"` block + `.claude/hooks/*.sh` | Copy both; adjust tool matchers and file-path patterns; verify tool names are still valid for this project's stack and still resolve without a login shell |
 | `.mcp.json` | Copy the entire file or individual server blocks; check that required env vars (`$GITHUB_TOKEN`, etc.) are still set on this machine |
-| `agents/<name>/SKILL.md` | Agent prompts are mostly project-agnostic; copy and customize the `description` and any project-specific constraints in the body |
+| `agents/<name>.md` | Agent prompts are mostly project-agnostic; copy and customize the `description` and any project-specific constraints in the body |
 | `skills/<name>/SKILL.md` | Project slash commands; copy if the workflow transfers (e.g., a `/run-tests` skill works across projects of the same language) |
 | `.lsp.json` | Copy if the target project uses the same language; the config is usually identical across projects of the same stack |
 

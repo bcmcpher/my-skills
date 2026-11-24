@@ -77,7 +77,7 @@ stat-analysis/
 │           ├── jupytext-config.md
 │           └── report-sections.md
 └── agents/
-    └── merge-agent/SKILL.md            # Subagent: inspects files and writes merge code
+    └── merge-agent.md                  # Subagent: inspects files and writes merge code
 ```
 
 ## Extending plan-analysis with a new statistical method

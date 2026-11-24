@@ -6,7 +6,7 @@ description: >
   Use when the user says "update my plugins", "update claude plugins", "upgrade
   packages", "check for outdated packages", "update dependencies", "bump versions",
   or "/update-env". Does not set up or restore environments — use /env-check for that.
-argument-hint: [plugins|deps|all] [--scope user|project|local]
+argument-hint: '[plugins|deps|all] [--scope user|project|local]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
