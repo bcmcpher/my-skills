@@ -244,3 +244,61 @@ def test_glossary_headings_count_only_in_a_heading_style_glossary():
     assert ste_check.glossary_terms("## Overview\n\n- **lexicon** — x.\n") == ["lexicon"]
     assert ste_check.glossary_terms("## lexicon\n\nA list.\n\n## leak\n\nA word.\n") == \
         ["lexicon", "leak"]
+
+
+# ── Regressions from the second code review ──────────────────────────────────
+
+def test_an_s_suffix_inflects_only_a_noun_or_verb_and_es_needs_a_sibilant():
+    lex = _lex({"term": "new", "approved": True, "pos": "adj", "forms": ["newer", "newest"]},
+               {"term": "us", "approved": True, "pos": "pron"},
+               {"term": "use", "approved": True, "pos": "v", "forms": ["uses"]},
+               {"term": "note", "approved": True, "pos": "n"},
+               {"term": "box", "approved": True, "pos": "n"})
+    look = lambda w: ste_check.Lexicons.lookup(w, lex.full)[:2]  # noqa: E731
+    assert look("news") == ("unknown", "news")   # not new + s, so no false form flag
+    assert look("notes") == ("ok", "note")       # not not + es
+    assert look("boxes") == ("ok", "box")
+
+
+def test_uses_counts_as_use_for_the_term_and_alternative_report(tmp_path):
+    lex = _lex({"term": "us", "approved": True, "pos": "pron"},
+               {"term": "use", "approved": True, "pos": "v"})
+    ds, _ = _score(tmp_path, "Utilize the tool. The tool uses it.\n", lex)
+    assert {(b["term"], b["alternative"]) for b in ds.both} == {("utilize", "use")}
+
+
+def test_a_long_fence_holds_a_short_one(tmp_path):
+    doc = "````markdown\n```bash\nfrobnicate now\n```\n````\nRead this.\n"
+    _, res = _score(tmp_path, doc, _lex())
+    assert [(r["sentence"], r["line"]) for r in res["rows"]] == [("Read this.", 6)]
+
+
+def test_ignore_jargon_also_empties_the_leak_list(tmp_path):
+    doc = tmp_path / "a.md"
+    doc.write_text("Use the frobnicator.\n")
+    r = run("--root", str(tmp_path), "--lexicon", str(CLOSED), "--ignore", "jargon",
+            "--json", str(doc))
+    assert json.loads(r.stdout)["jargon"] == []
+
+
+def test_a_two_word_variant_needs_a_declared_spelling(tmp_path):
+    ds, _ = _score(tmp_path, "Run the setup. Then set up the tool.\n", _lex(closed=False))
+    assert ds.variants() == []
+    lex = ste_check.Lexicons([ste_check.BUILTIN], [("setup", "TN", "t")])
+    ds, _ = _score(tmp_path, "Run the setup. Then set up the tool.\n", lex)
+    assert ds.variants() == [{"spellings": {"setup": 1, "set up": 1}, "declared": "setup"}]
+
+
+def test_inline_code_that_wraps_is_still_code(tmp_path):
+    doc = "Run `foo_bar\nbaz_qux` here.\nNext line.\n"
+    ds, res = _score(tmp_path, doc, _lex())
+    assert not {x["word"] for x in ds.leak_list()} & {"foo_bar", "baz_qux"}
+    assert [r["line"] for r in res["rows"]] == [1, 3]
+
+
+def test_a_bare_lexicon_name_ignores_a_local_file(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "ste100-issue9").mkdir()
+    assert ste_check.resolve_lexicon("ste100-issue9") == \
+        ste_check.lexmod.default_dir() / "ste100-issue9.json"
+    assert ste_check.resolve_lexicon("./x.json") == Path("./x.json")

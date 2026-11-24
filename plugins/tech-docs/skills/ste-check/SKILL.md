@@ -75,6 +75,9 @@ that the checker scores. A list built from the output makes the leak count circu
   is approved, and it treats a word after a determiner or inline code as a noun. Expect some
   false `word` hits.
 - An inflection matches only an entry of a part of speech that takes it: `-ed` and `-ing` a
-  verb, `-er` and `-est` an adjective or adverb, `-s` any entry. So `named` is a leak when the
-  lexicon lists `name` only as a noun.
+  verb, `-er` and `-est` an adjective or adverb, `-s` a noun, pronoun or verb. So `named` is a
+  leak when the lexicon lists `name` only as a noun.
+- A two-word spelling (`set up`) is a variant of a one-word spelling (`setup`) only when one of
+  them is a declared term. Both are often correct English.
+- `--ignore jargon` removes the leak list as well as the inline flag.
 - Do not edit the user's `.tech-terms` or glossary to silence findings. Propose the change.

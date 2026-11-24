@@ -90,11 +90,14 @@ def skipped(token):
 
 # Inflection suffixes tried when a word is not itself a term: (suffix, restore, parts of
 # speech the suffix inflects). None in the set is an entry with no part of speech. The -s
-# suffixes take every part of speech: a plural noun or a third-person verb.
-ANY = None
+# suffixes inflect a noun or pronoun (plural) or a verb (third person), so news is not
+# new + s. -s goes before -es, so uses is use + s, not us + es; -es needs a sibilant before
+# it (boxes).
+PLURAL = {"n", "v", "pron", None}  # ones, others, yours
 VERB = {"v", None}
 COMPARE = {"adj", "adv", None}
-SUFFIXES = [("ies", "y", ANY), ("es", "", ANY), ("s", "", ANY), ("ied", "y", VERB),
+SIBILANT = re.compile(r"(?:s|x|z|ch|sh)$")
+SUFFIXES = [("ies", "y", PLURAL), ("s", "", PLURAL), ("es", "", PLURAL), ("ied", "y", VERB),
             ("ed", "", VERB), ("ed", "e", VERB), ("d", "", VERB), ("ing", "", VERB),
             ("ing", "e", VERB), ("er", "", COMPARE), ("er", "e", COMPARE),
             ("est", "", COMPARE), ("est", "e", COMPARE)]
@@ -115,20 +118,23 @@ def clean(text):
     """Strip what is not prose. Removed blocks keep their newlines, so line numbers hold."""
     text = re.sub(r"\A---\n.*?\n---\n", _blank, text, flags=re.S)        # front matter
     text = re.sub(r"<!--.*?-->", _blank, text, flags=re.S)               # comments
-    text = re.sub(r"^[ \t]*(```|~~~).*?^[ \t]*\1.*?$", _blank, text,
-                  flags=re.S | re.M)                                     # fences, also indented
+    # Fences, also indented. A fence closes on a bare run of its own character at least as
+    # long, so a ```` block can hold a ``` block.
+    text = re.sub(r"^[ \t]*((`|~)\2{2,}).*?^[ \t]*\1\2*[ \t]*$", _blank, text,
+                  flags=re.S | re.M)
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)                     # images
     text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)                 # links -> text
-    text = re.sub(r"`[^`\n]*`", _code, text)                             # inline code
+    text = re.sub(r"`[^`\n]*(?:\n[^`\n]*)?`", _code, text)               # inline code, may wrap
     return text
 
 
 def _code(m):
-    """CODE, spaced off from an adjacent word character so `x`s cannot become CODEs."""
+    """CODE, spaced off from an adjacent word character so `x`s cannot become CODEs.
+    A span that wraps keeps its newline, so line numbers hold."""
     s, e, t = m.start(), m.end(), m.string
     left = " " if s and re.match(r"[\w'’-]", t[s - 1]) else ""
     right = " " if e < len(t) and re.match(r"[\w'’-]", t[e]) else ""
-    return left + CODE + right
+    return left + CODE + "\n" * m.group(0).count("\n") + right
 
 
 def blocks(text):
@@ -267,19 +273,21 @@ class Lexicons:
             if not word.endswith(suffix):
                 continue
             base = word[:-len(suffix)] + restore
+            if suffix == "es" and not SIBILANT.search(base):
+                continue
             candidates = [base]
             if not restore and len(base) > MIN_BASE and base[-1] == base[-2]:
                 candidates.append(base[:-1])  # stopped -> stop
             for b in candidates:
                 if len(b) < MIN_BASE or b not in terms:
                     continue
-                entries = [e for e in terms[b] if pos is ANY or e.get("pos") in pos]
+                entries = [e for e in terms[b] if e.get("pos") in pos]
                 if not entries:
                     continue  # inner: in is a preposition, so -er cannot inflect it
                 approved = [e for e in entries if e["approved"]]
                 if not approved:
                     return ("ok" if cls.permitted(b, entries) else "word"), b, entries
-                if pos is ANY and any(e.get("pos") in (None, "n") for e in approved):
+                if pos is PLURAL and any(e.get("pos") in (None, "n") for e in approved):
                     return "ok", b, entries
                 if any(e.get("forms") for e in approved):
                     return "form", b, approved
@@ -288,9 +296,9 @@ class Lexicons:
 
 
 def resolve_lexicon(arg):
-    p = Path(arg).expanduser()
-    if p.suffix == ".json" or p.exists():
-        return p
+    """A path if it looks like one (.json, a separator, ~); else a name in the lexicon dir."""
+    if arg.endswith(".json") or "/" in arg or arg.startswith("~"):
+        return Path(arg).expanduser()
     return lexmod.default_dir() / f"{arg}.json"
 
 
@@ -446,7 +454,8 @@ class DocSet:
             elif status == "form":
                 listed = ",".join(f for e in entries for f in e.get("forms", []))
                 bad_forms.append(f"{surface}({base}: {listed})")
-            elif status == "unknown" and self.lex.closed and len(term) > 1:
+            elif status == "unknown" and self.lex.closed and len(term) > 1 \
+                    and "jargon" not in self.ignore:
                 leaks.append(surface)
                 key = re.sub(r"['’]s$", "", term)  # asd's leaks as asd
                 rec = self.leaks.setdefault(key, [0, where])
@@ -534,7 +543,7 @@ class DocSet:
             singles = {s: c for s, c in spellings.items() if " " not in s}
             bigrams = {s: c for s, c in spellings.items() if " " in s}
             forms = dict(singles)
-            if bigrams and singles:
+            if bigrams and singles and key in canon:  # setup / set up are both correct
                 forms.update(bigrams)
             if len(forms) < 2:
                 continue

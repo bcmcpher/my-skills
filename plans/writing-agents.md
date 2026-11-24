@@ -337,6 +337,21 @@ Each step ends in a commit on `plan/writing-agents`:
   - Glossary headings count as terms only in a glossary with no bold or table terms.
   - Leaks are keyed without a possessive (`repo's` joins `repo`).
   With no lexicon, the fixes change no score on the 14 calibration READMEs.
+- **Second review fixes (done).** A second `/code-review` found two bugs in the suffix fix and
+  six smaller issues. Each fix has a regression test that fails on the old code:
+  - `-s` inflects only a noun, pronoun or verb (`news` is not `new` + `s`). `-s` is tried before
+    `-es`, and `-es` needs a sibilant (`uses` is `use`, not `us`). `yours` is now a leak: STE
+    lists only `your`.
+  - A fence closes only on a bare run of its own character at least as long, so a 4-backtick
+    block can hold a 3-backtick one.
+  - Inline code can wrap across one line break.
+  - `--ignore jargon` also empties the leak list.
+  - A two-word variant (`set up` / `setup`) needs a declared spelling.
+  - `--lexicon <name>` never reads a local file of that name; a path needs `.json`, `/` or `~`.
+  - Not fixed: `etc.` or `No.` at the end of a sentence still merges it with the next one.
+    Fixing it changes sentence counts and breaks the match with the old calibration.
+  With no lexicon, only `config/README.md` changes: 262 → 263 sentences, 61.5% → 61.6%. The
+  wrapped code spans in it were scored as text before.
 
 ## Phase 2: manuscript-writer (stub)
 
