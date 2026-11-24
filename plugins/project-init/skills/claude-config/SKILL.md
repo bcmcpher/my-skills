@@ -237,13 +237,14 @@ material — each independently updateable.
 
 Present each recommended agent with a one-line description. For each the user selects:
 
-1. Check whether `.claude/agents/<agent-name>/SKILL.md` already exists.
-   - **Does not exist**: create `.claude/agents/<agent-name>/` and proceed.
-   - **Exists**: show the current `SKILL.md` content and ask:
+1. Check whether `.claude/agents/<agent-name>.md` already exists. An agent is one `.md`
+   file; Claude Code does not load an agent from a subdirectory.
+   - **Does not exist**: create `.claude/agents/` if needed and proceed.
+   - **Exists**: show the current file content and ask:
      > "An agent named `<agent-name>` already exists. Update to the new template
      > (merging your existing values), or leave as-is?"
      Wait for the user's choice. If "leave as-is", skip this agent.
-2. Write a `SKILL.md` using the agent scaffold from the reference (frontmatter +
+2. Write `.claude/agents/<agent-name>.md` using the agent scaffold from the reference (frontmatter +
    template body with `<placeholder>` fields).
 3. Tell the user which fields to customize.
 
