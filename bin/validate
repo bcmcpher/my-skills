@@ -89,18 +89,28 @@ check_frontmatter_field() {
 }
 
 check_skill_or_agent() {
-  local dir_path="$1"    # absolute path to the skill/agent dir
+  local path="$1"        # absolute path: a skill directory, or an agent .md file
   local display="$2"     # label for error messages
   local kind="$3"        # "skill" or "agent"
 
-  if [[ ! -d "$dir_path" ]]; then
-    add_error "$display: directory not found: $dir_path"
-    return
+  # Claude Code loads a skill from <dir>/SKILL.md, and an agent from one .md file. It rejects
+  # an agent entry that names a directory.
+  local skill_md
+  if [[ "$kind" == "agent" ]]; then
+    if [[ "$path" != *.md ]]; then
+      add_error "$display: an agent entry must be a .md file, not a directory"
+      return
+    fi
+    skill_md="$path"
+  else
+    if [[ ! -d "$path" ]]; then
+      add_error "$display: directory not found: $path"
+      return
+    fi
+    skill_md="$path/SKILL.md"
   fi
-
-  local skill_md="$dir_path/SKILL.md"
   if [[ ! -f "$skill_md" ]]; then
-    add_error "$display: SKILL.md not found"
+    add_error "$display: $(basename "$skill_md") not found"
     return
   fi
 
@@ -108,7 +118,7 @@ check_skill_or_agent() {
   local dash_count
   dash_count=$(grep -c '^---$' "$skill_md" 2>/dev/null || true)
   if [[ "$dash_count" -lt 2 ]]; then
-    add_error "$display: SKILL.md missing frontmatter delimiters (---)"
+    add_error "$display: $(basename "$skill_md") missing frontmatter delimiters (---)"
     return
   fi
 
@@ -196,7 +206,7 @@ for plugin_dir in "${targets[@]}"; do
     done < <(jq -r '.skills[]' "$manifest" 2>/dev/null)
   fi
 
-  # 6. Check each agent dir
+  # 6. Check each agent file
   if [[ "$agents_count" -gt 0 ]]; then
     while IFS= read -r rel_path; do
       abs_path="$plugin_dir/$rel_path"

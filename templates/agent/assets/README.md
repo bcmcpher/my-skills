@@ -10,7 +10,7 @@ Examples:
 Reference from the agent's `SKILL.md`:
 
 ```markdown
-Use the template at `${CLAUDE_PLUGIN_ROOT}/agents/AGENT_NAME/assets/template.md`.
+Use the template at `${CLAUDE_PLUGIN_ROOT}/assets/template.md`.
 ```
 
 Delete this directory if the agent uses no static files.

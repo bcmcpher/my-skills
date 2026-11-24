@@ -69,14 +69,14 @@ plugins/<name>/
 │   ├── scripts/                 # Helper scripts invoked from SKILL.md via $CLAUDE_PLUGIN_ROOT
 │   ├── references/              # Large docs loaded on demand (keep SKILL.md concise)
 │   └── assets/                  # Static files embedded in output
-├── agents/<agent-name>/
-│   └── SKILL.md                 # Agent system prompt with frontmatter
+├── agents/
+│   └── <agent-name>.md          # Agent system prompt with frontmatter: one file, not a directory
 ├── hooks/hooks.json             # PreToolUse / PostToolUse / Stop hook definitions
 ├── .mcp.json                    # MCP server config (uses $CLAUDE_PLUGIN_ROOT for paths)
 └── .lsp.json                    # LSP server config (optional; binary installed separately)
 ```
 
-### SKILL.md frontmatter — skills vs agents
+### Frontmatter — skills vs agents
 
 **Skills** (`skills/<name>/SKILL.md`):
 ```yaml
@@ -88,7 +88,7 @@ disable-model-invocation: false
 allowed-tools: Read, Grep, Glob
 ```
 
-**Agents** (`agents/<name>/SKILL.md`):
+**Agents** (`agents/<name>.md`):
 ```yaml
 name: agent-name
 description: ...          # delegation trigger for the main Claude instance
@@ -120,7 +120,10 @@ See `reference/plugin/.lsp.json` for an annotated example covering Python, TypeS
 
 ### plugin.json fields
 
-`skills` and `agents` are arrays of relative paths to the skill/agent directories. Omit `hooks` and `mcpConfig` keys entirely when not used — don't leave them empty.
+`skills` is an array of relative paths to skill directories. `agents` is an array of relative paths
+to agent `.md` files: Claude Code rejects a directory there, and `claude plugin validate` fails.
+`commands` entries name `.md` files too. Omit `hooks` and `mcpConfig` keys entirely when not used —
+don't leave them empty.
 
 ### Reference docs
 

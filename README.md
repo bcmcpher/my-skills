@@ -224,7 +224,7 @@ my-skills/
 │   │   └── skills/SKILL_NAME/
 │   ├── agent/               # Custom subagent only
 │   │   ├── SETUP.md
-│   │   └── agents/AGENT_NAME/
+│   │   └── agents/AGENT_NAME.md
 │   ├── hooks/               # PreToolUse / PostToolUse / Stop hook stubs
 │   └── mcp/                 # MCP server stubs (Python, TypeScript, Docker)
 ├── tests/                   # Case table for bin/test-hooks

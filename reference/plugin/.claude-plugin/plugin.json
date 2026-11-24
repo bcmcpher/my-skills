@@ -6,5 +6,5 @@
   "license": "MIT",
   "keywords": [],
   "skills": ["./skills/SKILL_NAME"],
-  "agents": ["./agents/AGENT_NAME"]
+  "agents": ["./agents/AGENT_NAME.md"]
 }

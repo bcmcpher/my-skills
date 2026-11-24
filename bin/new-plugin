@@ -172,9 +172,9 @@ fi
 # --- Copy ---
 cp -r "$TEMPLATE_SRC" "$DEST"
 
-# --- Rename placeholder directories ---
+# --- Rename placeholders: a skill directory, an agent file ---
 [[ -d "$DEST/skills/SKILL_NAME" ]] && mv "$DEST/skills/SKILL_NAME" "$DEST/skills/$NAME"
-[[ -d "$DEST/agents/AGENT_NAME" ]] && mv "$DEST/agents/AGENT_NAME" "$DEST/agents/$NAME"
+[[ -f "$DEST/agents/AGENT_NAME.md" ]] && mv "$DEST/agents/AGENT_NAME.md" "$DEST/agents/$NAME.md"
 
 # --- Replace placeholders in all files ---
 # Order matters: replace longer/more-specific tokens first.
@@ -198,7 +198,7 @@ if [[ "$TYPE" == "skill" ]]; then
   echo "     → write trigger description, steps, and constraints"
 fi
 if [[ "$TYPE" == "agent" ]]; then
-  echo "  3. Edit $DEST/agents/$NAME/SKILL.md"
+  echo "  3. Edit $DEST/agents/$NAME.md"
   echo "     → write agent purpose, steps, and constraints"
 fi
 echo ""

@@ -12,6 +12,6 @@
     "./skills/gen-report"
   ],
   "agents": [
-    "./agents/merge-agent"
+    "./agents/merge-agent.md"
   ]
 }
