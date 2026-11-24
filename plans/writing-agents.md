@@ -1,8 +1,8 @@
 # Writing agents
 
-Status: draft, revised 2026-11-19. Not started. Phase 1 (the technical-docs writer) is
-specified below, its decisions are settled, and it is ready to execute. Phase 2 (the manuscript
-writer) is a stub.
+Status: Phase 1 in progress on `plan/writing-agents`: steps 1–5 built, step 6 (evaluation)
+drafted but not run. See "Resume here" under "As built". Phase 2 (the manuscript writer) is a
+stub.
 
 The old blocker is resolved: the ASD-STE100 vocabulary lives at
 `~/Documents/ASD-STE100/ASD-STE100_ISSUE9.pdf`, outside the repo. A script reads the dictionary
@@ -366,6 +366,40 @@ Each step ends in a commit on `plan/writing-agents`:
   With no lexicon, the scores are back to the step 3 values. With the STE lexicon, the scores
   on the two READMEs do not change. The review-and-fix loop stops here: each round found smaller
   problems, but two rounds added new ones.
+- **Step 6 eval suite (draft, not run).** `plugins/tech-docs/evals/` holds the cases for
+  `claude plugin eval`: `readme-ab`, `readme-writing-md`, `revise-guide`, `delegate-howto`,
+  `no-delegate-grant`, `no-delegate-chat` and `quadrants-readme`. `score_readmes.py` scores the
+  produced READMEs with `ste_check` and the full STE lexicon.
+
+### Resume here (2026-11-24)
+
+Done: steps 1–5, three review rounds, and the eval draft (committed, not run). On `main`,
+`fix-agent-layout` is merged (`2abe6e0`): Claude Code loads an agent only from one `.md` file,
+so every plugin agent moved to `agents/<name>.md`, and `bin/validate` now also runs
+`claude plugin validate`.
+
+Next, on this branch:
+
+1. `git merge main`.
+2. `git mv` the agent to `agents/technical-docs-writer.md`; update `plugin.json` and the step 5
+   text above, which still names `agents/technical-docs-writer/SKILL.md`.
+3. Quote `doc-quadrants`' `argument-hint` (an unquoted `[a|b] <c>` is not valid YAML).
+4. Run `bin/validate`; fix the delegation graders if the agent's namespaced name changed.
+5. Fill in the `quadrants-readme` criteria from the user's labels.
+6. Probe: one `readme-ab` run with `--runs 1 --max-cost-usd 0.50 --no-publish --scaffold
+   --keep-temp --json --allow-tools Write Edit "Bash(python3 -I *)"`, in tmux session
+   `my-skills-tech-docs-eval`. Check that the trace shows the Agent call and the subagent's
+   tools. Then the full run, under $3 in all, with Haiku or Sonnet.
+
+Waiting on the user:
+
+- One word per root `README.md` section (Tutorial, How-to guide, Reference, Explanation, or
+  "mixed" with the two): Installation; Plugins; Templates; Creating a new plugin (steps 1–6);
+  When to graduate a plugin (checklist); Project structure.
+- Approval of the $0.50 probe, and the trust prompt: the user runs the first eval, or the
+  run passes `--trust-plugin`.
+
+Always pass `--no-publish`: the default publishes the report to claude.ai.
 
 ## Phase 2: manuscript-writer (stub)
 
