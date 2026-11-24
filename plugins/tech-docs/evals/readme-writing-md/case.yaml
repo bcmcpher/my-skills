@@ -1,0 +1,74 @@
+schema_version: "1.1"
+name: readme-writing-md
+description: >
+  readme-ab with config/writing.md appended to the system prompt, as in the October A/B.
+  Without-arm: writing.md alone. With-arm: writing.md and tech-docs. Regenerate this file when
+  config/writing.md changes (see ../README.md). The STE score comes from score_readmes.py after the
+  run, because graders cannot run the checker.
+tags: [readme]
+runs: 2
+execution:
+  model: sonnet
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Agent, Skill, Write, Edit, Bash]
+  append_system_prompt: |
+    # Writing style for documentation
+
+    The fallback style for technical documentation written to disk: READMEs, guides, user-facing
+    notes. It is based on ASD-STE100 Simplified Technical English, applied at about 80% — follow the
+    rules where they help clarity; do not contort text to satisfy them.
+
+    It does not apply to:
+
+    - conversation replies — the active output style (e.g. caveman) governs those;
+    - spec artifacts — the spec tool's own rules govern those (see `specs.md`);
+    - manuscripts, grant text and other scientific prose;
+    - any project that sets its own documentation style.
+
+    ## Rules
+
+    - One topic per sentence. Procedural sentences: 20 words or fewer. Descriptive: 25 or fewer.
+    - Use the active voice.
+    - Write instructions in the imperative, one instruction per sentence. Put steps in a numbered
+      list.
+    - Keep paragraphs to six sentences or fewer.
+    - Prefer simple verbs to phrasal verbs and to -ing nouns ("set up" → "configure").
+    - State facts plainly. Do not hedge.
+
+    ## Technical terms
+
+    Use one term for one concept, and keep it.
+
+    - Define a technical term in-line where it first appears.
+    - Also record it in the project glossary (`GLOSSARY.md`, `docs/glossary.md`, or a "Key terms"
+      section). The glossary is the authority on what a term means.
+    - If there is no glossary and project-specific terms accumulate, offer to create one.
+    - After a term is defined, do not substitute a synonym for it.
+  prompt: |
+    ./boutiques/ is a Claude Code plugin. Read it and write ./README.md for it: what it does,
+    how to install it, and how to use each skill or command. The project's declared technical
+    terms are in ./.tech-terms.
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: readme-written
+    type: file_exists
+    path: README.md
+  - name: names-schema-0.5
+    type: regex
+    target: {source: file, path: README.md}
+    pattern: '0\.5'
+  - name: names-bosh
+    type: regex
+    target: {source: file, path: README.md}
+    pattern: '\bbosh\b'
+  - name: covers-help-parsing
+    type: regex
+    target: {source: file, path: README.md}
+    pattern: '--help'
+  - name: delegated-to-agent
+    type: tool_used
+    tool: Agent
+    input_match: 'technical-docs-writer'
+    arm: with-only

@@ -1,0 +1,23 @@
+schema_version: "1.1"
+name: delegate-howto
+description: A should-delegate trigger. A new how-to page for the boutiques plugin.
+tags: [trigger]
+runs: 1
+execution:
+  model: haiku
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Agent, Skill, Write, Edit, Bash]
+  prompt: |
+    Write docs/how-to-install.md: a short how-to guide for installing the plugin in ./boutiques/.
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: page-written
+    type: file_exists
+    path: docs/how-to-install.md
+  - name: delegated-to-agent
+    type: tool_used
+    tool: Agent
+    input_match: 'technical-docs-writer'
+    arm: with-only

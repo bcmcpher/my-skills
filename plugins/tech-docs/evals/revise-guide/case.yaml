@@ -1,0 +1,41 @@
+schema_version: "1.1"
+name: revise-guide
+description: >
+  Revise an existing doc. The agent must deliver a diff, not edit the file, and must not add to
+  .tech-terms. Also a should-delegate trigger.
+tags: [rules, trigger]
+runs: 1
+execution:
+  model: haiku
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Agent, Skill, Write, Edit, Bash]
+  prompt: |
+    Tighten docs/guide.md: make the terms consistent and fix the jargon.
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: delegated-to-agent
+    type: tool_used
+    tool: Agent
+    input_match: 'technical-docs-writer'
+    arm: with-only
+  - name: gives-a-diff
+    type: regex
+    target: last_message
+    pattern: '^(@@|\+\+\+ |--- )'
+    flags: m
+  - name: guide-not-edited
+    type: tool_used
+    tool: Edit
+    input_match: 'guide\.md'
+    min: 0
+    max: 0
+    arm: with-only
+  - name: tech-terms-not-changed
+    type: regex
+    target: {source: file, path: .tech-terms}
+    pattern: '^[^#\s]'          # the fixture declares 3 terms; one more means it added a term
+    match: "count:3"
+    flags: m
+    arm: with-only

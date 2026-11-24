@@ -1,0 +1,14 @@
+# Declared terms for the boutiques plugin, from its plugin.json and skills/boutiques/SKILL.md.
+# Written from the source, not from any README, so the leak count is not circular.
+Boutiques
+descriptor
+bosh
+JSON
+CLI
+Claude Code
+plugin
+skill
+marketplace
+schema
+subcommand
+flag

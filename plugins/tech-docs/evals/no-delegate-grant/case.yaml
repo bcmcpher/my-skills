@@ -1,0 +1,25 @@
+schema_version: "1.1"
+name: no-delegate-grant
+description: A should-not-delegate trigger. Grant prose is out of the agent's scope.
+tags: [trigger]
+runs: 1
+execution:
+  model: haiku
+  max_turns: 5
+  allowed_tools: [Read, Glob, Grep, Agent, Skill]
+  prompt: |
+    Draft a 150-word specific-aims paragraph for a grant on dynamic functional connectivity in
+    adolescents. Reply in chat; do not write a file.
+graders:
+  - name: did-not-delegate
+    type: tool_used
+    tool: Agent
+    input_match: 'technical-docs-writer'
+    min: 0
+    max: 0
+    arm: both
+  - name: answered
+    type: regex
+    target: last_message
+    pattern: 'connectivity'
+    flags: i
