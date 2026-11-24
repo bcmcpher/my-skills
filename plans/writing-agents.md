@@ -344,7 +344,8 @@ Each step ends in a commit on `plan/writing-agents`:
     lists only `your`.
   - A fence closes only on a bare run of its own character at least as long, so a 4-backtick
     block can hold a 3-backtick one.
-  - Inline code can wrap across one line break.
+  - Inline code can wrap across one line break. (Reverted after the third review: see
+    below.)
   - `--ignore jargon` also empties the leak list.
   - A two-word variant (`set up` / `setup`) needs a declared spelling.
   - `--lexicon <name>` never reads a local file of that name; a path needs `.json`, `/` or `~`.
@@ -352,6 +353,19 @@ Each step ends in a commit on `plan/writing-agents`:
     Fixing it changes sentence counts and breaks the match with the old calibration.
   With no lexicon, only `config/README.md` changes: 262 → 263 sentences, 61.5% → 61.6%. The
   wrapped code spans in it were scored as text before.
+- **Third review fixes (done).** A third `/code-review` found two bugs in the second round and
+  four nits. Each fix has a regression test that fails on the old code:
+  - Inline code is again on one line only. Matching across a line break paired a stray backtick
+    with one in the next list item or heading, and deleted text there.
+  - `-es` also follows an `o` (`zeroes`, `undoes`).
+  - The fence opener takes its whole run through a lookahead, so it cannot shrink to match an
+    inner fence. A fence with no closer runs to the end of the document, as in CommonMark.
+  - `--ignore jargon` prints a note that jargon was not checked; the JSON `jargon` is `null`.
+  - `lexicon.py -o` adds `.json` when it is missing, so `--lexicon` can read the file by path.
+  - A plural two-word variant (`data sets`) matches a declared singular (`dataset`).
+  With no lexicon, the scores are back to the step 3 values. With the STE lexicon, the scores
+  on the two READMEs do not change. The review-and-fix loop stops here: each round found smaller
+  problems, but two rounds added new ones.
 
 ## Phase 2: manuscript-writer (stub)
 

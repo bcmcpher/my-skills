@@ -91,12 +91,12 @@ def skipped(token):
 # Inflection suffixes tried when a word is not itself a term: (suffix, restore, parts of
 # speech the suffix inflects). None in the set is an entry with no part of speech. The -s
 # suffixes inflect a noun or pronoun (plural) or a verb (third person), so news is not
-# new + s. -s goes before -es, so uses is use + s, not us + es; -es needs a sibilant before
-# it (boxes).
+# new + s. -s goes before -es, so uses is use + s, not us + es; -es needs a sibilant or an o
+# before it (boxes, zeroes).
 PLURAL = {"n", "v", "pron", None}  # ones, others, yours
 VERB = {"v", None}
 COMPARE = {"adj", "adv", None}
-SIBILANT = re.compile(r"(?:s|x|z|ch|sh)$")
+SIBILANT = re.compile(r"(?:s|x|z|ch|sh|o)$")  # and zeroes, undoes
 SUFFIXES = [("ies", "y", PLURAL), ("s", "", PLURAL), ("es", "", PLURAL), ("ied", "y", VERB),
             ("ed", "", VERB), ("ed", "e", VERB), ("d", "", VERB), ("ing", "", VERB),
             ("ing", "e", VERB), ("er", "", COMPARE), ("er", "e", COMPARE),
@@ -119,22 +119,24 @@ def clean(text):
     text = re.sub(r"\A---\n.*?\n---\n", _blank, text, flags=re.S)        # front matter
     text = re.sub(r"<!--.*?-->", _blank, text, flags=re.S)               # comments
     # Fences, also indented. A fence closes on a bare run of its own character at least as
-    # long, so a ```` block can hold a ``` block.
-    text = re.sub(r"^[ \t]*((`|~)\2{2,}).*?^[ \t]*\1\2*[ \t]*$", _blank, text,
+    # long, so a ```` block can hold a ``` block. The lookahead takes the whole opening run and
+    # cannot give part of it back. As in CommonMark, a fence with no closer runs to the end.
+    text = re.sub(r"^[ \t]*(?=((`|~)\2{2,}))\1.*?(?:^[ \t]*\1\2*[ \t]*$|\Z)", _blank, text,
                   flags=re.S | re.M)
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)                     # images
     text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)                 # links -> text
-    text = re.sub(r"`[^`\n]*(?:\n[^`\n]*)?`", _code, text)               # inline code, may wrap
+    # Inline code on one line. A span that wraps is scored as text: matching across lines
+    # would pair a stray backtick with one in the next list item or heading.
+    text = re.sub(r"`[^`\n]*`", _code, text)
     return text
 
 
 def _code(m):
-    """CODE, spaced off from an adjacent word character so `x`s cannot become CODEs.
-    A span that wraps keeps its newline, so line numbers hold."""
+    """CODE, spaced off from an adjacent word character so `x`s cannot become CODEs."""
     s, e, t = m.start(), m.end(), m.string
     left = " " if s and re.match(r"[\w'’-]", t[s - 1]) else ""
     right = " " if e < len(t) and re.match(r"[\w'’-]", t[e]) else ""
-    return left + CODE + "\n" * m.group(0).count("\n") + right
+    return left + CODE + right
 
 
 def blocks(text):
@@ -543,12 +545,14 @@ class DocSet:
             singles = {s: c for s, c in spellings.items() if " " not in s}
             bigrams = {s: c for s, c in spellings.items() if " " in s}
             forms = dict(singles)
-            if bigrams and singles and key in canon:  # setup / set up are both correct
+            declared = next((canon[k] for k in (key, re.sub(r"s$", "", key),  # data sets
+                                                re.sub(r"es$", "", key)) if k in canon), None)
+            if bigrams and singles and declared:  # setup / set up are both correct
                 forms.update(bigrams)
             if len(forms) < 2:
                 continue
             out.append({"spellings": dict(sorted(forms.items(), key=lambda kv: -kv[1])),
-                        "declared": canon.get(key)})
+                        "declared": declared})
         out.sort(key=lambda v: -sum(v["spellings"].values()))
         return out
 
@@ -588,9 +592,11 @@ def project_root(start):
 
 # ── Report ───────────────────────────────────────────────────────────────────
 
-def notes(lex):
+def notes(lex, ignore=()):
     out = []
-    if not lex.closed:
+    if "jargon" in ignore:
+        out.append("jargon is ignored (--ignore jargon): leaks were not checked.")
+    elif not lex.closed:
         out.append("jargon is off: no closed lexicon is loaded (try --lexicon ste100-issue9).")
     elif not lex.declared:
         out.append("No declared terms: every technical term shows as a leak. "
@@ -598,12 +604,12 @@ def notes(lex):
     return out
 
 
-def report(results, ds, lex, args):
+def report(results, ds, lex, args, ignore):
     leaks = ds.leak_list()
     if args.jargon:
         for leak in leaks:
             print(f"{leak['count']:>5}  {leak['word']:<30} {leak['first']}")
-        for n in notes(lex):
+        for n in notes(lex, ignore):
             print(f"note: {n}")
         return
     for r in results:
@@ -619,7 +625,7 @@ def report(results, ds, lex, args):
     by_src = Counter(src for _, _, src in lex.declared)
     decl = ", ".join(f"{s} {n}" for s, n in by_src.items()) or "none"
     print(f"\nlexicons: {names}; declared terms: {len(lex.declared)} ({decl})")
-    if lex.closed:
+    if lex.closed and "jargon" not in ignore:
         hits = sum(leak["count"] for leak in leaks)
         print(f"jargon leaks: {len(leaks)} words, {hits} hits (not counted in the score)")
         for leak in leaks[:args.leaks]:
@@ -641,7 +647,7 @@ def report(results, ds, lex, args):
             n = ds.suppressed.get(src, 0)
             share = f"{100 * n / total:.0f}%" if total else "0%"
             print(f"declared terms from {src} suppressed {n} hits ({share} of all lexicon hits)")
-    for n in notes(lex):
+    for n in notes(lex, ignore):
         print(f"note: {n}")
 
 
@@ -649,7 +655,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Score Markdown docs against STE writing rules.")
     ap.add_argument("files", nargs="+", help="Markdown files or directories")
     ap.add_argument("--lexicon", action="append", default=[],
-                    help="a lexicon name or path; repeat to stack (later overrides earlier)")
+                    help="a lexicon name (in the lexicon directory) or a path (with .json, "
+                         "/ or ~); repeat to stack (later overrides earlier)")
     ap.add_argument("--terms", help="declared terms file (default: .tech-terms at the root)")
     ap.add_argument("--root", help="project root for .tech-terms and the glossary "
                                    "(default: the git work tree, else the current directory)")
@@ -686,16 +693,17 @@ def main(argv=None):
     if args.json:
         for r in results:
             r.pop("rows")
-        json.dump({"files": results, "jargon": ds.leak_list() if lex.closed else None,
+        json.dump({"files": results, "jargon": ds.leak_list()
+                   if lex.closed and "jargon" not in ignore else None,
                    "variants": ds.variants(), "both": ds.both,
                    "lexicons": [{"name": n, "closed": c} for n, c in lex.names],
                    "declared": len(declared),
                    "declared_used": dict(ds.declared_used),
                    "suppressed": dict(ds.suppressed), "lexical_hits": ds.lexical_hits,
-                   "notes": notes(lex)}, sys.stdout, indent=2)
+                   "notes": notes(lex, ignore)}, sys.stdout, indent=2)
         print()
         return 0
-    report(results, ds, lex, args)
+    report(results, ds, lex, args, ignore)
     return 0
 
 

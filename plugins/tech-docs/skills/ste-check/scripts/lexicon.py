@@ -435,6 +435,8 @@ def build(args):
             f"(expected {expected['approved']}), {c['not_approved']} not approved (expected "
             f"{expected['not_approved']}). Nothing written.")
     out = Path(args.output) if args.output else default_dir() / f"{lex['name']}.json"
+    if out.suffix != ".json":
+        out = out.with_name(out.name + ".json")  # ste_check.py reads a path by its .json
     write(lex, out)
     print(f"{out}: {c['entries']} entries ({c['approved']} approved, "
           f"{c['not_approved']} not approved), closed={str(lex['closed']).lower()}")
@@ -461,7 +463,8 @@ def main(argv=None):
     b.add_argument("--problems", type=int, default=20,
                    help="print up to N parse problems (default 20)")
     b.add_argument("--name", help="lexicon name (default: from the source)")
-    b.add_argument("-o", "--output", help="output path (default: the lexicon directory)")
+    b.add_argument("-o", "--output", help="output path; .json is added if missing "
+                                          "(default: the lexicon directory)")
     s = sub.add_parser("show", help="print the counts of a lexicon")
     s.add_argument("lexicon")
     args = ap.parse_args(argv)

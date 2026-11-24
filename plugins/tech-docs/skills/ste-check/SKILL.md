@@ -79,5 +79,8 @@ that the checker scores. A list built from the output makes the leak count circu
   leak when the lexicon lists `name` only as a noun.
 - A two-word spelling (`set up`) is a variant of a one-word spelling (`setup`) only when one of
   them is a declared term. Both are often correct English.
-- `--ignore jargon` removes the leak list as well as the inline flag.
+- `--ignore jargon` removes the leak list as well as the inline flag, and the report says
+  that jargon was not checked.
+- `--lexicon` reads its argument as a path only when it has `.json`, `/` or `~`. Anything
+  else is a name in the lexicon directory. `lexicon.py -o` adds `.json` when it is missing.
 - Do not edit the user's `.tech-terms` or glossary to silence findings. Propose the change.

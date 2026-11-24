@@ -151,3 +151,10 @@ def test_ste_build_fails_when_counts_differ(tmp_path, monkeypatch):
     assert lexicon.main(["build", "--from", "ste-pdf", str(pdf), "-o", str(out)]) == 0
     lex = json.loads(out.read_text())
     assert lex["closed"] is True and lex["name"] == "ste100-issue9"
+
+
+def test_an_output_path_without_json_gets_it(tmp_path):
+    r = run("build", "--from", "tsv", str(FIXTURES / "plain-words.tsv"), "-o",
+            str(tmp_path / "mylex"))
+    assert r.returncode == 0, r.stderr
+    assert (tmp_path / "mylex.json").is_file() and not (tmp_path / "mylex").exists()

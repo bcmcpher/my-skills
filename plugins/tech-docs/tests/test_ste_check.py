@@ -273,14 +273,6 @@ def test_a_long_fence_holds_a_short_one(tmp_path):
     assert [(r["sentence"], r["line"]) for r in res["rows"]] == [("Read this.", 6)]
 
 
-def test_ignore_jargon_also_empties_the_leak_list(tmp_path):
-    doc = tmp_path / "a.md"
-    doc.write_text("Use the frobnicator.\n")
-    r = run("--root", str(tmp_path), "--lexicon", str(CLOSED), "--ignore", "jargon",
-            "--json", str(doc))
-    assert json.loads(r.stdout)["jargon"] == []
-
-
 def test_a_two_word_variant_needs_a_declared_spelling(tmp_path):
     ds, _ = _score(tmp_path, "Run the setup. Then set up the tool.\n", _lex(closed=False))
     assert ds.variants() == []
@@ -289,11 +281,10 @@ def test_a_two_word_variant_needs_a_declared_spelling(tmp_path):
     assert ds.variants() == [{"spellings": {"setup": 1, "set up": 1}, "declared": "setup"}]
 
 
-def test_inline_code_that_wraps_is_still_code(tmp_path):
-    doc = "Run `foo_bar\nbaz_qux` here.\nNext line.\n"
-    ds, res = _score(tmp_path, doc, _lex())
-    assert not {x["word"] for x in ds.leak_list()} & {"foo_bar", "baz_qux"}
-    assert [r["line"] for r in res["rows"]] == [1, 3]
+def test_a_stray_backtick_never_eats_the_next_block():
+    assert ste_check.clean("- Set `a\n- Then `b` runs.\n") == "- Set `a\n- Then CODE runs.\n"
+    assert ste_check.clean("# Use `a\nNext para `b` here.\n") == \
+        "# Use `a\nNext para CODE here.\n"
 
 
 def test_a_bare_lexicon_name_ignores_a_local_file(tmp_path, monkeypatch):
@@ -302,3 +293,37 @@ def test_a_bare_lexicon_name_ignores_a_local_file(tmp_path, monkeypatch):
     assert ste_check.resolve_lexicon("ste100-issue9") == \
         ste_check.lexmod.default_dir() / "ste100-issue9.json"
     assert ste_check.resolve_lexicon("./x.json") == Path("./x.json")
+
+
+# ── Regressions from the third code review ───────────────────────────────────
+
+def test_es_after_an_o_finds_its_base():
+    lex = _lex({"term": "zero", "approved": True, "pos": "n"},
+               {"term": "undo", "approved": False, "pos": "v",
+                "alternatives": [{"term": "reverse", "pos": "v"}]})
+    look = lambda w: ste_check.Lexicons.lookup(w, lex.full)[:2]  # noqa: E731
+    assert look("zeroes") == ("ok", "zero")
+    assert look("undoes") == ("word", "undo")
+
+
+def test_an_unclosed_long_fence_is_not_closed_by_an_inner_short_one():
+    doc = "Intro here.\n````md\n```sh\nx\n```\nStill code.\n"
+    assert ste_check.clean(doc) == "Intro here.\n" + "\n" * 5   # runs to the end, as in CommonMark
+
+
+def test_ignore_jargon_says_so_instead_of_reporting_zero_leaks(tmp_path):
+    doc = tmp_path / "a.md"
+    doc.write_text("Use the frobnicator.\n")
+    base = ("--root", str(tmp_path), "--lexicon", str(CLOSED), "--ignore", "jargon")
+    r = run(*base, str(doc))
+    assert "jargon leaks" not in r.stdout and "jargon is ignored" in r.stdout
+    assert "No declared terms" not in r.stdout
+    out = json.loads(run(*base, "--json", str(doc)).stdout)
+    assert out["jargon"] is None
+
+
+def test_a_plural_two_word_variant_of_a_declared_term(tmp_path):
+    lex = ste_check.Lexicons([ste_check.BUILTIN], [("dataset", "TN", "t")])
+    ds, _ = _score(tmp_path, "Read the datasets. Then read the data sets.\n", lex)
+    assert ds.variants() == [{"spellings": {"datasets": 1, "data sets": 1},
+                              "declared": "dataset"}]
