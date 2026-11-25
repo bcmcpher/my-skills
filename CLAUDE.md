@@ -30,6 +30,8 @@ bin/rebuild-tools --freeze     # record the current envs back into the lock file
 # Exercise the PreToolUse hooks against the case table in tests/
 bin/test-hooks                 # test the live hooks in ~/.claude/hooks/
 bin/test-hooks --repo          # test the tracked copies in config/hooks/
+bin/test-hooks --sandbox       # either form, inside a read-only bwrap sandbox (always use this)
+bin/test-hooks --sandbox --awk /usr/bin/mawk   # run the hooks under another awk (CI runs gawk and mawk)
 ```
 
 Harness tools — hook binaries, LSP servers, and the CLIs that global skills shell out to — live in
@@ -67,26 +69,26 @@ plugins/<name>/
 │   ├── scripts/                 # Helper scripts invoked from SKILL.md via $CLAUDE_PLUGIN_ROOT
 │   ├── references/              # Large docs loaded on demand (keep SKILL.md concise)
 │   └── assets/                  # Static files embedded in output
-├── agents/<agent-name>/
-│   └── SKILL.md                 # Agent system prompt with frontmatter
+├── agents/
+│   └── <agent-name>.md          # Agent system prompt with frontmatter: one file, not a directory
 ├── hooks/hooks.json             # PreToolUse / PostToolUse / Stop hook definitions
 ├── .mcp.json                    # MCP server config (uses $CLAUDE_PLUGIN_ROOT for paths)
 └── .lsp.json                    # LSP server config (optional; binary installed separately)
 ```
 
-### SKILL.md frontmatter — skills vs agents
+### Frontmatter — skills vs agents
 
 **Skills** (`skills/<name>/SKILL.md`):
 ```yaml
 name: skill-name          # becomes /skill-name slash command
 description: ...          # Claude reads this to decide auto-invocation — be specific
-argument-hint: [optional] # shown in autocomplete UI
+argument-hint: '[optional]' # shown in autocomplete UI
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob
 ```
 
-**Agents** (`agents/<name>/SKILL.md`):
+**Agents** (`agents/<name>.md`):
 ```yaml
 name: agent-name
 description: ...          # delegation trigger for the main Claude instance
@@ -118,7 +120,10 @@ See `reference/plugin/.lsp.json` for an annotated example covering Python, TypeS
 
 ### plugin.json fields
 
-`skills` and `agents` are arrays of relative paths to the skill/agent directories. Omit `hooks` and `mcpConfig` keys entirely when not used — don't leave them empty.
+`skills` is an array of relative paths to skill directories. `agents` is an array of relative paths
+to agent `.md` files: Claude Code rejects a directory there, and `claude plugin validate` fails.
+`commands` entries name `.md` files too. Omit `hooks` and `mcpConfig` keys entirely when not used —
+don't leave them empty.
 
 ### Reference docs
 
@@ -176,9 +181,15 @@ idiom `find . -not -path "./.git/*"` while letting `grep --exclude-dir=.git` thr
 `.git/` is covered by the `Read(**/.git/*)` deny rule instead.
 
 The `bash-guard.sh` hook that replaced it guards a different set: destructive `find` flags, shell
-redirection into `$HOME` dotfiles or system paths, `gh api` with mutating verbs, Bash reads of
+redirection into `$HOME` dotfiles or system paths, writes by `tee`/`cp`/`mv`/`sed -i`/`dd`/`truncate`
+into credential, system, secret or shell startup files, `gh api` with mutating verbs, Bash reads of
 secret files, and `rm` aimed at a filesystem/home root, a system directory, `..`, or a credential
-directory. Every rule matches an argument position rather than raw command text.
+directory. It splits the command into shell words once, with quote removal, and every rule
+matches a word position rather than raw command text. `config/README.md` has the full table.
+
+Hook test cases are probe commands. Write them into `tests/*-cases.txt` with the Edit tool, never
+in a Bash call, and run `bin/test-hooks` locally only with `--sandbox`. CI runs it without the sandbox, because
+the runner is a disposable VM.
 
 Ordinary `rm` is in `ask`, not `deny` — it prompts and can be approved. Rule 5 is only the floor
 beneath that prompt, and it deliberately matches the whole target rather than a prefix, so

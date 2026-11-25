@@ -4,9 +4,10 @@
 
 Copy this directory to `plugins/my-agent-name`, then:
 
-1. Rename `agents/AGENT_NAME/` to `agents/your-agent-name/`
-2. Edit `.claude-plugin/plugin.json` — replace `PLUGIN_NAME`, `AGENT_NAME`, `DESCRIPTION`
-3. Edit `agents/your-agent-name/SKILL.md` — fill in frontmatter and system prompt body
+1. Rename `agents/AGENT_NAME.md` to `agents/your-agent-name.md`
+2. Edit `.claude-plugin/plugin.json` — replace `PLUGIN_NAME`, `AGENT_NAME`, `DESCRIPTION`. Each
+   `agents` entry must name an `.md` file; Claude Code rejects a directory
+3. Edit `agents/your-agent-name.md` — fill in frontmatter and system prompt body
 4. Replace this file (`SETUP.md`) with your plugin's `README.md`
 5. Delete unused resource subdirectories (`scripts/`, `references/`, `assets/`)
 6. Test: `claude --plugin-dir ./plugins/my-agent-name`
@@ -27,7 +28,7 @@ The "bad" example describes the agent's personality. The "good" example tells th
 
 ## Writing the system prompt
 
-The body of `SKILL.md` is the agent's system prompt. Structure it as a policy document:
+The body of the agent file is the agent's system prompt. Structure it as a policy document:
 
 1. **Purpose statement** — first sentence states exactly what this agent does
 2. **Steps** — numbered list of what the agent does when invoked
@@ -53,19 +54,20 @@ The agent runs in an isolated context — it does not inherit the parent convers
 
 ## Bundling resources
 
-Each agent directory supports three optional subdirectories alongside `SKILL.md`:
+An agent is one Markdown file, so its resources live at the plugin root, in three optional
+directories:
 
 ```
-agents/your-agent-name/
-├── SKILL.md
+your-plugin/
+├── agents/your-agent-name.md
 ├── scripts/      # Helper scripts the agent executes
 ├── references/   # Reference docs loaded into context on demand
 └── assets/       # Static files the agent uses in its output
 ```
 
-**`scripts/`** — Logic the agent would otherwise re-implement each run. Bundle it once, reference from `SKILL.md`:
+**`scripts/`** — Logic the agent would otherwise re-implement each run. Bundle it once, reference from the agent file:
 ```markdown
-Run `python ${CLAUDE_PLUGIN_ROOT}/agents/your-agent/scripts/process.py`.
+Run `python ${CLAUDE_PLUGIN_ROOT}/scripts/process.py`.
 ```
 
 **`references/`** — Policies, specs, or background context too large to keep in the system prompt. Claude reads them when needed. Add a table of contents for files over 300 lines.
@@ -82,7 +84,7 @@ Delete any subdirectory you don't use.
 2. In the session, describe a task that matches the agent's description (don't just say "delegate to X")
 3. Confirm that the main Claude delegates — look for the subagent being invoked in the output
 4. Check that the agent's response follows the system prompt policy
-5. Edit `agents/your-agent-name/SKILL.md` and reload to iterate
+5. Edit `agents/your-agent-name.md` and reload to iterate
 
 If delegation never fires, tighten the `description` to be more specific about the trigger condition.
 

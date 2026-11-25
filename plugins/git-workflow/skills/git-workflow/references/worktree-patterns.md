@@ -4,7 +4,7 @@ Reference for common worktree command sequences in Claude Code agentic workflows
 
 ## Lifecycle: agent with isolation: worktree
 
-When an agent's SKILL.md frontmatter includes `isolation: worktree`, Claude Code
+When an agent file's frontmatter includes `isolation: worktree`, Claude Code
 automatically creates a temporary git worktree before the agent runs and cleans it
 up after:
 

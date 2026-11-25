@@ -1,7 +1,7 @@
 ---
 name: codebase-audit
 description: Run a principled whole-repository quality audit of a Python codebase, its tests and its OpenSpec specs — duplicated logic, test-only public API, error-type taxonomy, docstring/signature drift, module split points, near-duplicate and coverage-subset tests, private-detail tests, fragmented or near-duplicate capabilities — where deterministic scripts sweep every site and the model only judges candidates. Use when asked to audit a codebase for consolidation, plan a tidy/refactor pass, consolidate an OpenSpec spec tree or a test suite, or check an external audit's coverage.
-argument-hint: [repo-path] [--dimensions a,b,...]
+argument-hint: '[repo-path] [--dimensions a,b,...]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit

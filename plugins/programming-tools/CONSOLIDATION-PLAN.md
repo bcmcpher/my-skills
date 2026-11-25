@@ -21,7 +21,7 @@ Consolidates four external tools into a combined local fork inside `plugins/prog
 | `skills/verify/SKILL.md` | Fork of superpowers verification-before-completion; claim-to-command mapping table up front; auto-invocable at end of `/tdd` and `/systematic-debug` |
 | `skills/finish-branch/SKILL.md` | Fork of superpowers finishing-a-development-branch; 5-step process; option 2 references git-workflow's `commit-push-pr` format for PR body consistency |
 | `skills/feature-spec/SKILL.md` | New OpenSpec-inspired skill; creates `docs/specs/YYYY-MM-DD-<slug>.md`; 5-phase workflow |
-| `agents/security-reviewer/SKILL.md` | New OWASP Top 10 focused agent; model: opus; color: red; confidence ≥70 threshold; graph pre-pass to trace auth/input entry points |
+| `agents/security-reviewer.md` | New OWASP Top 10 focused agent; model: opus; color: red; confidence ≥70 threshold; graph pre-pass to trace auth/input entry points |
 
 ### Feature-spec output format
 
@@ -64,19 +64,19 @@ are surgical (Surgical Changes), and ensure success criteria are verifiable
 (Goal-Driven Execution).
 ```
 
-### `agents/code-reviewer/SKILL.md`
+### `agents/code-reviewer.md`
 - Frontmatter `tools:` — add `mcp__code-review-graph__semantic_search_nodes`, `mcp__code-review-graph__get_impact_radius`, `mcp__code-review-graph__get_affected_flows`, `mcp__code-review-graph__get_review_context`
 - Body — add "Pre-review graph query" section: run `get_review_context` on changed files, `get_impact_radius` to understand blast radius; fallback to Grep/Read if graph unavailable
 
-### `agents/pr-test-analyzer/SKILL.md`
+### `agents/pr-test-analyzer.md`
 - Frontmatter: add `mcp__code-review-graph__get_affected_flows`, `mcp__code-review-graph__get_review_context`
 - Body: add step 1a — run `get_affected_flows` on key changed functions to find integration paths needing coverage
 
-### `agents/silent-failure-hunter/SKILL.md`
+### `agents/silent-failure-hunter.md`
 - Frontmatter: add `mcp__code-review-graph__get_affected_flows`, `mcp__code-review-graph__semantic_search_nodes`
 - Body: pre-review section — `semantic_search_nodes` with "error handling", "exception", "catch" before reading individual blocks
 
-### `agents/type-design-analyzer/SKILL.md`
+### `agents/type-design-analyzer.md`
 - Frontmatter: add `mcp__code-review-graph__semantic_search_nodes`, `mcp__code-review-graph__get_review_context`
 - Body: pre-review section — `semantic_search_nodes` to find all usages of reviewed type, surfacing invariant violations outside the diff
 

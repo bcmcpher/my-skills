@@ -12,7 +12,7 @@ re-implementing it from scratch. Useful for:
 Reference scripts from `SKILL.md` with a clear note on when to run them:
 
 ```markdown
-Run `python ${CLAUDE_PLUGIN_ROOT}/agents/AGENT_NAME/scripts/your_script.py`
+Run `python ${CLAUDE_PLUGIN_ROOT}/scripts/your_script.py`
 to [do X].
 ```
 

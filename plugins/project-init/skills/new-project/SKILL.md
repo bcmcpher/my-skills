@@ -7,7 +7,7 @@ description: >
   Claude Code tooling — all in a single guided workflow. Use when the user says "start
   a new project", "create a new project", "scaffold a project", "initialize a project",
   or "/new-project". Takes an optional project type and name as arguments.
-argument-hint: [coding-tool|data-analysis|info-management] [project-name]
+argument-hint: '[coding-tool|data-analysis|info-management] [project-name]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit

@@ -1,7 +1,7 @@
 ---
 name: config-reconcile
 description: Reconcile one project's Claude instructions (CLAUDE.md, CLAUDE.local.md, AGENTS.md, .claude/rules/, and its auto-memory) against the global ~/.claude/CLAUDE.md and its @imports. Classifies each project rule as duplicate, narrower, override, conflict or project-only; reports first, edits only after approval, and records every dropped rule verbatim in a reviewable drop log. Use when the user asks to reconcile, dedupe or align a project's CLAUDE.md or memory with their global defaults.
-argument-hint: [project-path]
+argument-hint: '[project-path]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash

@@ -1,7 +1,7 @@
 ---
 name: merge-data
 description: User has a folder of tabular data files (.csv/.tsv/.xlsx/etc.) and wants to inspect, merge, and combine them into a single analysis-ready dataframe with a runnable script. Use this skill whenever the user mentions merging, joining, or combining data files, wants to produce an analysis-ready dataset from multiple spreadsheets or data exports, or asks how to load and integrate a collection of tabular files.
-argument-hint: [path/to/data/folder]
+argument-hint: '[path/to/data/folder]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash

@@ -78,3 +78,98 @@
 0	rm -rf ./build 2>/dev/null
 0	ls | xargs rm -rf
 2	ls | xargs rm -rf /
+2	gh api --method=POST /repos/o/r/issues
+2	gh api -XDELETE /repos/o/r
+2	gh api -X post /repos/o/r/issues
+2	gh api -fbody=x /repos/o/r/issues
+2	gh api --input=f.json /repos/o/r
+2	gh api --field=title=x /repos/o/r/issues
+2	gh api -Ftitle=x /repos/o/r/issues
+0	gh api -X GET /user
+0	gh api --method=GET /user
+0	gh api /repos/o/r/pulls --jq '.[].title'
+0	gh api -X GET search/issues -f q=repo:o/r
+0	gh pr create -f
+2	rtk proxy gh api -X PATCH /repos/o/r
+2	rm -rf "$HOME"/
+2	rm -rf "$HOME"
+2	rm -rf ~/".ssh"
+2	echo x > "$HOME"/.bashrc
+2	echo x > "$HOME/".bashrc
+2	cat "$HOME"/.ssh/id_rsa
+2	cat ~/".ssh"/id_rsa
+0	rm -rf "~"/x
+0	rm -rf "$HOME"/Projects/x/dist
+0	echo x > "$HOME"/Projects/x/out.txt
+2	tee -a ~/.bashrc
+2	echo x | tee /etc/hosts
+2	cp evil ~/.bashrc
+2	sed -i 's/a/b/' ~/.bashrc
+2	sed --in-place=.bak 's/a/b/' ~/.zshrc
+2	mv x ~/.ssh/authorized_keys
+2	dd if=x of=/etc/hosts
+2	truncate -s 0 ~/.profile
+2	cp key.txt server.pem
+0	cp config/RTK.md ~/.claude/RTK.md
+0	cp a ~/.claude/x
+0	tee /tmp/log
+0	echo x | tee -a logs/run.log
+0	mv a.txt b.txt
+0	dd if=/dev/zero of=/tmp/blob bs=1M count=1
+0	sed -n '1,5p' ~/.bashrc
+2	grep . ~/.ssh/id_rsa
+2	cp ~/.ssh/id_rsa /tmp/k
+2	awk 1 .env
+2	jq . .env.json
+2	rg -n x ~/.aws/credentials
+2	tar czf /tmp/k.tgz ~/.gnupg
+2	grep -e x .env
+2	grep -f patterns.txt .env
+2	sort .env
+0	grep -rn '.env' src/
+0	grep -e .env notes.md
+0	awk '/\.env/' notes.md
+0	jq '.env' config.json
+0	sort data.csv
+0	diff a.txt b.txt
+2	cat < .env
+2	cp -t ~/.ssh evil
+2	sed -i.bak s/a/b/ ~/.profile
+2	jq --arg k v . .env
+2	grep -rnf pats.txt .env
+0	cat .env.example
+0	npm install foo
+0	git diff --stat
+0	cp -r src/ /tmp/out/
+0	ln -s ~/Projects/x/bin/tool ~/bin/tool
+0	sed -i -e 's/~\/.ssh/x/' notes.md
+2	echo "$(cat ~/.ssh/id_rsa)"
+2	x="$(rm -rf ~)"
+2	echo "key: `cat .env`"
+0	git commit -m "build $(date +%F)"
+0	echo "a $(pwd) b" > /tmp/x
+2	echo x >& ~/.bashrc
+0	echo x >&2
+0	ls 2>&1 | head
+2	\cat ~/.ssh/id_rsa
+2	c''at .env
+2	"rm" -rf ~
+2	gh api graphql -f query='{viewer{login}}'; gh api repos/o/r/issues -f title=x
+2	rm -rf ~//
+2	rm -rf /usr//
+2	rm -rf /etc/./
+2	rm -rf ~/Projects/..
+0	rm -rf ~/Projects/x/../y
+2	cat ~/./.ssh/id_rsa
+2	cat ~@USER@/.ssh/id_rsa
+0	echo cat .env
+0	echo rm -rf /
+0	man rm
+2	sudo -u bob rm -rf /
+2	if true; then rm -rf /; fi
+2	FOO=1 cat .env
+2	timeout 5 rm -rf /
+0	grep foo <<< "my.key"
+0	cat <<.env
+2	cat .envrc
+0	echo x > .env.example

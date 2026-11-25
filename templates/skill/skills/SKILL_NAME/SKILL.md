@@ -1,7 +1,7 @@
 ---
 name: skill-name
 description: One sentence — when should Claude auto-invoke this? What does it do?
-argument-hint: [optional-arg]
+argument-hint: '[optional-arg]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob

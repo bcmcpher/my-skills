@@ -26,7 +26,9 @@ After changing anything here, work through [`VERIFY.md`](VERIFY.md) in a fresh s
 | `xdg/caveman/config.json` | `~/.config/caveman/config.json` | caveman default mode |
 | `skills/youtube-transcript/SKILL.md` | `~/.claude/skills/youtube-transcript/SKILL.md` | Hand-written global skill — pulls YouTube captions via `yt-dlp` |
 
-### One value is deliberately stripped
+### Two values are deliberately stripped
+
+`pull` uses jq to remove two machine-specific values. Without jq it warns and leaves them in.
 
 `pull` deletes `extraKnownMarketplaces.local` from the tracked `settings.json`. That entry records
 an absolute path to wherever this repo was cloned, so leaving it in means a `push` on another
@@ -40,6 +42,11 @@ claude plugin marketplace add "$(pwd)"   # from this repo's root
 Nothing else in the tracked config contains an absolute path — `grep -nE '"/[^"]*"'
 config/settings.json` should return nothing. Hook commands use `~/`-relative paths, which are
 portable.
+
+`pull` also deletes `telemetry.anonymousId` from `xdg/openspec/config.json`. The ID identifies
+one install. Tracked, it shows as a diff on every `pull`, and a `push` gives every machine the
+same ID. With telemetry off, openspec runs without the ID and does not recreate it. A `push`
+therefore removes the live ID, which matters only if telemetry is turned back on.
 
 The two `xdg/` files matter more than their size suggests: without them a new machine silently
 gets tool defaults. openspec re-enables telemetry, and caveman starts in mode `full` rather than
@@ -292,15 +299,56 @@ The credential clause is also narrower than the redirection rule's, which blocks
 `$HOME` dotfile. Blocking `rm ~/.cache/foo` would be pure friction, so `rm` floors only the three
 credential directories.
 
+## What the guards check
+
+In auto mode, a command in `ask` goes to the auto-mode classifier, not to you. The two
+PreToolUse guards are the only check that gives the same answer every time.
+
+`bash-guard.sh` splits the command into shell words once, with quote removal, so
+`"$HOME"/.bashrc` reads as `$HOME/.bashrc`. Paths are normalised, so `~//` and `~/./.ssh` count.
+A command is recognised only in command position: the first word of a segment, or any word after
+a prefix such as `sudo`, `xargs`, `env` or `timeout`. So `echo rm -rf /` passes and
+`\rm -rf ~` does not. A `$( )` or backtick substitution inside double quotes is checked like any
+other command. An unquoted `~` expands; a quoted one does not, so `"~"/x` stays a literal path.
+Its rules:
+
+| Rule | Blocks |
+|---|---|
+| 1. `find` | `-delete`, `-exec`, `-execdir`, `-ok`, `-okdir` |
+| 2. `>` and `>>` | any `$HOME` dotfile, credential directories, system paths, secret files |
+| 2b. `tee`, `cp`, `mv`, `install`, `ln`, `sed -i`, `dd of=`, `truncate` | credential directories, system paths, secret files, shell startup files (`.bashrc`, `.profile`, `.zshrc` and the like) |
+| 3. `gh api` | `-X`/`--method` POST, PUT, PATCH or DELETE in any spelling; `-f`, `-F`, `--field`, `--raw-field` or `--input` without `-X GET`; a graphql `mutation` |
+| 4. secret reads | `.env`, `.env.*`, `.envrc`, `*.pem`, `*.key` or a credential directory as an operand of a reader (`cat`, `head`, `grep`, `awk`, `jq`, `sort`, `cp`, `tar`, `scp` and others) or of `<` |
+| 5. `rm` floor | see the section above |
+
+Rule 2b is narrower than rule 2 on purpose. `cp config/RTK.md ~/.claude/RTK.md` is normal work
+here, so it prompts instead of being blocked. `grep`, `rg`, `awk`, `sed` and `jq` skip their
+first operand, which is the pattern or program. So `grep -n 'cat ~/.ssh/id_rsa' notes.md`
+reads only `notes.md`. With `-e` or `-f`, every operand is a file.
+
+`protect-files.sh` checks the `file_path` or `notebook_path` of Write, Edit and NotebookEdit. It
+matches path components: a `.git` directory, the basenames `.env`, `.env.*`, `.envrc`, `*.pem`,
+`*.key` and `package-lock.json`, and anything under `~/.ssh`, `~/.aws` or `~/.gnupg`.
+`.env.example`, `.env.sample` and `.env.template` are allowed.
+
+These hooks catch mistakes. They are not a sandbox: `base64 -d | sh` or a variable built at
+runtime gets past them.
+
 ## Adding a new global hook
 
-1. Write the script and place it in `config/hooks/`
-2. Wire it in `config/settings.json` under `hooks.PreToolUse` or `hooks.PostToolUse`
-3. Add cases to `tests/bash-guard-cases.txt` — a command it must block, and a similar one it
-   must let through — and run `bin/test-hooks`
-4. Apply it live by hand: `cp` the script into `~/.claude/hooks/`, and make the same
-   `settings.json` edit there. On an established machine, do not use `bin/sync-config push`
-   (see "Sync workflow").
+1. Write the script and place it in `config/hooks/`.
+2. Wire it in `config/settings.json` under `hooks.PreToolUse` or `hooks.PostToolUse`.
+3. Add cases to `tests/bash-guard-cases.txt` or `tests/protect-files-cases.txt`: one input it
+   must block, and a similar one it must let through. Edit these files with an editor, never
+   through a shell command.
+4. Run `bin/test-hooks --repo --sandbox`. The sandbox makes the filesystem read-only and
+   `$HOME` empty, so even a hook bug that ran a case could not change anything. CI also runs
+   the cases on every push, on `ubuntu-26.04`, once under gawk and once under mawk. The hooks
+   call `awk` by name. After a change to an awk program, also run
+   `bin/test-hooks --sandbox --awk /usr/bin/mawk` locally.
+5. Copy the hook to `~/.claude/hooks/`, make the same `settings.json` edit in the live
+   `~/.claude/settings.json` by hand, then run `bin/test-hooks --sandbox`. Use
+   `bin/sync-config push` only on a new machine: it also overwrites the live `settings.json`.
 
 Both regressions these hooks have had were false positives on the **allow** side, so the
 let-through case matters at least as much as the block case:
@@ -318,6 +366,12 @@ let-through case matters at least as much as the block case:
   the previous word — `rm -rf ./build;ls /` — left the scanner reading the next command's
   arguments as `rm` targets. Fixed by spacing separators out before splitting into words. The
   spaced form `rm -rf ./build ; ls /` always worked, which is what hid it.
+- `protect-files.sh` matched substrings, so `.env` blocked every edit to `.env.example`. Fixed by
+  matching path components and basenames.
+
+The block side has had misses too. Each rule used to extract its own arguments and handled
+quotes only at word ends, so `rm -rf "$HOME"/` and `cat ~/".ssh"/id_rsa` passed. One shared word
+splitter with real quote removal replaced all three extractors.
 
 ## Why capabilities arrive as CLI skills, not MCP servers
 

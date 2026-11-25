@@ -1,6 +1,6 @@
 ---
 description: Run a pre-commit code review using specialized agents against local git changes
-argument-hint: [aspects] — e.g. "code errors" or "tests comments" or "all"
+argument-hint: '[aspects] — e.g. "code errors" or "tests comments" or "all"'
 allowed-tools: Bash(git diff:*), Bash(git status:*), Bash(git log:*), Glob, Grep, Read, Task
 ---
 

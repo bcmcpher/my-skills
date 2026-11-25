@@ -1,7 +1,7 @@
 ---
 name: youtube-transcript
 description: Fetch the transcript and metadata of a YouTube video. Use whenever a youtube.com/watch, youtu.be, or youtube.com/shorts URL appears and the user wants the video summarized, quoted, searched, or analysed — or asks "what does this video say".
-argument-hint: [youtube-url]
+argument-hint: '[youtube-url]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Bash, Read

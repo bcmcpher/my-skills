@@ -10,14 +10,14 @@
     "./skills/retrofit-tests"
   ],
   "agents": [
-    "./agents/code-reviewer",
-    "./agents/pr-test-analyzer",
-    "./agents/code-simplifier",
-    "./agents/comment-analyzer",
-    "./agents/silent-failure-hunter",
-    "./agents/type-design-analyzer"
+    "./agents/code-reviewer.md",
+    "./agents/pr-test-analyzer.md",
+    "./agents/code-simplifier.md",
+    "./agents/comment-analyzer.md",
+    "./agents/silent-failure-hunter.md",
+    "./agents/type-design-analyzer.md"
   ],
   "commands": [
-    "./commands/code-check"
+    "./commands/code-check.md"
   ]
 }

@@ -7,9 +7,9 @@
   "keywords": ["git", "workflow", "worktree", "parallel", "branches", "commit", "pr", "review"],
   "skills": ["./skills/git-workflow"],
   "commands": [
-    "./commands/commit",
-    "./commands/commit-push-pr",
-    "./commands/clean-gone",
-    "./commands/review-pr"
+    "./commands/commit.md",
+    "./commands/commit-push-pr.md",
+    "./commands/clean-gone.md",
+    "./commands/review-pr.md"
   ]
 }

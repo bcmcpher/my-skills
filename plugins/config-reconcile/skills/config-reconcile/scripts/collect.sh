@@ -73,7 +73,7 @@ echo "$global"
 { grep -E '^@[^[:space:]]+$' "$global" 2>/dev/null || true; } | sed 's/^@//' | while read -r imp; do
   case "$imp" in
     /*) p="$imp" ;;
-    "~/"*) p="$HOME/${imp#\~/}" ;;
+    \~/*) p="$HOME/${imp#\~/}" ;;
     *) p="$(dirname "$global")/$imp" ;;
   esac
   [[ -f "$p" ]] && echo "$p" || echo "$p (MISSING)"
@@ -83,7 +83,7 @@ echo
 echo "## Project instruction files"
 refs=("$global")
 while read -r imp; do
-  case "$imp" in /*) refs+=("$imp") ;; "~/"*) refs+=("$HOME/${imp#\~/}") ;; *) refs+=("$(dirname "$global")/$imp") ;; esac
+  case "$imp" in /*) refs+=("$imp") ;; \~/*) refs+=("$HOME/${imp#\~/}") ;; *) refs+=("$(dirname "$global")/$imp") ;; esac
 done < <(grep -E '^@[^[:space:]]+$' "$global" 2>/dev/null | sed 's/^@//')
 root="${top:-$proj}"
 { find "$root" -maxdepth 4 \

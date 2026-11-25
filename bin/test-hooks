@@ -2,8 +2,16 @@
 # test-hooks — exercise the PreToolUse hooks against a table of known cases.
 #
 # Usage:
-#   bin/test-hooks            Test the live hooks in ~/.claude/hooks/
-#   bin/test-hooks --repo     Test the tracked copies in config/hooks/
+#   bin/test-hooks [--repo] [--sandbox] [--awk PATH]
+#
+#   (default)   Test the live hooks in ~/.claude/hooks/
+#   --repo      Test the tracked copies in config/hooks/
+#   --sandbox   Re-run inside a read-only bwrap sandbox: the whole filesystem
+#               read-only, $HOME an empty tmpfs, no network. Exits 1 if bwrap
+#               is missing; it never falls back to running unsandboxed.
+#   --awk PATH  Run the hooks with PATH as their `awk` (e.g. /usr/bin/mawk).
+#               The hooks call awk by name, so a machine whose default awk is
+#               not gawk runs a different parser.
 #
 # Run this after touching a hook, and add a case for every rule you change --
 # one command it must block, one similar command it must let through. Both
@@ -15,9 +23,15 @@
 #     `git commit -m "docs: echo x >> ~/.bashrc is blocked"` was blocked --
 #     a false positive that fires exactly when writing about the rules.
 #
-# Cases live in tests/bash-guard-cases.txt as `<expected-rc><TAB><command>`,
-# in a data file rather than inline in this script, because a heredoc of
-# commands like `find . -delete` is itself caught by the hook under test.
+# Cases live in data files rather than inline in this script, because a heredoc
+# of commands like `find . -delete` is itself caught by the hook under test:
+#
+#   tests/bash-guard-cases.txt     <expected-rc><TAB><command>
+#   tests/protect-files-cases.txt  <expected-rc><TAB><field><TAB><path>
+#
+# No case is ever executed. Each one is passed through `jq --arg` to the hook's
+# stdin, and the hooks only pattern-match their input. --sandbox is the second
+# line of defence: even an accidental evaluation could not write anything.
 #
 # Exit codes from a PreToolUse hook: 0 allows, 2 blocks.
 
@@ -25,15 +39,57 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CASES="$REPO_ROOT/tests/bash-guard-cases.txt"
+PCASES="$REPO_ROOT/tests/protect-files-cases.txt"
 
-case "${1:-}" in
-  --repo) HOOK_DIR="$REPO_ROOT/config/hooks" ;;
-  "")     HOOK_DIR="$HOME/.claude/hooks" ;;
-  *) echo "Usage: $(basename "$0") [--repo]" >&2; exit 1 ;;
-esac
+usage() { echo "Usage: $(basename "$0") [--repo] [--sandbox] [--awk PATH]" >&2; exit 1; }
+
+HOOK_DIR="$HOME/.claude/hooks"; sandbox=0; args=(); awk_bin=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)    HOOK_DIR="$REPO_ROOT/config/hooks"; args+=("$1") ;;
+    --sandbox) sandbox=1 ;;
+    --awk)     [[ $# -ge 2 ]] || usage; awk_bin=$2; awk_set=1; shift ;;
+    --awk=*)   awk_bin=${1#--awk=}; awk_set=1 ;;
+    *) usage ;;
+  esac
+  shift
+done
+
+# Resolve --awk before any sandbox: the sandbox hides $HOME, so a path there
+# must be resolved here and bound back in.
+if [[ -n "${awk_set:-}" ]]; then
+  [[ -n "$awk_bin" ]] || usage
+  awk_bin=$(readlink -f "$awk_bin") && [[ -x "$awk_bin" && -f "$awk_bin" ]] \
+    || { echo "--awk: not an executable: $awk_bin" >&2; exit 1; }
+  args+=(--awk "$awk_bin")
+fi
+
+if [[ $sandbox -eq 1 && -z "${TEST_HOOKS_SANDBOXED:-}" ]]; then
+  command -v bwrap >/dev/null 2>&1 \
+    || { echo "--sandbox needs bwrap, which is not on PATH; refusing to run unsandboxed" >&2; exit 1; }
+  binds=(--ro-bind "$REPO_ROOT" "$REPO_ROOT")
+  [[ -d "$HOME/.claude/hooks" ]] && binds+=(--ro-bind "$HOME/.claude/hooks" "$HOME/.claude/hooks")
+  [[ -n "$awk_bin" ]] && binds+=(--ro-bind "$awk_bin" "$awk_bin")
+  exec bwrap --ro-bind / / --tmpfs "$HOME" "${binds[@]}" \
+    --tmpfs /tmp --dev /dev --proc /proc \
+    --unshare-all --die-with-parent \
+    --setenv HOME "$HOME" --setenv TEST_HOOKS_SANDBOXED 1 \
+    "$REPO_ROOT/bin/test-hooks" "${args[@]}"
+fi
+[[ -n "${TEST_HOOKS_SANDBOXED:-}" ]] && echo "(sandboxed: read-only root, empty \$HOME, no network)"
+
+# Put an `awk` that points at --awk PATH first on PATH. The hooks inherit it.
+if [[ -n "$awk_bin" ]]; then
+  awk_dir=$(mktemp -d) || exit 1
+  trap 'rm -rf "$awk_dir"' EXIT
+  ln -s "$awk_bin" "$awk_dir/awk"
+  PATH="$awk_dir:$PATH"
+fi
+echo "(awk: $(readlink -f "$(command -v awk)"))"
 
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
-[[ -f "$CASES" ]] || { echo "missing case file: $CASES" >&2; exit 1; }
+[[ -f "$CASES" ]]  || { echo "missing case file: $CASES" >&2; exit 1; }
+[[ -f "$PCASES" ]] || { echo "missing case file: $PCASES" >&2; exit 1; }
 
 pass=0; fail=0
 G=$'\033[32m'; R=$'\033[31m'; N=$'\033[0m'
@@ -49,10 +105,12 @@ report() { # report <ok?> <want> <got> <label>
 
 # ------------------------------------------------------------- bash-guard.sh
 GUARD="$HOOK_DIR/bash-guard.sh"
-if [[ -x "$GUARD" || -f "$GUARD" ]]; then
+if [[ -f "$GUARD" ]]; then
   while IFS=$'\t' read -r want cmd; do
     [[ -z "${want:-}" || "$want" == \#* ]] && continue
-    got=$(printf '{"tool_input":{"command":%s}}' "$(jq -Rn --arg c "$cmd" '$c')" \
+    # @USER@ stands for your login name, for the `~name` tilde form.
+    cmd="${cmd//@USER@/${USER:-$(id -un)}}"
+    got=$(jq -cn --arg c "$cmd" '{tool_input:{command:$c}}' \
             | bash "$GUARD" >/dev/null 2>&1; echo $?)
     report "" "$want" "$got" "$cmd"
   done < "$CASES"
@@ -62,16 +120,15 @@ fi
 
 # ---------------------------------------------------------- protect-files.sh
 PROTECT="$HOOK_DIR/protect-files.sh"
-prot() {
-  printf '{"tool_input":{"file_path":%s}}' "$(jq -Rn --arg c "$1" '$c')" \
-    | bash "$PROTECT" >/dev/null 2>&1; echo $?
-}
 if [[ -f "$PROTECT" ]]; then
-  report "" 2 "$(prot /home/x/proj/.env)"             "protect .env"
-  report "" 2 "$(prot /home/x/proj/package-lock.json)" "protect package-lock.json"
-  report "" 2 "$(prot /home/x/proj/.git/config)"       "protect .git/config"
-  report "" 0 "$(prot /home/x/proj/src/main.py)"       "allow src/main.py"
-  report "" 0 "$(prot /home/x/proj/README.md)"         "allow README.md"
+  while IFS=$'\t' read -r want field path; do
+    [[ -z "${want:-}" || "$want" == \#* ]] && continue
+    # The tools send absolute paths; a leading ~ in the table stands for $HOME.
+    path="${path/#\~/$HOME}"
+    got=$(jq -cn --arg f "$field" --arg p "$path" '{tool_input:{($f):$p}}' \
+            | bash "$PROTECT" >/dev/null 2>&1; echo $?)
+    report "" "$want" "$got" "protect-files $field=$path"
+  done < "$PCASES"
 else
   echo "  ${R}FAIL${N} protect-files.sh not found at $PROTECT"; fail=$((fail + 1))
 fi
@@ -106,7 +163,10 @@ if [[ -f "$RTKW" ]]; then
     got=$(rtkw "" /usr/bin:/bin | jq -r '.hookSpecificOutput.updatedInput.command // empty')
     report "" "rtk grep x y" "$got" "rtk-rewrite: rewrites with no mode"
   else
-    echo "  ${R}FAIL${N} rtk not found at ~/.local/bin/rtk"; fail=$((fail + 1))
+    # Under --sandbox ($HOME is empty) and in CI there is no rtk. The wrapper
+    # must then pass the call through untouched rather than fail it.
+    report "" "" "$(rtkw default /usr/bin:/bin)" "rtk-rewrite: passes through without rtk"
+    echo "  (no ~/.local/bin/rtk: the default-mode rewrite itself was not checked)"
   fi
 else
   echo "  ${R}FAIL${N} rtk-rewrite.sh not found at $RTKW"; fail=$((fail + 1))

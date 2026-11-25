@@ -6,7 +6,7 @@ description: User has completed or planned a statistical analysis and wants to s
   up results, needs a notebook template for a statistical analysis, or wants to turn
   plan-analysis model hierarchy output into a reportable format. Also invoke when the
   user asks for an analysis notebook, report script, or structured write-up.
-argument-hint: [analysis type or title]
+argument-hint: '[analysis type or title]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write

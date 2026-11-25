@@ -1,7 +1,7 @@
 ---
 name: gen-data-dict
 description: User has a merged or analysis-ready tabular file and wants to generate a BIDS-style JSON data dictionary that annotates every variable. Use this skill whenever the user asks to document, annotate, or describe the variables in a dataframe or TSV/CSV file, wants to create a data dictionary or codebook, or needs BIDS-compliant variable metadata for a merged dataset.
-argument-hint: [path/to/merged.tsv]
+argument-hint: '[path/to/merged.tsv]'
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Write
