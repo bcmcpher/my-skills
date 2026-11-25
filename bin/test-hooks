@@ -88,6 +88,30 @@ else
   echo "  ${R}FAIL${N} graph-update.sh not found at $GRAPH"; fail=$((fail + 1))
 fi
 
+# ------------------------------------------------------------- rtk-rewrite.sh
+# Silent in auto mode (a rewrite there gets the call refused), the rtk rewrite
+# otherwise, under the minimal PATH a hook can be started with.
+RTKW="$HOOK_DIR/rtk-rewrite.sh"
+rtkw() { # rtkw <mode or ""> <PATH>
+  local mode=""; [[ -n "$1" ]] && mode=",\"permission_mode\":\"$1\""
+  printf '{"tool_name":"Bash","tool_input":{"command":"grep x y"}%s}' "$mode" \
+    | env -i HOME="$HOME" PATH="$2" /bin/bash "$RTKW" 2>/dev/null
+}
+if [[ -f "$RTKW" ]]; then
+  report "" "" "$(rtkw auto /usr/bin:/bin)" "rtk-rewrite: silent in auto mode"
+  report "" "" "$(rtkw auto /nonexistent)" "rtk-rewrite: silent in auto mode without jq"
+  if [[ -x "$HOME/.local/bin/rtk" ]]; then
+    got=$(rtkw default /usr/bin:/bin | jq -r '.hookSpecificOutput.updatedInput.command // empty')
+    report "" "rtk grep x y" "$got" "rtk-rewrite: rewrites in default mode"
+    got=$(rtkw "" /usr/bin:/bin | jq -r '.hookSpecificOutput.updatedInput.command // empty')
+    report "" "rtk grep x y" "$got" "rtk-rewrite: rewrites with no mode"
+  else
+    echo "  ${R}FAIL${N} rtk not found at ~/.local/bin/rtk"; fail=$((fail + 1))
+  fi
+else
+  echo "  ${R}FAIL${N} rtk-rewrite.sh not found at $RTKW"; fail=$((fail + 1))
+fi
+
 if [[ $fail -eq 0 ]]; then
   printf '%s%s passed%s\n' "$G" "$pass" "$N"
 else

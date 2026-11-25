@@ -26,4 +26,8 @@ which rtk             # Verify correct binary
 All other commands are automatically rewritten by the Claude Code hook.
 Example: `git status` → `rtk git status` (transparent, 0 tokens overhead)
 
+**In auto mode the hook does not rewrite** (`~/.claude/hooks/rtk-rewrite.sh`; a rewrite
+after the classifier's review gets the call refused). Prefix commands with `rtk` yourself
+there: `rtk grep`, `rtk ls`, `rtk git status`, `rtk read` for `cat`.
+
 Refer to CLAUDE.md for full command reference.

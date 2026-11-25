@@ -16,6 +16,14 @@ bin/test-hooks         && echo OK   # want: OK, and no FAIL lines
 bin/test-hooks --repo  && echo OK   # want: OK, and no FAIL lines
 bin/rebuild-tools --check           # want: All good.
 
+# rtk: wired through the auto-mode wrapper, which skips auto and rewrites otherwise
+rtk --version                                                                    # want: rtk 1.2.1+
+jq -r '.hooks.PreToolUse[].hooks[].command' ~/.claude/settings.json | grep -c rtk-rewrite   # want: 1
+j='{"tool_name":"Bash","tool_input":{"command":"grep x y"},"permission_mode":"MODE"}'
+echo "${j/MODE/auto}"    | env -i HOME="$HOME" PATH=/usr/bin:/bin ~/.claude/hooks/rtk-rewrite.sh | wc -c   # want: 0
+echo "${j/MODE/default}" | env -i HOME="$HOME" PATH=/usr/bin:/bin ~/.claude/hooks/rtk-rewrite.sh \
+  | jq -r '.hookSpecificOutput.updatedInput.command'                             # want: rtk grep x y
+
 # rm moved deny -> ask
 jq -r '[.permissions.deny[]|select(test("rm"))]|length' ~/.claude/settings.json   # want: 0
 jq -r '[.permissions.ask[]|select(test("rm "))]|length' ~/.claude/settings.json   # want: 2 (rm, rtk rm)
@@ -46,6 +54,7 @@ env -i PATH="$HOME/.claude-lsp-tools/bin:/usr/bin:/bin" HOME="$HOME" \
 
 | Check | Expected |
 |---|---|
+| In auto mode, have a subagent `grep` the repo | runs; **no** "a hook changed this call's input" refusal |
 | `rm -rf ./some-scratch-dir` | **prompts** (used to be a hard deny) |
 | `rm -rf ~` | **blocked** by bash-guard, names the target |
 | `rm -rf /tmp/foo` | **prompts, not blocked** — the false-positive case that matters most |

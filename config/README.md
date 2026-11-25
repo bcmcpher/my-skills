@@ -20,7 +20,8 @@ After changing anything here, work through [`VERIFY.md`](VERIFY.md) in a fresh s
 | `statusline-command.sh` | `~/.claude/statusline-command.sh` | Status line; referenced by the `statusLine` block in `settings.json` |
 | `hooks/protect-files.sh` | `~/.claude/hooks/protect-files.sh` | PreToolUse guard — blocks edits to protected files |
 | `hooks/bash-guard.sh` | `~/.claude/hooks/bash-guard.sh` | PreToolUse guard — blocks what the permission globs cannot express |
-| `hooks/notify.sh` | `~/.claude/hooks/notify.sh` | Notification hook — desktop alert when a prompt is waiting |
+| `hooks/rtk-rewrite.sh` | `~/.claude/hooks/rtk-rewrite.sh` | PreToolUse wrapper — runs `rtk hook claude`, except in auto mode; see "rtk and auto mode" |
+| `hooks/graph-update.sh` | `~/.claude/hooks/graph-update.sh` | PostToolUse / SessionStart / SessionEnd — the code-graph gate; see "Per-repo opt-in for code graphs" |
 | `xdg/openspec/config.json` | `~/.config/openspec/config.json` | openspec profile + telemetry opt-out |
 | `xdg/caveman/config.json` | `~/.config/caveman/config.json` | caveman default mode |
 | `skills/youtube-transcript/SKILL.md` | `~/.claude/skills/youtube-transcript/SKILL.md` | Hand-written global skill — pulls YouTube captions via `yt-dlp` |
@@ -92,7 +93,7 @@ per-language environments, deliberately kept off any project environment:
 
 | Tool | Home | Used by |
 |---|---|---|
-| `rtk` | `~/.local/bin` | PreToolUse Bash hook |
+| `rtk` | `~/.local/bin` (release binary, installed by hand; 1.2.1 since 2026-11-25) | PreToolUse Bash hook, through `hooks/rtk-rewrite.sh` |
 | `code-review-graph` | `~/.claude-lsp-tools` (venv) | PostToolUse / SessionStart / SessionEnd, via `graph-update.sh` |
 | `igraph` (library, not a binary) | `~/.claude-lsp-tools` (venv) | `code-review-graph communities` — Leiden, instead of the directory-grouping fallback |
 | `pyright` | `~/.claude-lsp-tools` (venv) | `pyright-lsp` plugin, per-project |
@@ -221,6 +222,44 @@ Upstream's alternative is `code-review-graph install` run per repo. It writes
 pre-commit hook into the worktree — all committed, and all referencing `~/.claude-lsp-tools`
 paths that exist only on this machine.
 
+## rtk and auto mode
+
+`rtk hook claude` saves tokens by rewriting a command, for example `grep -n x f` into
+`rtk grep -n x f`. It returns the new command as `updatedInput`. In auto mode this breaks:
+
+1. The server-side classifier reviews the command the model wrote, before any hook runs.
+2. The hook then changes the command.
+3. Claude Code does not trust a review of a command that has changed since. It refuses the call
+   ("a hook changed this call's input after auto mode reviewed it"), or sends it to a slower,
+   billed local classifier, which can deny a read-only call.
+
+Subagents suffer most, because a refused call leaves them unable to search. The upstream reports
+are rtk-ai/rtk#4627 and anthropics/claude-code#102469, both open on 2026-11-25. No rtk release
+up to 1.2.1 has a way to skip auto mode, so upgrading rtk does not fix this.
+
+`hooks/rtk-rewrite.sh` is the workaround from the #4627 thread. It reads `permission_mode` from
+the hook input:
+
+- `"auto"`: it prints nothing, so the command runs as written.
+- Anything else, or no mode: it runs `rtk hook claude` as before.
+
+In auto mode the model types the `rtk` prefix itself, as `RTK.md` tells it to. The classifier then
+reviews the real command, and the savings stay. To check the wrapper:
+
+```bash
+j='{"tool_name":"Bash","tool_input":{"command":"grep x y"},"permission_mode":"MODE"}'
+echo "${j/MODE/auto}"    | ~/.claude/hooks/rtk-rewrite.sh   # want: no output
+echo "${j/MODE/default}" | ~/.claude/hooks/rtk-rewrite.sh   # want: "rtk grep x y" in updatedInput
+```
+
+Remove the wrapper when rtk can skip auto mode itself, or when Claude Code reviews hook-rewritten
+input. Then point the hook command back at `rtk hook claude`.
+
+rtk is not in `config/tools/`. To upgrade it, download the
+`rtk-x86_64-unknown-linux-musl.tar.gz` release asset and `checksums.txt` with
+`gh release download <tag> -R rtk-ai/rtk`, check them with `sha256sum -c`, and install the binary
+into `~/.local/bin`. Keep the old binary until the hook check above passes.
+
 ## `rm` is gated, not denied
 
 `rm -rf *` and `rm -f *` used to sit in `deny`. They were removed. Two reasons:
@@ -259,7 +298,9 @@ credential directories.
 2. Wire it in `config/settings.json` under `hooks.PreToolUse` or `hooks.PostToolUse`
 3. Add cases to `tests/bash-guard-cases.txt` — a command it must block, and a similar one it
    must let through — and run `bin/test-hooks`
-4. Run `bin/sync-config push` to apply
+4. Apply it live by hand: `cp` the script into `~/.claude/hooks/`, and make the same
+   `settings.json` edit there. On an established machine, do not use `bin/sync-config push`
+   (see "Sync workflow").
 
 Both regressions these hooks have had were false positives on the **allow** side, so the
 let-through case matters at least as much as the block case:
