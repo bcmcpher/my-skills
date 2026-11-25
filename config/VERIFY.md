@@ -20,8 +20,8 @@ bin/rebuild-tools --check           # want: All good.
 rtk --version                                                                    # want: rtk 1.2.1+
 jq -r '.hooks.PreToolUse[].hooks[].command' ~/.claude/settings.json | grep -c rtk-rewrite   # want: 1
 j='{"tool_name":"Bash","tool_input":{"command":"grep x y"},"permission_mode":"MODE"}'
-echo "${j/MODE/auto}"    | env -i PATH="$HOME/.local/bin:/usr/bin:/bin" ~/.claude/hooks/rtk-rewrite.sh | wc -c   # want: 0
-echo "${j/MODE/default}" | env -i PATH="$HOME/.local/bin:/usr/bin:/bin" ~/.claude/hooks/rtk-rewrite.sh \
+echo "${j/MODE/auto}"    | env -i HOME="$HOME" PATH=/usr/bin:/bin ~/.claude/hooks/rtk-rewrite.sh | wc -c   # want: 0
+echo "${j/MODE/default}" | env -i HOME="$HOME" PATH=/usr/bin:/bin ~/.claude/hooks/rtk-rewrite.sh \
   | jq -r '.hookSpecificOutput.updatedInput.command'                             # want: rtk grep x y
 
 # rm moved deny -> ask

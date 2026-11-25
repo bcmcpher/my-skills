@@ -11,14 +11,26 @@
 # (RTK.md says to), which the server then reviews as written. Every other mode gets
 # the normal rewrite.
 #
-# Remove this wrapper, and call `rtk hook claude` directly again, once rtk can skip
+# The mode is read without jq where jq is missing: a failed read must not fall through
+# to the rewrite, which would bring the refusals back with nothing to say why.
+#
+# Remove this wrapper, and call rtk hook claude directly again, once rtk can skip
 # auto mode itself or Claude Code reviews hook-rewritten input.
 
-input=$(cat)
+RTK="$HOME/.local/bin/rtk"
 
-mode=$(jq -r '.permission_mode // empty' <<<"$input" 2>/dev/null)
-if [[ "$mode" == "auto" ]]; then
+IFS= read -r -d '' input || true   # a builtin, so no PATH lookup
+
+if command -v jq >/dev/null 2>&1; then
+    mode=$(jq -r '.permission_mode // empty' <<<"$input" 2>/dev/null)
+fi
+auto_re='"permission_mode"[[:space:]]*:[[:space:]]*"auto"'
+if [[ -z "${mode:-}" && "$input" =~ $auto_re ]]; then
+    mode=auto
+fi
+if [[ "${mode:-}" == "auto" ]]; then
     exit 0
 fi
 
-exec rtk hook claude <<<"$input"
+[[ -x "$RTK" ]] || exit 0
+exec "$RTK" hook claude <<<"$input"
