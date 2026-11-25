@@ -154,7 +154,7 @@
           },
           {
             "type": "command",
-            "command": "rtk hook claude"
+            "command": "~/.claude/hooks/rtk-rewrite.sh"
           }
         ]
       }
